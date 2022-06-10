@@ -1,0 +1,23 @@
+test True
+epochs 10
+embedding_size 32
+
+gated_hidden_size 128 128
+gated_graph_norm 0
+gated_batch_norm 0
+gated_activation ReLU
+gated_dropout 0.5
+gated_layers 2
+
+num_lstm_iters 8
+num_lstm_layers 5
+
+fc_hidden_size 128 64 
+fc_layers 2
+fc_batch_norm 1
+fc_activation ReLU
+fc_dropout 0.5
+
+
+
+   
