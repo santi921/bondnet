@@ -225,3 +225,178 @@ def warn_stdout(message, category, filename, lineno, file=None, line=None):
     see: https://stackoverflow.com/questions/858916/how-to-redirect-python-warnings-to-a-custom-stream
     """
     sys.stdout.write(warnings.formatwarning(message, category, filename, lineno))
+
+
+
+
+def parse_settings(file="./input_files/input_1.txt"):
+
+    # some default values that get written over if in the file
+    test = False
+    restore = False
+    on_gpu = False
+    distributed = False
+    save_hyper_params = './hyper.pkl'
+    epochs = 10
+    start_epoch = 0
+    embedding_size = 24
+    batch_size = 10
+    lr = 0.00001
+    num_gpu = 1
+
+    fc_hidden_size = [128, 64]
+    fc_layers = -1
+    fc_activation = "ReLU"
+    fc_batch_norm = 0
+    fc_dropout = 0.0
+
+    gated_hidden_size = [64, 64, 64]
+    gated_batch_norm = 0
+    gated_graph_norm = 0
+    gated_dropout = 0.0
+    gated_activation = "ReLU"
+    gated_num_fc_layers = 2
+    gated_num_layers = 4
+    gated_residual = False
+
+    num_lstm_layers = 3
+    num_lstm_iters = 5
+
+    with open(file) as f:
+        lines = f.readlines()
+
+        for i in lines:
+            if len(i.split()) > 1:
+
+                if i.split()[0] == "restore":
+                    restore = "True" == i.split()[1]
+                if i.split()[0] == "on_gpu":
+                    on_gpu = "True" == i.split()[1]
+                if i.split()[0] == "test":
+                    test = "True" == i.split()[1]
+                if i.split()[0] == "distributed":
+                    distributed = "True" == i.split()[1]
+                if i.split()[0] == "save_hyper_params":
+                    save_hyper_params = i.split()[1]
+                if i.split()[0] == "num_gpu":
+                    num_gpu = int(i.split()[1])
+
+                if i.split()[0] == "batch_size":
+                    batch_size = int(i.split()[1])
+                if i.split()[0] == "epochs":
+                    epochs = int(i.split()[1])
+                if i.split()[0] == "start_epoch":
+                    start_epoch = int(i.split()[1])
+                if i.split()[0] == "embedding_size":
+                    embedding_size = int(i.split()[1])
+                if i.split()[0] == "lr":
+                    lr = float(i.split()[1])
+                if i.split()[0] == "weight_decay":
+                    weight_decay = float(i.split()[1])
+
+                if i.split()[0] == "gated_hidden_size":
+                    gated_hidden_size = [int(j) for j in i.split()[1:]]
+                if i.split()[0] == "gated_dropout":
+                    gated_dropout = float(i.split()[1])
+                if i.split()[0] == "gated_graph_norm":
+                    gated_graph_norm = int(i.split()[1])
+                if i.split()[0] == "gated_batch_norm":
+                    gated_batch_norm = int(i.split()[1])
+                if i.split()[0] == "gated_activation":
+                    gated_activation = str(i.split()[1])
+                if i.split()[0] == "gated_num_fc_layers":
+                    gated_num_fc_layers = int(i.split()[1])
+                if i.split()[0] == "gated_residual":
+                    gated_residual = "True" == i.split()[1]
+                if i.split()[0] == "gated_num_layers":
+                    gated_num_layers = int(i.split()[1])
+
+                if i.split()[0] == "fc_hidden_size":
+                    fc_hidden_size = [int(j) for j in i.split()[1:]]
+                if i.split()[0] == "fc_layers":
+                    fc_layers = int(i.split()[1])
+                if i.split()[0] == "fc_activation":
+                    fc_activation = str(i.split()[1])
+                if i.split()[0] == "fc_batch_norm":
+                    fc_batch_norm = int(i.split()[1])
+                if i.split()[0] == "fc_dropout":
+                    fc_dropout = float(i.split()[1])
+
+                if i.split()[0] == "num_lstm_iters":
+                    num_lstm_iters = int(i.split()[1])
+                if i.split()[0] == "num_lstm_layers":
+                    num_lstm_layers = int(i.split()[1])
+
+        if gated_num_layers == -1:
+            gated_num_layers = len(gated_hidden_size)
+        if fc_layers == -1:
+            fc_layers = len(fc_hidden_size)
+
+        print("using the following settings:")
+        print("--" * 20)
+        print("restore: " + str(restore))
+        print("distributed: " + str(distributed))
+        print("batch size: " + str(batch_size))
+        print("on gpu: " + str(on_gpu))
+        print("num gpu: " + str(num_gpu))
+        print("hyperparam save file: " + str(save_hyper_params))
+
+        print("Small Dataset?: " + str(test))
+        print("epochs: {:1d}".format(epochs))
+        print("embedding size: {:1d}".format(embedding_size))
+        print("lr: {:7f}".format(lr))
+        print("weight decay: {:.3f}".format(weight_decay))
+
+        print("fc layers: {:1d}".format(fc_layers))
+        print("fc hidden layer: " + str(fc_hidden_size))
+        print("fc activation: " + str(fc_activation))
+        print("fc batch norm: " + str(fc_batch_norm))
+        print("fc dropout: {:.2f}".format(fc_dropout))
+
+        print("gated layers: {:1d}".format(gated_num_layers))
+        print("gated hidden layers: " + str(gated_hidden_size))
+        print("gated activation: " + str(gated_activation))
+        print("gated dropout: {:.2f}".format(gated_dropout))
+        print("gated batch norm: " + str(gated_batch_norm))
+        print("gated graph norm: " + str(gated_graph_norm))
+        print("gated fc layers: " + str(gated_num_fc_layers))
+        print("gated resid: " + str(gated_residual))
+
+        print("num lstm iters: " + str(num_lstm_iters))
+        print("num lstm layer: " + str(num_lstm_layers))
+        print("--" * 20)
+
+        dict_ret = {}
+        dict_ret["test"] = test
+        dict_ret["on_gpu"] = on_gpu
+        dict_ret["num_gpu"] = num_gpu
+        dict_ret["epochs"] = epochs
+        dict_ret["distributed"] = distributed
+        dict_ret["save_hyper_params"] = save_hyper_params
+
+        dict_ret["start_epoch"] = start_epoch
+        dict_ret["embedding_size"] = embedding_size
+        dict_ret["batch_size"] = batch_size
+        dict_ret["lr"] = lr
+        dict_ret["weight_decay"] = weight_decay
+        dict_ret["restore"] = restore
+
+        dict_ret["fc_hidden_size"] = fc_hidden_size
+        dict_ret["fc_layers"] = fc_layers
+        dict_ret["fc_dropout"] = fc_dropout
+        dict_ret["fc_batch_norm"] = fc_batch_norm
+        dict_ret["fc_activation"] = fc_activation
+
+        dict_ret["gated_hidden_size"] = gated_hidden_size
+        dict_ret["gated_activation"] = gated_activation
+        dict_ret["gated_graph_norm"] = gated_graph_norm
+        dict_ret["gated_batch_norm"] = gated_batch_norm
+        dict_ret["gated_dropout"] = gated_dropout
+        dict_ret["gated_num_fc_layers"] = gated_num_fc_layers
+        dict_ret["gated_num_layers"] = gated_num_layers
+        dict_ret["gated_residual"] = gated_residual
+
+        dict_ret["num_lstm_iters"] = num_lstm_iters
+        dict_ret["num_lstm_layers"] = num_lstm_layers
+
+        return dict_ret
