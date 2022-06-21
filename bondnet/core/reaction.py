@@ -87,6 +87,7 @@ class Reaction:
         Returns:
             tuple: sorted index of broken bond (a 2-tuple of atom index)
         """
+        
         if self._broken_bond is None:
             if len(self.products) == 1:
                 bonds = is_valid_A_to_B_reaction(
@@ -159,6 +160,7 @@ class Reaction:
         # get subgraphs of reactant by breaking the bond
         # if A->B reaction, there is one element in subgraphs
         # if A->B+C reaction, there are two
+        
         bond = self.get_broken_bond()
         original = copy.deepcopy(self.reactants[0].mol_graph)
         original.break_edge(bond[0], bond[1], allow_reverse=True)

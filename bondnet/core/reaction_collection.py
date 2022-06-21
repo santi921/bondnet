@@ -1227,7 +1227,7 @@ class ReactionCollection:
         struct_file="sturct.sdf",
         label_file="label.yaml",
         feature_file=None,
-        group_mode="charge_0",
+        group_mode="all",
         one_per_iso_bond_group=True,
     ):
         """
@@ -1499,8 +1499,10 @@ class ReactionCollection:
 def get_molecules_from_reactions(reactions):
     """Return a list of unique molecules participating in all reactions."""
     mols = set()
+    #mols = []
     for r in reactions:
         mols.update(r.reactants + r.products)
+        #print(len(r.reactants), len(r.products))
     return list(mols)
 
 
