@@ -98,6 +98,8 @@ class Reaction:
                     self.reactants[0], self.products[0], self.products[1], first_only=True
                 )
             if not bonds:
+
+                #print(self.atom_mapping)
                 msg = f"Reaction id: {self.get_id()}. "
                 msg += "Reactants id: "
                 for m in self.reactants:
@@ -455,8 +457,14 @@ class ReactionsGroup:
         """
         if isinstance(reactions, Iterable):
             for rxn in reactions:
-                self._add_one(rxn)
+                try:
+                    self._add_one(rxn)
+                    print("succ rxn")
+
+                except:
+                    print("failed rxn")
         else:
+            
             self._add_one(reactions)
 
     def _add_one(self, rxn):
@@ -632,10 +640,17 @@ class ReactionsMultiplePerBond(ReactionsGroup):
         # doing this instead of looping over self.reactions ensures bonds without
         # reactions are correctly represented
         bond_rxns_dict = {b: [] for b in self.reactant.bonds}
-
+ 
         # assign rxn to bond group
         for rxn in self.reactions:
-            bond_rxns_dict[rxn.get_broken_bond()].append(rxn)
+            # i'm going to assume that if this index isn't here but
+            # is in evan's db's that it's a mismatch in bond labelling 
+            # between rdkit and us
+            if(rxn.get_broken_bond() in bond_rxns_dict):
+                bond_rxns_dict[rxn.get_broken_bond()].append(rxn)
+            else: 
+                bond_rxns_dict[rxn.get_broken_bond()] = []
+                bond_rxns_dict[rxn.get_broken_bond()].append(rxn)
 
         # remove duplicate isomorphic bonds
         if find_one:

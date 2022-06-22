@@ -381,6 +381,7 @@ class ReactionCollection:
         for rxn in self.reactions:
             reactant = rxn.reactants[0]
             grouped_reactions[reactant].append(rxn)
+        print("grouped reaction by reactant: "+ str(len(grouped_reactions)))
         return grouped_reactions
 
     def group_by_reactant_charge_0(self):
@@ -402,18 +403,18 @@ class ReactionCollection:
             zero_charge_rxns = []
             for rxn in groups[reactant]:
                 zero_charge = True
-                for m in rxn.reactants + rxn.products:
-                    if m.charge != 0:
-                        zero_charge = False
-                        break
+                #for m in rxn.reactants + rxn.products:
+                #    #if m.charge != 0:
+                #    #    zero_charge = False
+                #    #    break
                 if zero_charge:
                     zero_charge_rxns.append(rxn)
-
             # add to new group only when at least has one reaction
             if zero_charge_rxns:
                 ropb = ReactionsOnePerBond(reactant, zero_charge_rxns)
                 new_groups.append(ropb)
-
+        print("zero charge groups" + str(len(zero_charge_rxns)))
+        print("new groups" + str(len(new_groups)))
         return new_groups
 
     def group_by_reactant_lowest_energy(self):
@@ -431,6 +432,7 @@ class ReactionCollection:
         """
 
         groups = self.group_by_reactant()
+        print("groups by reactant" + str(len(groups)))
 
         new_groups = []
         for reactant in groups:
@@ -439,6 +441,7 @@ class ReactionCollection:
             lowest_energy_reaction = dict()
             for rxn in groups[reactant]:
                 bond = rxn.get_broken_bond()
+                print(bond)
                 if bond not in lowest_energy_reaction:
                     lowest_energy_reaction[bond] = rxn
                 else:
@@ -449,7 +452,7 @@ class ReactionCollection:
 
             ropb = ReactionsOnePerBond(reactant, lowest_energy_reaction.keys())
             new_groups.append(ropb)
-
+        #print("reactants groups again or whatever" + str(len(new_groups)))
         return new_groups
 
     def group_by_reactant_all(self):
@@ -1227,14 +1230,14 @@ class ReactionCollection:
         struct_file="sturct.sdf",
         label_file="label.yaml",
         feature_file=None,
-        group_mode="all",
-        one_per_iso_bond_group=True,
+        group_mode="charge_0",
+        one_per_iso_bond_group=False,
     ):
         """
         Write the reactions to files.
 
         Also, this is based on the bond energy, i.e. each bond (that we have energies)
-        will have one line in the label file.
+        for will have one line in the label file.
 
         args:
             struct_file (str): filename of the sdf structure file
@@ -1281,7 +1284,9 @@ class ReactionCollection:
         all_rxns = []
         broken_bond_idx = []
         broken_bond_pairs = []
+
         for grp in grouped_rxns:
+            
             reactant = grp.reactant
 
             ordered_rxns = grp.order_reactions(
@@ -1306,7 +1311,6 @@ class ReactionCollection:
                 broken_bond_pairs.append(bond)
 
         all_reactants = [rxn.reactants[0] for rxn in all_rxns]
-
         # write label
         labels = get_labels(all_rxns, broken_bond_idx)
         yaml_dump(labels, label_file)
@@ -1410,6 +1414,8 @@ class ReactionCollection:
         create_directory(filename)
         with open(to_path(filename), "w") as f:
             for i, m in enumerate(molecules):
+                
+                #else: charge = m.charge
                 name = "{}_{}_{}_{}_index-{}".format(
                     m.id, m.formula, m.charge, m.free_energy, i
                 )

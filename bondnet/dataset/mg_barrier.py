@@ -61,6 +61,7 @@ def process_species(row):
     G.add_nodes_from([int(i) for i in range(num_nodes)])
     for i in row["product_bonds"]: G.add_edge(i[0], i[1])
     sub_graphs = [G.subgraph(c) for c in nx.connected_components(G)]
+    id = str(row["product_id"])
 
     # still no handling for rxns A --> B + C +....
     if(len(sub_graphs) > 2): pass
@@ -76,16 +77,13 @@ def process_species(row):
                     bond_orig = nodes.index(origin_bond_ind[0])
                     bond_targ = nodes.index(origin_bond_ind[1])
                     bond_reindex_list.append([bond_orig, bond_targ])
+
             species_products = []
             coords_products = []
-
             for site in nodes:
                 species_products.append(int_atom(row['product_molecule_graph']["molecule"]["sites"][site]["name"]))
                 coords_products.append(row['product_molecule_graph']["molecule"]["sites"][site]["xyz"])
-                #species_products.append(int_atom(i['name'])) for i in 
-                #[i["xyz"] for i in row['product_molecule_graph']["molecule"]["sites"]]
-            #species_products = [int_atom(i['name']) for i in row['product_molecule_graph']["molecule"]["sites"]]
-            #coords_products = [i["xyz"] for i in row['product_molecule_graph']["molecule"]["sites"]]
+            
             mol = xyz2mol(atoms = species_products, 
                 coordinates = coords_products, 
                 charge = charge,
@@ -114,15 +112,22 @@ def process_species(row):
     if(fail == 0 and product_list != [] and reactant_list != 0):
         id = [i for i in row["reaction_id"].split("-")]
         id = int(id[0] + id[1] + id[2])
+        broken_bond = None
+
+        if(row["bonds_broken"] != []):
+            broken_bond = row['bonds_broken'][0]
             
+        #if(row["bonds_formed"] != [] and broken_bond == None):
+        #    broken_bond = row['bonds_formed'][0]
+        
         rxn = Reaction(
             reactants = reactant_list, 
             products=product_list, 
             free_energy= row["dE_barrier"],
-            broken_bond = None,
+            broken_bond = broken_bond,
             identifier = id
             )
-    print(rxn)
+    
     return rxn
 
 def create_struct_label_dataset_bond_based_regression(filename, out_file):
@@ -136,47 +141,22 @@ def create_struct_label_dataset_bond_based_regression(filename, out_file):
     path_mg_data = "/home/santiagovargas/Documents/Dataset/mg_dataset/"
     path_json = path_mg_data + "20220613_reaction_data.json"
     mg_df = pd.read_json(path_json)
-
-    error = 0 
-    rdkit_failure = 0 
-    single_product_count = 0 
-    two_product_count = 0
-    three_prouct_count = 0
-    no_bond_delta = 0 
-    failed_wrapper_reactant = 0
     reactions = []
-    # reaction class can handle no id -- try that??
-    for index, row in tqdm(mg_df.head(100).iterrows()):
+    for index, row in tqdm(mg_df.iterrows()):
+        #for index, row in tqdm(mg_df.head(300).iterrows()):
         rxn = process_species(row)
         if(not isinstance(rxn, list)):
             reactions.append(rxn)
-        
+
     print("number of rxns counted: "+str(len(reactions)))
-    molecules = get_molecules_from_reactions(reactions)
-    print(len(molecules))
+    #molecules = get_molecules_from_reactions(reactions)
     extractor = ReactionCollection(reactions)
 
-    #atom_mp, bond_mp = get_atom_bond_mapping(extractor)
-    #failed, succ = 0, 0
-    #for i in reactions: 
-    #    try:
-    #        i.get_broken_bond()
-    #        succ+=1
-    #    except:
-    #        failed += 1
-    #print("failed: \t" + str(failed))
-    #print("success: \t" + str(succ))
-
-    extractor.create_regression_dataset_reaction_network_simple(
+    extractor.create_struct_label_dataset_bond_based_regression(
         struct_file=path_mg_data + "mg_struct_bond_rgrn.sdf",
         label_file=path_mg_data + "mg_label_bond_rgrn.yaml",
         feature_file=path_mg_data + "mg_feature_bond_rgrn.yaml",
     )
-    #extractor.create_struct_label_dataset_bond_based_regression(
-    #    struct_file=path_mg_data + "mg_struct_bond_rgrn.sdf",
-    #    label_file=path_mg_data + "mg_label_bond_rgrn.yaml",
-    #    feature_file=path_mg_data + "mg_feature_bond_rgrn.yaml",
-    #)
 
         
 if __name__ == "__main__":

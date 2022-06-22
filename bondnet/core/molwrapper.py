@@ -443,7 +443,6 @@ class MoleculeWrapper:
     def __str__(self):
         return self.__expr__()
 
-
 def create_wrapper_mol_from_atoms_and_bonds(
     species, coords, bonds, charge=0, free_energy=None, identifier=None
 ):

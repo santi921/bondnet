@@ -765,7 +765,7 @@ def BO2mol(
     atomic_valence_electrons,
     mol_charge,
     allow_charged_fragments=True,
-    use_atom_maps=False,
+    use_atom_maps=True,
 ):
     """
     based on code written by Paolo Toscani
@@ -836,6 +836,7 @@ def set_atomic_charges(
     BO_matrix,
     mol_charge,
     use_atom_maps,
+    metals = False
 ):
     """
     """
@@ -854,7 +855,16 @@ def set_atomic_charges(
             if number_of_single_bonds_to_C == 3 and q + 1 < mol_charge:
                 q += 2
                 charge = 1
-
+        if(metals == True):
+            if atom == 12:
+                number_of_single_bonds_to_Mg = list(BO_matrix[i, :]).count(1)
+                if number_of_single_bonds_to_Mg == 5: 
+                    charge = 1
+                else: 
+                    charge = 2
+            if atom == 3:
+                    charge = 1
+        
         if abs(charge) > 0:
             a.SetFormalCharge(int(charge))
 
@@ -1027,8 +1037,8 @@ def AC2mol(
     atoms,
     charge,
     allow_charged_fragments=True,
-    use_graph=False,
-    use_atom_maps=False,
+    use_graph=True,
+    use_atom_maps=True,
 ):
     """
     """
@@ -1236,10 +1246,10 @@ def xyz2mol(
     coordinates,
     charge=0,
     allow_charged_fragments=True,
-    use_graph=False,
+    use_graph=True,
     use_huckel=False,
     embed_chiral=False,
-    use_atom_maps=False,
+    use_atom_maps=True,
 ):
     """
     Generate a rdkit molobj from atoms, coordinates and a total_charge.
@@ -1278,5 +1288,5 @@ def xyz2mol(
             chiral_stereo_check(new_mol)
     if fail:
         return []
-
+    
     return new_mols
