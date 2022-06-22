@@ -1,9 +1,12 @@
 import logging
+import time
 import multiprocessing
+from multiprocessing import pool
 import networkx as nx 
 import pandas as pd
 from io import StringIO
 import sys
+from multiprocessing import Pool
 from rdkit import Chem
 Chem.WrapLogs()
 from tqdm import tqdm
@@ -142,12 +145,29 @@ def create_struct_label_dataset_bond_based_regression(filename, out_file):
     path_json = path_mg_data + "20220613_reaction_data.json"
     mg_df = pd.read_json(path_json)
     reactions = []
-    for index, row in tqdm(mg_df.iterrows()):
-        #for index, row in tqdm(mg_df.head(300).iterrows()):
-        rxn = process_species(row)
-        if(not isinstance(rxn, list)):
-            reactions.append(rxn)
+    #for index, row in tqdm(mg_df.iterrows()):
+    #for index, row in tqdm(mg_df.head(1000).iterrows()):
+    #    rxn = process_species(row)
+    #    if(not isinstance(rxn, list)):
+    #        reactions.append(rxn)
+    #mg_df.head(1000).iterrows()
+    
+    #with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
+    #    rxn_raw = p.map(process_species, mg_df.head(100).iterrows())
+    
+    pool = multiprocessing.Pool(8)
+    start_time = time.perf_counter()
+    processes = [pool.apply_async(process_species, args=(row,)) for _,row in mg_df.head(100).iterrows()]
+    rxn_raw = [p.get() for p in processes]
+    finish_time = time.perf_counter()
+    print(f"Program finished in {finish_time-start_time} seconds")
+    
+    for rxn_temp in rxn_raw:
+        if(not isinstance(rxn_temp, list)):
+            reactions.append(rxn_temp)
 
+
+    
     print("number of rxns counted: "+str(len(reactions)))
     #molecules = get_molecules_from_reactions(reactions)
     extractor = ReactionCollection(reactions)

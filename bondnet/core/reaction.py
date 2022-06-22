@@ -459,7 +459,7 @@ class ReactionsGroup:
             for rxn in reactions:
                 try:
                     self._add_one(rxn)
-                    print("succ rxn")
+                    #print("succ rxn")
 
                 except:
                     print("failed rxn")
