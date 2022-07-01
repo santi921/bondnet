@@ -202,6 +202,9 @@ class Reaction:
     def set_atom_mapping(self, mapping):
         self._atom_mapping = mapping
 
+    def set_bond_mapping_by_sdf_int_index(self, mapping):
+        self._bond_mapping_by_sdf_int_index = mapping 
+
     def bond_mapping_by_int_index(self):
         r"""
         Find the bond mapping between products and reactant, using a single index (the
@@ -344,12 +347,12 @@ class Reaction:
             list (dict): each dict is the mapping for one product, from sdf bond index
                 of product to sdf bond index of reactant
         """
-
+        
         if self._bond_mapping_by_sdf_int_index is not None:
             return self._bond_mapping_by_sdf_int_index
 
         reactant = self.reactants[0]
-
+        
         # reactant sdf bond index (tuple) to sdf bond index (integer)
         reactant_index_tuple2int = {
             b: i for i, b in enumerate(reactant.get_sdf_bond_indices(zero_based=True))
@@ -357,11 +360,15 @@ class Reaction:
 
         # bond mapping between product sdf and reactant sdf
         bond_mapping = []
-        product_to_reactant_mapping = self.bond_mapping_by_tuple_index()
+        
+        product_to_reactant_mapping = self.bond_mapping_by_tuple_index() # fail point
+
+
         for p, p2r in zip(self.products, product_to_reactant_mapping):
 
             mp = {}
             # product sdf bond index (list of tuple)
+            
             psb = p.get_sdf_bond_indices(zero_based=True)
 
             # ib: product sdf bond index (int)
@@ -370,10 +377,10 @@ class Reaction:
 
                 # reactant graph bond index (tuple)
                 rsbt = p2r[b]
-
+                
                 # reactant sdf bond index (int)
-                rsbi = reactant_index_tuple2int[rsbt]
-
+                rsbi = reactant_index_tuple2int[rsbt] # fail point
+                
                 # product sdf bond index (int) to reactant sdf bond index (int)
                 mp[ib] = rsbi
 
@@ -460,9 +467,9 @@ class ReactionsGroup:
                 try:
                     self._add_one(rxn)
                     #print("succ rxn")
-
                 except:
-                    print("failed rxn")
+                    pass
+                    #print("failed rxn")
         else:
             
             self._add_one(reactions)
@@ -1278,72 +1285,6 @@ def create_reactions_from_reactant(
         reactions.append(rxn)
 
     return reactions, molecules
-
-    #
-    # create fragments by creating the wrapper mol directly from atoms and bonds
-    # as a result, the rdkit_mol attribute of wrapper mol will be created internally
-    #
-
-    # fragments = reactant.fragments[broken_bond]
-    #
-    # nf = len(fragments)
-    # nc = np.asarray(product_charges).shape[1]
-    # assert nf == nc, f"number of fragments ({nf}) not equal to number of charges ({nc})"
-    #
-    # # fragments species, coords, and bonds (the same for products of different charges)
-    # species = []
-    # coords = []
-    # bonds = []
-    # for fg in fragments:
-    #     nodes = fg.graph.nodes.data()
-    #     nodes = sorted(nodes, key=lambda pair: pair[0])
-    #     species.append([v["specie"] for k, v in nodes])
-    #     coords.append([v["coords"] for k, v in nodes])
-    #     edges = fg.graph.edges.data()
-    #     bonds.append([(i, j) for i, j, v in edges])
-    #
-    # # create reactions
-    # mol_reservoir = set(mol_reservoir) if mol_reservoir is not None else None
-    # reactions = []
-    # molecules = []
-    # for charges in product_charges:
-    #
-    #     # create product molecules
-    #     products = []
-    #     for i, c in enumerate(charges):
-    #         # mid needs to be unique
-    #         mid = f"{reactant.id}_{broken_bond[0]}-{broken_bond[1]}_{c}_{i}"
-    #         mol = create_wrapper_mol_from_atoms_and_bonds(
-    #             species[i], coords[i], bonds[i], charge=c, identifier=mid
-    #         )
-    #
-    #         if mol_reservoir is None:
-    #             molecules.append(mol)
-    #         else:
-    #             existing_mol = search_mol_reservoir(mol, mol_reservoir)
-    #
-    #             # not in reservoir
-    #             if existing_mol is None:
-    #                 molecules.append(mol)
-    #                 mol_reservoir.add(mol)
-    #             # in reservoir
-    #             else:
-    #                 mol = existing_mol
-    #
-    #         products.append(mol)
-    #
-    #     str_charges = "-".join([str(c) for c in charges])
-    #     rid = f"{reactant.id}_{broken_bond[0]}-{broken_bond[1]}_{str_charges}"
-    #     rxn = Reaction(
-    #         [reactant],
-    #         products,
-    #         broken_bond=broken_bond,
-    #         free_energy=bond_energy,
-    #         identifier=rid,
-    #     )
-    #     reactions.append(rxn)
-    #
-    # return reactions, molecules
 
 
 def search_mol_reservoir(mol, reservoir):

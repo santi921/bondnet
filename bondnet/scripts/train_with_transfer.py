@@ -38,6 +38,8 @@ from bondnet.utils import (
     yaml_dump,
     parse_settings,
 )
+from bondnet.prediction.load_model import load_dataset, load_model
+
 from torchsummary import summary
 
 
@@ -154,11 +156,13 @@ if __name__ == "__main__":
             "examples/train/reactions.yaml",
         )
     else:
+        path_mg_data = "/home/santiagovargas/Documents/Dataset/mg_dataset/"
+
         # todo
         mols, attrs, labels = read_input_files(
-            "examples/train/molecules_libe.sdf",
-            "examples/train/molecule_attributes_libe.yaml",
-            "examples/train/reactions_libe.yaml",
+            path_mg_data + "molecules_libe.sdf",
+            path_mg_data + "examples/train/molecule_attributes_libe.yaml",
+            path_mg_data + "examples/train/reactions_libe.yaml",
         )
 
         # todo
@@ -170,23 +174,17 @@ if __name__ == "__main__":
 
         print("sheesh")
 
-    dataset = ReactionNetworkDataset(
-        grapher=get_grapher(),
+    model = load_model(dict_ret['model_path'])
+    dataset = load_dataset(
+        dict_ret["model_path"],
         molecules=mols,
         labels=labels,
-        extra_features=attrs,
-        feature_transformer=True,
-        label_transformer=True,
-    )  # might need dataset dict name
+        extra_features=attrs)
     feature_size = dataset.feature_size
 
-    trainset, valset, testset = train_validation_test_split(
-        dataset, validation=0.1, test=0.1
-    )
-
-    train_loader = DataLoaderReactionNetwork(
-        trainset, batch_size=dict_ret["batch_size"]
-    )
+    trainset, valset, testset = train_validation_test_split(dataset, validation=0.1, test=0.1)
+    # we train with a batch size of 100
+    train_loader = DataLoaderReactionNetwork(trainset, batch_size=dict_ret["batch_size"],shuffle=True)
     # larger val and test set batch_size is faster but needs more memory
     # adjust the batch size of to fit memory
     bs = max(len(valset) // 10, 1)
@@ -194,32 +192,14 @@ if __name__ == "__main__":
     bs = max(len(testset) // 10, 1)
     test_loader = DataLoaderReactionNetwork(testset, batch_size=bs, shuffle=False)
 
-    model = GatedGCNReactionNetwork(
-        in_feats=dataset.feature_size,
-        embedding_size=dict_ret["embedding_size"],
-        gated_num_layers=dict_ret["gated_num_layers"],
-        gated_hidden_size=dict_ret["gated_hidden_size"],
-        gated_activation=dict_ret["gated_activation"],
-        gated_dropout=float(dict_ret["gated_dropout"]),
-        gated_graph_norm=int(dict_ret["gated_graph_norm"]),
-        gated_batch_norm=int(dict_ret["gated_batch_norm"]),
-        gated_residual=dict_ret["gated_residual"],
-        gated_num_fc_layers=dict_ret["gated_num_fc_layers"],
-        fc_num_layers=dict_ret["fc_layers"],
-        fc_hidden_size=dict_ret["fc_hidden_size"],
-        fc_activation=dict_ret["fc_activation"],
-        fc_dropout=float(dict_ret["fc_dropout"]),
-        fc_batch_norm=int(dict_ret["fc_batch_norm"]),
-        num_lstm_iters=dict_ret["num_lstm_iters"],
-        num_lstm_layers=dict_ret["num_lstm_layers"],
-        conv="GatedGCNConv",
-    )
     model.gated_layers.requires_grad_(False)
     checkpoint = torch.load("checkpoint.pkl")
     print(checkpoint.keys())
     model.load_state_dict(checkpoint)
     model_parameters = filter(lambda p: p.requires_grad, model.parameters())
     params = sum([np.prod(p.size()) for p in model_parameters])
+    print("Number of Trainable Model Params: {}".format(params))
+
     optimizer = torch.optim.Adam(
         model.parameters(), lr=dict_ret["lr"], weight_decay=dict_ret["weight_decay"]
     )

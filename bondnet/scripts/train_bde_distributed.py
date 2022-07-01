@@ -28,6 +28,7 @@ from bondnet.utils import (
     seed_torch,
     pickle_dump,
     yaml_dump,
+    parse_settings
 )
 
 best = np.finfo(np.float32).max
@@ -235,11 +236,11 @@ def get_grapher():
     return grapher
 
 
-def main_worker(gpu, world_size, args):
+def main_worker(gpu, world_size, dict_ret):
     global best
-    args.gpu = gpu
+    dict_ret["gpu"] = gpu
 
-    if not args.distributed or (args.distributed and args.gpu == 0):
+    if not dict_ret["distributed"] or (dict_ret["distributed"] and dict_ret["gpu"] == 0):
         print("\n\nStart training at:", datetime.now())
 
     if args.distributed:
@@ -247,14 +248,14 @@ def main_worker(gpu, world_size, args):
             args.dist_backend,
             init_method=args.dist_url,
             world_size=world_size,
-            rank=args.gpu,
+            rank=dict_ret["gpu"],
         )
 
     # Explicitly setting seed to ensure the same dataset split and models created in
     # two processes (when distributed) start from the same random weights and biases
     seed_torch()
 
-    if args.restore:
+    if dict_ret["restore"]:
         dataset_state_dict_filename = args.dataset_state_dict_filename
 
         if dataset_state_dict_filename is None:
@@ -286,7 +287,7 @@ def main_worker(gpu, world_size, args):
         dataset, validation=0.1, test=0.1
     )
 
-    if not args.distributed or (args.distributed and args.gpu == 0):
+    if not dict_ret["distributed"] or (dict_ret["distributed"] and dict_ret["on_gpu"] == 0):
         torch.save(dataset.state_dict(), args.dataset_state_dict_filename)
         print(
             "Trainset size: {}, valset size: {}: testset size: {}.".format(
@@ -294,14 +295,14 @@ def main_worker(gpu, world_size, args):
             )
         )
 
-    if args.distributed:
+    if dict_ret["distributed"]:
         train_sampler = torch.utils.data.distributed.DistributedSampler(trainset)
     else:
         train_sampler = None
 
     train_loader = DataLoaderReactionNetwork(
         trainset,
-        batch_size=args.batch_size,
+        batch_size=dict_ret["batch_size"],
         shuffle=(train_sampler is None),
         sampler=train_sampler,
     )
@@ -326,25 +327,23 @@ def main_worker(gpu, world_size, args):
         yaml_dump(args, "train_args.yaml")
 
     model = GatedGCNReactionNetwork(
-        in_feats=args.feature_size,
-        embedding_size=args.embedding_size,
-        gated_num_layers=args.gated_num_layers,
-        gated_hidden_size=args.gated_hidden_size,
-        gated_num_fc_layers=args.gated_num_fc_layers,
-        gated_graph_norm=args.gated_graph_norm,
-        gated_batch_norm=args.gated_batch_norm,
-        gated_activation=args.gated_activation,
-        gated_residual=args.gated_residual,
-        gated_dropout=args.gated_dropout,
-        num_lstm_iters=args.num_lstm_iters,
-        num_lstm_layers=args.num_lstm_layers,
-        set2set_ntypes_direct=args.set2set_ntypes_direct,
-        fc_num_layers=args.fc_num_layers,
-        fc_hidden_size=args.fc_hidden_size,
-        fc_batch_norm=args.fc_batch_norm,
-        fc_activation=args.fc_activation,
-        fc_dropout=args.fc_dropout,
-        outdim=1,
+        in_feats=dataset.feature_size,
+        embedding_size=dict_ret["embedding_size"],
+        gated_num_layers=dict_ret["gated_num_layers"],
+        gated_hidden_size=dict_ret["gated_hidden_size"],
+        gated_activation=dict_ret["gated_activation"],
+        gated_dropout=float(dict_ret["gated_dropout"]),
+        gated_graph_norm=int(dict_ret["gated_graph_norm"]),
+        gated_batch_norm=int(dict_ret["gated_batch_norm"]),
+        gated_residual=dict_ret["gated_residual"],
+        gated_num_fc_layers=dict_ret["gated_num_fc_layers"],
+        fc_num_layers=dict_ret["fc_layers"],
+        fc_hidden_size=dict_ret["fc_hidden_size"],
+        fc_activation=dict_ret["fc_activation"],
+        fc_dropout=float(dict_ret["fc_dropout"]),
+        fc_batch_norm=int(dict_ret["fc_batch_norm"]),
+        num_lstm_iters=dict_ret["num_lstm_iters"],
+        num_lstm_layers=dict_ret["num_lstm_layers"],
         conv="GatedGCNConv",
     )
 
@@ -360,7 +359,7 @@ def main_worker(gpu, world_size, args):
 
     ### optimizer, loss, and metric
     optimizer = torch.optim.Adam(
-        model.parameters(), lr=args.lr, weight_decay=args.weight_decay
+        model.parameters(), lr=dict_ret["lr"], weight_decay=dict_ret["weight_decay"]
     )
 
     loss_func = MSELoss(reduction="mean")
@@ -381,30 +380,31 @@ def main_worker(gpu, world_size, args):
                 checkpoint = load_checkpoints(state_dict_objs, filename="checkpoint.pkl")
             else:
                 # Map model to be loaded to specified single gpu.
-                loc = "cuda:{}".format(args.gpu)
+                loc = "cuda:{}".format(dict_ret["gpu"])
                 checkpoint = load_checkpoints(
                     state_dict_objs, map_location=loc, filename="checkpoint.pkl"
                 )
 
             args.start_epoch = checkpoint["epoch"]
             best = checkpoint["best"]
-            print(f"Successfully load checkpoints, best {best}, epoch {args.start_epoch}")
+            start_epoch  = dict_ret["start_epoch"]
+            print(f"Successfully load checkpoints, best {best}, epoch {start_epoch}")
 
         except FileNotFoundError as e:
             warnings.warn(str(e) + " Continue without loading checkpoints.")
             pass
 
     # start training
-    if not args.distributed or (args.distributed and args.gpu == 0):
+    if not dict_ret["distributed"] or (dict_ret["distributed"] and dict_ret["on_gpu"] == 0):
         print("\n\n# Epoch     Loss         TrainAcc        ValAcc     Time (s)")
         sys.stdout.flush()
 
-    for epoch in range(args.start_epoch, args.epochs):
+    for epoch in range(dict_ret["start_epoch"], dict_ret["epochs"]):
         ti = time.time()
 
         # In distributed mode, calling the set_epoch method is needed to make shuffling
         # work; each process will use the same random seed otherwise.
-        if args.distributed:
+        if dict_ret["distributed"]:
             train_sampler.set_epoch(epoch)
 
         # train
@@ -419,7 +419,7 @@ def main_worker(gpu, world_size, args):
             sys.exit(1)
 
         # evaluate
-        val_acc = evaluate(model, feature_names, val_loader, metric, args.gpu)
+        val_acc = evaluate(model, feature_names, val_loader, metric, dict_ret[""])
 
         if stopper.step(val_acc):
             pickle_dump(best, args.output_file)  # save results for hyperparam tune
@@ -432,7 +432,7 @@ def main_worker(gpu, world_size, args):
             best = val_acc
 
         # save checkpoint
-        if not args.distributed or (args.distributed and args.gpu == 0):
+        if not dict_ret["distributed"] or (dict_ret["distributed"] and dict_ret["on_gpu"] == 0):
 
             misc_objs = {"best": best, "epoch": epoch}
 
@@ -458,30 +458,36 @@ def main_worker(gpu, world_size, args):
         checkpoint = load_checkpoints(state_dict_objs, filename="best_checkpoint.pkl")
     else:
         # Map model to be loaded to specified single  gpu.
-        loc = "cuda:{}".format(args.gpu)
+        loc = "cuda:{}".format(dict_ret["gpu"])
         checkpoint = load_checkpoints(
             state_dict_objs, map_location=loc, filename="best_checkpoint.pkl"
         )
 
-    if not args.distributed or (args.distributed and args.gpu == 0):
-        test_acc = evaluate(model, feature_names, test_loader, metric, args.gpu)
+    if not dict_ret["distributed"] or (dict_ret["distributed"] and dict_ret["gpu"] == 0):
+        test_acc = evaluate(model, feature_names, test_loader, metric, dict_ret["gpu"])
 
         print("\n#TestAcc: {:12.6e} \n".format(test_acc))
         print("\nFinish training at:", datetime.now())
 
 
 def main():
-    args = parse_args()
-    print(args)
+    dict_ret = parse_settings()
+    
+    if dict_ret["on_gpu"]:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        dict_ret["gpu"] = device
+    else:
+        dict_ret["gpu"] = "cpu"
 
-    if args.distributed:
+
+    if dict_ret["distributed"]:
         # DDP
-        world_size = torch.cuda.device_count() if args.num_gpu is None else args.num_gpu
-        mp.spawn(main_worker, nprocs=world_size, args=(world_size, args))
+        world_size = torch.cuda.device_count() if dict_ret["num_gpu"] is None else dict_ret["num_gpu"]
+        mp.spawn(main_worker, nprocs=world_size, args=(world_size, dict_ret))
 
     else:
         # train on CPU or a single GPU
-        main_worker(args.gpu, None, args)
+        main_worker(dict_ret["gpu"], None, dict_ret)
 
 
 if __name__ == "__main__":

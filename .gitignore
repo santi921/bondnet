@@ -1,4 +1,5 @@
 build/
+bondnet/prediction/pretrained/mg/
 dist/
 .cache/
 *.egg-info/
