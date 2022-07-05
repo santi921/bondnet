@@ -258,9 +258,9 @@ def create_reaction_network_files(filename, out_file):
      
     rxn_raw = []
     with ProcessPool(max_workers=12 , max_tasks=10) as pool:
-        for _, row in mg_df.iterrows():
+        for _, row in mg_df.head(100).iterrows():
             future = pool.schedule(process_species, args = [row], timeout = 30)
-            future.add_done_callback(task_done)t
+            future.add_done_callback(task_done)
             try:
                 rxn_raw.append(future.result())
             except:pass
@@ -280,8 +280,11 @@ def create_reaction_network_files(filename, out_file):
         feature_file=path_mg_data + "mg_feature_bond_rgrn.yaml",
         group_mode='charge_0'
     )
-        
-if __name__ == "__main__":
+
+def process_data(): 
     #create_struct_label_dataset_reaction_network(filename='', out_file='./')
     #create_struct_label_dataset_bond_based_regression(filename='', out_file='./')
     create_reaction_network_files(filename='', out_file='./')
+
+if __name__ == "__main__":
+    process_data()

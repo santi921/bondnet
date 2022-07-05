@@ -1290,3 +1290,8 @@ def xyz2mol(
         return []
     
     return new_mols
+
+
+def sdf_writer():
+
+    

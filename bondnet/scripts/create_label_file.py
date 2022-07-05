@@ -33,9 +33,9 @@ def create_label_file(
     molecules = _read_molecules(molecule_file, molecule_attributes_file)
     reactions = _read_reactions(molecules, reaction_file)
     rxn_coll = ReactionCollection(reactions)
-
+    """
     if label_file is not None:
-        out = rxn_coll.create_regression_dataset_reaction_network_simple(
+        out = rxn_coll.create_struct_label_dataset_reaction_based_regression_alt(
             struct_file=os.devnull, label_file=label_file, feature_file=None
         )
     else:
@@ -43,6 +43,8 @@ def create_label_file(
         out = rxn_coll.create_regression_dataset_reaction_network_simple(
             write_to_file=False
         )
+    """
+    out = rxn_coll.create_struct_label_dataset_reaction_based_regression_alt()
 
     rdmols, rxns, attrs = out
 

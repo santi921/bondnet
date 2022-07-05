@@ -1110,6 +1110,7 @@ class ReactionCollection:
         feature_file=None,
         group_mode="all",
         one_per_iso_bond_group=True,
+        write = True
     ):
         """
         Write the reaction
@@ -1165,7 +1166,7 @@ class ReactionCollection:
 
             # rxn: a reaction for one bond and a specific combination of charges
             for i, rxn in enumerate(reactions):
-                reactant_id = rxn.reactants[0].id
+                reactant_id = [rxn.reactants[0].id]
                 product_ids = [str(i.id)+"_"+str(ind) for ind,i in enumerate(rxn.products)]
                 energy = rxn.get_free_energy()
 
@@ -1174,32 +1175,31 @@ class ReactionCollection:
                     "energy": energy,
                     "num_mols": len(reactant_id + product_ids),
                     "products":[all_mol_ids.index(prod_id) for prod_id in product_ids],
-                    "reactants":all_mol_ids.index(reactant_id),
-                    #"atom_mapping": rxn.atom_mapping(),
-                    #"bond_mapping": rxn.bond_mapping_by_sdf_int_index(),
+                    "reactants":[all_mol_ids.index(reactant_id[0])],
+                    "atom_mapping": rxn.atom_mapping(),
+                    "bond_mapping": rxn.bond_mapping_by(),
                     "id": rxn.get_id(),
                 }
                 all_labels.append(data)
     
-
-        # write sdf - should be the same but we might need to get indeces again
-        self.write_sdf(all_mols, struct_file)
-
-        # label file 
-        yaml_dump(all_labels, label_file)
-
-        # write feature - done
-        if feature_file is not None:
-            features = self.get_feature(all_mols, bond_indices=None)
-            # might not matter it include this?
-            # might need to remove index value as feature
-            features = [{'charge':i['charge']} for i in features]
-            yaml_dump(features, feature_file)
+        if(write):
+            # write sdf - should be the same but we might need to get indeces again
+            self.write_sdf(all_mols, struct_file)
+            # label file 
+            yaml_dump(all_labels, label_file)
+            # write feature - done
+            if feature_file is not None:
+                features = self.get_feature(all_mols, bond_indices=None)
+                # might not matter it include this?
+                # might need to remove index value as feature
+                features = [{'charge':i['charge']} for i in features]
+                yaml_dump(features, feature_file)
 
         print("features: {}".format(len(features)))
         print("labels: {}".format(len(all_labels)))
         print("molecules: {}".format(len(all_mols)))
 
+        return all_mols, all_labels, features
 
     def create_struct_label_dataset_bond_based_classification(
         self,

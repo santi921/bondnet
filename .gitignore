@@ -1,8 +1,10 @@
 build/
 bondnet/prediction/pretrained/mg/
+bondnet/prediction/pretrained/mg/
 dist/
 .cache/
 *.egg-info/
+*ipynb
 *.o
 *.so
 *.pyc

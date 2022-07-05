@@ -323,6 +323,75 @@ class Reaction:
 
         return self._bond_mapping_by_tuple_index
 
+    def bond_mapping_by_sdf_int_index_custom_sdf(self):
+        #TODO
+        """
+        Bond mapping between products SDF bonds (integer index) and reactant SDF bonds
+        (integer index).
+
+        Unlike the atom mapping (where atom index in graph and sdf are the same),
+        the ordering of bond may change when sdf file are written. So we need this
+        mapping to ensure the correct ordering between products bonds and reactant bonds.
+
+        We do the below to get a mapping between product sdf int index and reactant
+        sdf int index:
+
+        product sdf int index
+        --> product sdf tuple index
+        --> product graph tuple index
+        --> reactant graph tuple index
+        --> reactant sdf tuple index
+        --> reactant sdf int index
+
+
+        Returns:
+            list (dict): each dict is the mapping for one product, from sdf bond index
+                of product to sdf bond index of reactant
+        """
+        
+        if self._bond_mapping_by_sdf_int_index is not None:
+            return self._bond_mapping_by_sdf_int_index
+
+        reactant = self.reactants[0]
+        
+        # reactant sdf bond index (tuple) to sdf bond index (integer)
+        reactant_index_tuple2int = {
+            b: i for i, b in enumerate(reactant.get_sdf_bond_indices(zero_based=True))
+        }
+
+        # bond mapping between product sdf and reactant sdf
+        bond_mapping = []
+        
+        product_to_reactant_mapping = self.bond_mapping_by_tuple_index() # fail point
+
+
+        for p, p2r in zip(self.products, product_to_reactant_mapping):
+
+            mp = {}
+            # product sdf bond index (list of tuple)
+            
+            psb = p.get_sdf_bond_indices(zero_based=True)
+
+            # ib: product sdf bond index (int)
+            # b: product graph bond index (tuple)
+            for ib, b in enumerate(psb):
+
+                # reactant graph bond index (tuple)
+                rsbt = p2r[b]
+                
+                # reactant sdf bond index (int)
+                rsbi = reactant_index_tuple2int[rsbt] # fail point
+                
+                # product sdf bond index (int) to reactant sdf bond index (int)
+                mp[ib] = rsbi
+
+            # list of dict, each dict for one product
+            bond_mapping.append(mp)
+
+        self._bond_mapping_by_sdf_int_index = bond_mapping
+        return self._bond_mapping_by_sdf_int_index
+
+
     def bond_mapping_by_sdf_int_index(self):
         """
         Bond mapping between products SDF bonds (integer index) and reactant SDF bonds
