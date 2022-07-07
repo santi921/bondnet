@@ -1293,5 +1293,14 @@ def xyz2mol(
 
 
 def sdf_writer():
-
+    """
+    write sdf file for a molecule w/custom bonding
+    takes: 
+        atoms - 
+        bonds - 
+        features - 
+    returns
     
+    
+    """
+

@@ -1171,29 +1171,31 @@ class ReactionCollection:
                 energy = rxn.get_free_energy()
 
                 # bond mapping between product sdf and reactant sdf
+                print("bonds total to consider: {}, bonds in mapping: {}"\
+                    .format(len(rxn.reactants[0].bonds) , len(rxn._bond_mapping_by_int_index)))
+                
                 data = {
-                    "energy": energy,
+                    "value": [energy],
                     "num_mols": len(reactant_id + product_ids),
                     "products":[all_mol_ids.index(prod_id) for prod_id in product_ids],
                     "reactants":[all_mol_ids.index(reactant_id[0])],
                     "atom_mapping": rxn.atom_mapping(),
-                    "bond_mapping": rxn.bond_mapping_by(),
-                    "id": rxn.get_id(),
+                    "bond_mapping": rxn._bond_mapping_by_int_index,
+                    "id": [rxn.get_id()],
                 }
                 all_labels.append(data)
     
-        if(write):
-            # write sdf - should be the same but we might need to get indeces again
-            self.write_sdf(all_mols, struct_file)
-            # label file 
-            yaml_dump(all_labels, label_file)
-            # write feature - done
-            if feature_file is not None:
-                features = self.get_feature(all_mols, bond_indices=None)
-                # might not matter it include this?
-                # might need to remove index value as feature
-                features = [{'charge':i['charge']} for i in features]
-                yaml_dump(features, feature_file)
+        # write sdf - should be the same but we might need to get indeces again
+        self.write_sdf_custom(all_mols, struct_file)
+        # label file 
+        yaml_dump(all_labels, label_file)
+        # write feature - done
+        if feature_file is not None:
+            features = self.get_feature(all_mols, bond_indices=None)
+            # might not matter it include this?
+            # might need to remove index value as feature
+            features = [{'charge':i['charge']} for i in features]
+            yaml_dump(features, feature_file)
 
         print("features: {}".format(len(features)))
         print("labels: {}".format(len(all_labels)))
@@ -1534,6 +1536,30 @@ class ReactionCollection:
                     m.id, m.formula, m.charge, m.free_energy, i
                 )
                 sdf = m.write(name=name)
+                f.write(sdf)
+
+        logger.info("Finish writing sdf file: {}".format(filename))
+
+    @staticmethod
+    def write_sdf_custom(molecules, filename="struct.sdf"):
+        """
+        Write molecules to sdf.
+
+        Args:
+            molecules (list): a sequence of :class:`MoleculeWrapper`
+            filename (str): output filename
+        """
+        logger.info("Start writing sdf file: {}".format(filename))
+
+        create_directory(filename)
+        with open(to_path(filename), "w") as f:
+            for i, m in enumerate(molecules):
+                
+                #else: charge = m.charge
+                #name = "{}_{}_{}_{}_index-{}".format(
+                #    m.id, m.formula, m.charge, m.free_energy, i
+                #)
+                sdf = m.write_custom(index = i)
                 f.write(sdf)
 
         logger.info("Finish writing sdf file: {}".format(filename))

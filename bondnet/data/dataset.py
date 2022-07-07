@@ -759,7 +759,10 @@ class ReactionNetworkDataset(BaseDataset):
         else:
             species = self.state_dict()["species"]
             assert species is not None, "Corrupted state_dict file, `species` not found"
-
+        
+        
+        print("about to build graphs...might want to do this separately")
+        
         # create dgl graphs
         graphs = self.build_graphs(self.grapher, molecules, extra_features, species)
         graphs_not_none_indices = [i for i, g in enumerate(graphs) if g is not None]

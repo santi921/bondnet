@@ -128,6 +128,7 @@ class MoleculeWrapper:
     def rdkit_mol(self, m):
         self._rdkit_mol = m
 
+
     @property
     def fragments(self):
         """
@@ -370,6 +371,54 @@ class MoleculeWrapper:
             return Chem.MolToSmiles(self.rdkit_mol)
         else:
             raise ValueError(f"format {format} currently not supported")
+
+    def write_custom(self, index):
+        bonds = self.bonds
+        bond_count = len(bonds)
+        atom_count = len(self.pymatgen_mol.sites)
+        sdf = ""
+        name = "{}_{}_{}_{}_index-{}".format(
+                        self.id, self.formula,
+                        self.charge, self.free_energy, index
+                    )
+        sdf += name + "\n"
+        sdf += "     RDKit          3D\n\n"
+        sdf += "  0  0  0  0  0  0  0  0  0  0999 V3000\n"
+        sdf += "M  V30 BEGIN CTAB\n"
+        sdf += "M  V30 COUNTS {} {} 0 0 0\n".format(atom_count, bond_count)
+        sdf += "M  V30 BEGIN ATOM\n"
+        # this is done
+        for ind in range(len(self.pymatgen_mol.sites)): 
+            charge = self.rdkit_mol.GetAtomWithIdx(ind).GetFormalCharge()
+            element = self.pymatgen_mol[ind].as_dict()["species"][0]['element']
+            x, y, z = self.pymatgen_mol[ind].as_dict()["xyz"]
+            if(charge != 0):
+                sdf += "M  V30 {} {} {:.5f} {:.5f} {:.5f} 0 CHG={}\n".format(ind+1, element, x, y, z, charge)
+            else:
+                sdf += "M  V30 {} {} {:.5f} {:.5f} {:.5f} 0\n".format(ind+1, element, x, y, z)
+
+        sdf += "M  V30 END ATOM\n"
+        sdf += "M  V30 BEGIN BOND\n"
+
+        for ind, bond in enumerate(bonds): 
+            double_cond = False
+            a, b = bond
+            
+            try:
+                double_cond = 'DOUBLE' == str(self.rdkit_mol.GetBondBetweenAtoms(a,b).GetBondType())
+            except: 
+                pass
+            if(double_cond): order = 2
+            else: order = 1
+
+            sdf += "M  V30 {} {} {} {}\n".format(ind+1, order, a+1, b+1)
+
+        sdf += "M  V30 END BOND\n"
+        sdf += "M  V30 END CTAB\n"
+        sdf += "M  END\n"
+        sdf += "$$$$\n"
+        
+        return sdf
 
     def draw(self, filename=None, show_atom_idx=False):
         """
