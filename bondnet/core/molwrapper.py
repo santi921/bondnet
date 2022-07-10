@@ -398,22 +398,30 @@ class MoleculeWrapper:
                 sdf += "M  V30 {} {} {:.5f} {:.5f} {:.5f} 0\n".format(ind+1, element, x, y, z)
 
         sdf += "M  V30 END ATOM\n"
-        sdf += "M  V30 BEGIN BOND\n"
+        if(atom_count > 1): 
+            sdf += "M  V30 BEGIN BOND\n"
+            '''
+            if(bond_count == 0): 
+                a_atom = self.pymatgen_mol[0].as_dict()["species"][0]['element']
+                b_atom = self.pymatgen_mol[1].as_dict()["species"][0]['element']
+                if(a_atom=='H' or b_atom=='H' ): order = 1
+                if(a_atom=='F' or b_atom=='F' or a_atom == 'Cl' or b_atom == 'Cl'): order = 1
+                if(a_atom=='N' or b_atom=='N'): order = 3
+                if(a_atom=="O" or b_atom=='O'): order = 2
+                sdf += "M  V30 {} {} {} {}\n".format(1, order, 1, 2)
+            '''
+            for ind, bond in enumerate(bonds): 
+                double_cond = False
+                a, b = bond
+                try:
+                    double_cond = 'DOUBLE' == str(self.rdkit_mol.GetBondBetweenAtoms(a,b).GetBondType())
+                except: 
+                    pass
+                if(double_cond): order = 2
+                else: order = 1
+                sdf += "M  V30 {} {} {} {}\n".format(ind+1, order, a+1, b+1)
 
-        for ind, bond in enumerate(bonds): 
-            double_cond = False
-            a, b = bond
-            
-            try:
-                double_cond = 'DOUBLE' == str(self.rdkit_mol.GetBondBetweenAtoms(a,b).GetBondType())
-            except: 
-                pass
-            if(double_cond): order = 2
-            else: order = 1
-
-            sdf += "M  V30 {} {} {} {}\n".format(ind+1, order, a+1, b+1)
-
-        sdf += "M  V30 END BOND\n"
+            sdf += "M  V30 END BOND\n"
         sdf += "M  V30 END CTAB\n"
         sdf += "M  END\n"
         sdf += "$$$$\n"

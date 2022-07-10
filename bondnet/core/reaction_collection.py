@@ -381,7 +381,7 @@ class ReactionCollection:
         for rxn in self.reactions:
             reactant = rxn.reactants[0]
             grouped_reactions[reactant].append(rxn)
-        print("grouped reaction by reactant: "+ str(len(grouped_reactions)))
+        #print("grouped reaction by reactant: "+ str(len(grouped_reactions)))
         return grouped_reactions
 
     def group_by_reactant_charge_0(self):
@@ -415,7 +415,7 @@ class ReactionCollection:
                 ropb = ReactionsOnePerBond(reactant, zero_charge_rxns)
                 new_groups.append(ropb)
         #print("zero charge groups" + str(len(zero_charge_rxns)))
-        print("new groups " + str(len(new_groups)))
+        #print("new groups " + str(len(new_groups)))
         return new_groups
 
     def group_by_reactant_lowest_energy(self):
@@ -433,7 +433,7 @@ class ReactionCollection:
         """
 
         groups = self.group_by_reactant()
-        print("groups by reactant" + str(len(groups)))
+        #print("groups by reactant" + str(len(groups)))
 
         new_groups = []
         for reactant in groups:
@@ -1171,8 +1171,8 @@ class ReactionCollection:
                 energy = rxn.get_free_energy()
 
                 # bond mapping between product sdf and reactant sdf
-                print("bonds total to consider: {}, bonds in mapping: {}"\
-                    .format(len(rxn.reactants[0].bonds) , len(rxn._bond_mapping_by_int_index)))
+                #print("bonds total to consider: {}, bonds in mapping: {}"\
+                #    .format(len(rxn.reactants[0].bonds) , len(rxn._bond_mapping_by_int_index)))
                 
                 data = {
                     "value": [energy],
@@ -1180,7 +1180,7 @@ class ReactionCollection:
                     "products":[all_mol_ids.index(prod_id) for prod_id in product_ids],
                     "reactants":[all_mol_ids.index(reactant_id[0])],
                     "atom_mapping": rxn.atom_mapping(),
-                    "bond_mapping": rxn._bond_mapping_by_int_index,
+                    "bond_mapping": rxn.bond_mapping_by_sdf_int_index(),
                     "id": [rxn.get_id()],
                 }
                 all_labels.append(data)
@@ -1192,11 +1192,12 @@ class ReactionCollection:
         # write feature - done
         if feature_file is not None:
             features = self.get_feature(all_mols, bond_indices=None)
-            # might not matter it include this?
-            # might need to remove index value as feature
+            # extra features (global) that could be included
             features = [{'charge':i['charge']} for i in features]
             yaml_dump(features, feature_file)
-
+        
+        features = self.get_feature(all_mols, bond_indices=None)
+        features = [{'charge':i['charge']} for i in features]
         print("features: {}".format(len(features)))
         print("labels: {}".format(len(all_labels)))
         print("molecules: {}".format(len(all_mols)))

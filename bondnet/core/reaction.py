@@ -158,7 +158,8 @@ class Reaction:
         """
         if self._atom_mapping is not None:
             return self._atom_mapping
-
+            #print("using predetermined maps")
+        #else: print("computing maps")
         # get subgraphs of reactant by breaking the bond
         # if A->B reaction, there is one element in subgraphs
         # if A->B+C reaction, there are two

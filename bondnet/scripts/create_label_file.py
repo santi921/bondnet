@@ -6,6 +6,7 @@ from bondnet.core.molwrapper import rdkit_mol_to_wrapper_mol
 from bondnet.core.reaction import Reaction
 from bondnet.core.reaction_collection import ReactionCollection
 from bondnet.utils import yaml_load
+from bondnet.dataset.mg_barrier import process_data 
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +34,9 @@ def create_label_file(
     molecules = _read_molecules(molecule_file, molecule_attributes_file)
     reactions = _read_reactions(molecules, reaction_file)
     rxn_coll = ReactionCollection(reactions)
-    """
+    
     if label_file is not None:
-        out = rxn_coll.create_struct_label_dataset_reaction_based_regression_alt(
+        out = rxn_coll.create_struct_label_dataset_reaction_based_regression(
             struct_file=os.devnull, label_file=label_file, feature_file=None
         )
     else:
@@ -43,9 +44,8 @@ def create_label_file(
         out = rxn_coll.create_regression_dataset_reaction_network_simple(
             write_to_file=False
         )
-    """
-    out = rxn_coll.create_struct_label_dataset_reaction_based_regression_alt()
-
+    
+    #out = rxn_coll.create_struct_label_dataset_reaction_based_regression_alt(group_mode='charge_0')
     rdmols, rxns, attrs = out
 
     return rdmols, attrs, rxns
@@ -76,14 +76,14 @@ def read_input_files(molecule_file, molecule_attributes_file, reaction_file):
             if "atom_mapping" in line:
                 atom_mapped = True
                 break
-
     if atom_mapped:
         return molecule_file, molecule_attributes_file, reaction_file
     else:
         mols, attrs, rxns = create_label_file(
             molecule_file, molecule_attributes_file, reaction_file, label_file=None
         )
-
+        #process_data()
+        #mols, rxns, attrs = process_data()
         return mols, attrs, rxns
 
 

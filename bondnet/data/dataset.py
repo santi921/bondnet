@@ -66,6 +66,10 @@ class BaseDataset:
         self.molecules = (
             to_path(molecules) if isinstance(molecules, (str, Path)) else molecules
         )
+        try: 
+            self.molecules = [mol.rdkit_mol() for mol in self.molecules]
+        except: print("molecules already some rdkit object")
+
         self.raw_labels = to_path(labels) if isinstance(labels, (str, Path)) else labels
         self.extra_features = (
             to_path(extra_features)
@@ -740,6 +744,8 @@ class ReactionNetworkDataset(BaseDataset):
 
         # get molecules, labels, and extra features
         molecules = self.get_molecules(self.molecules)
+        try:molecules = [mol.rdkit_mol for mol in molecules]
+        except:pass
         raw_labels = self.get_labels(self.raw_labels)
         if self.extra_features is not None:
             extra_features = self.get_features(self.extra_features)
@@ -754,6 +760,7 @@ class ReactionNetworkDataset(BaseDataset):
 
         # get species
         if self.state_dict_filename is None:
+
             species = get_dataset_species(molecules)
             self._species = species
         else:

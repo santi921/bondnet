@@ -1,26 +1,16 @@
+from copy import deepcopy
 import torch
 import itertools
 import numpy as np
 import dgl
 from bondnet.model.gated_mol import GatedGCNMol
 
+class GatedGCNReactionNetworkDebug(GatedGCNMol):
+    def forward(self, graph, feats, reactions, target, stdev, norm_atom=None, norm_bond=None):
 
-class GatedGCNReactionNetwork(GatedGCNMol):
-    def forward(self, graph, feats, reactions, norm_atom=None, norm_bond=None):
-        """
-        Args:
-            graph (DGLHeteroGraph or BatchedDGLHeteroGraph): (batched) molecule graphs
-            feats (dict): node features with node type as key and the corresponding
-                features as value.
-            reactions (list): a sequence of :class:`bondnet.data.reaction_network.Reaction`,
-                each representing a reaction.
-            norm_atom (2D tensor or None): graph norm for atom
-            norm_bond (2D tensor or None): graph norm for bond
-
-        Returns:
-            2D tensor: of shape(N, M), where `M = outdim`.
-        """
-
+        pred_filtered_index = []
+        pred_filtered = []
+        stdev_filtered = []
         # embedding
         feats = self.embedding(feats)
 
@@ -28,11 +18,42 @@ class GatedGCNReactionNetwork(GatedGCNMol):
         for layer in self.gated_layers:
             feats = layer(graph, feats, norm_atom, norm_bond)
 
+        ###############################
+        graph_copy = deepcopy(graph)
+        # assign feats
+        for nt, ft in feats.items():
+            graph_copy.nodes[nt].data.update({"ft": ft})
+        graphs_copy = dgl.unbatch(graph_copy)
+        # create reaction graphs
+        reaction_graphs, reaction_feats = [], []
+        for rxn in reactions:
+            reactants = [graphs_copy[i] for i in rxn.reactants]
+            products = [graphs_copy[i] for i in rxn.products]
+            has_bonds = {
+                # we support only one reactant now, so no it is assumed always to have bond
+                "reactants": [True for _ in reactants],
+                "products": [True if len(mp) > 0 else False for mp in rxn.bond_mapping],
+            }
+            mappings = {"atom": rxn.atom_mapping_as_list, "bond": rxn.bond_mapping_as_list}
+            ft_name, nt = 'ft', 'bond'
+            reactants_ft = [p.nodes[nt].data[ft_name] for p in reactants]
+            products_ft = [p.nodes[nt].data[ft_name] for p in products]
+            products_ft = list(itertools.compress(products_ft, has_bonds["products"]))
+            products_ft.append(reactants_ft[0].new_zeros((1, reactants_ft[0].shape[1])))
+            reactants_ft = torch.cat(reactants_ft)
+            products_ft = torch.cat(products_ft)
+            products_ft = products_ft[mappings[nt]] 
+            if(len(products_ft) == len(reactants_ft)):
+                pred_filtered_index.append(1)
+            else: pred_filtered_index.append(0)
+        ###############################
+
+
         # convert mol graphs to reaction graphs by subtracting reactant feats from
         # products feats
         # graph is actually batch graphs, not just a graph
         graph, feats = mol_graph_to_rxn_graph(graph, feats, reactions)
-
+        
         # readout layer
         feats = self.readout_layer(graph, feats)
 
@@ -40,7 +61,18 @@ class GatedGCNReactionNetwork(GatedGCNMol):
         for layer in self.fc_layers:
             feats = layer(feats)
 
-        return feats
+        for ind, i in enumerate(pred_filtered_index): 
+            if(i == 1): 
+                pred_filtered.append(target[ind])
+                stdev_filtered.append(stdev[ind].tolist())
+
+        #print(pred_filtered)
+        #ret_tensor = torch.cat(pred_filtered)
+        ret_tensor = torch.Tensor(pred_filtered)
+        stdev_filtered = torch.Tensor(stdev_filtered)
+
+        return feats, ret_tensor, stdev_filtered
+
 
     def feature_before_fc(self, graph, feats, reactions, norm_atom, norm_bond):
         """
@@ -54,7 +86,9 @@ class GatedGCNReactionNetwork(GatedGCNMol):
         # gated layer
         for layer in self.gated_layers:
             feats = layer(graph, feats, norm_atom, norm_bond)
-
+        
+        graphs = dgl.unbatch(graph)
+        
         # convert mol graphs to reaction graphs by subtracting reactant feats from
         # products feats
         graph, feats = mol_graph_to_rxn_graph(graph, feats, reactions)
@@ -95,7 +129,6 @@ class GatedGCNReactionNetwork(GatedGCNMol):
             layer_idx += 1
 
         return all_feats
-
 
 
 def _split_batched_output(graph, value):
@@ -262,7 +295,6 @@ def create_rxn_graph(
                             (products_ft, torch.zeros(
                                 1,products_ft.size()[1])), 0)
                     else: 
-                        print("rip")
                         reactants_ft = torch.cat(
                             (reactants_ft, torch.zeros(
                                 1,reactants_ft.size()[1])), 0)
