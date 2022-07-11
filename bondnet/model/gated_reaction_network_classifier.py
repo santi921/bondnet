@@ -4,8 +4,120 @@ import itertools
 import numpy as np
 import dgl
 from bondnet.model.gated_mol import GatedGCNMol
+import torch.nn.functional as F
+import torch.nn as nn
+from bondnet.layer.gatedconv import GatedGCNConv, GatedGCNConv1, GatedGCNConv2
+from bondnet.layer.readout import Set2SetThenCat
+from bondnet.layer.utils import UnifySize
 
-class GatedGCNReactionNetworkDebug(GatedGCNMol):
+class GatedGCNReactionNetworkClassifier(GatedGCNMol):
+    def __init__(
+        self,
+        in_feats,
+        embedding_size=32,
+        gated_num_layers=2,
+        gated_hidden_size=[64, 64, 32],
+        gated_num_fc_layers=1,
+        gated_graph_norm=False,
+        gated_batch_norm=True,
+        gated_activation="ReLU",
+        gated_residual=True,
+        gated_dropout=0.0,
+        num_lstm_iters=6,
+        num_lstm_layers=3,
+        set2set_ntypes_direct=["global"],
+        fc_num_layers=2,
+        fc_hidden_size=[32, 16],
+        fc_batch_norm=False,
+        fc_activation="ReLU",
+        fc_dropout=0.0,
+        outdim=1,
+        conv="GatedGCNConv",
+    ):
+        super(GatedGCNMol, self).__init__()
+
+        if isinstance(gated_activation, str):
+            gated_activation = getattr(nn, gated_activation)()
+        if isinstance(fc_activation, str):
+            fc_activation = getattr(nn, fc_activation)()
+
+        # embedding layer
+        self.embedding = UnifySize(in_feats, embedding_size)
+
+        # gated layer
+        if conv == "GatedGCNConv":
+            conv_fn = GatedGCNConv
+        elif conv == "GatedGCNConv1":
+            conv_fn = GatedGCNConv1
+        elif conv == "GatedGCNConv2":
+            conv_fn = GatedGCNConv2
+        else:
+            raise ValueError()
+
+        in_size = embedding_size
+        self.gated_layers = nn.ModuleList()
+        for i in range(gated_num_layers):
+            self.gated_layers.append(
+                conv_fn(
+                    input_dim=in_size,
+                    output_dim=gated_hidden_size[i],
+                    num_fc_layers=gated_num_fc_layers,
+                    graph_norm=gated_graph_norm,
+                    batch_norm=gated_batch_norm,
+                    activation=gated_activation,
+                    residual=gated_residual,
+                    dropout=gated_dropout,
+                )
+            )
+            in_size = gated_hidden_size[i]
+
+        # set2set readout layer
+        ntypes = ["atom", "bond"]
+        in_size = [gated_hidden_size[-1]] * len(ntypes)
+
+        self.readout_layer = Set2SetThenCat(
+            n_iters=num_lstm_iters,
+            n_layer=num_lstm_layers,
+            ntypes=ntypes,
+            in_feats=in_size,
+            ntypes_direct_cat=set2set_ntypes_direct,
+        )
+
+        # for atom and bond feat (# *2 because Set2Set used in Set2SetThenCat has out
+        # feature twice the the size  of in feature)
+        readout_out_size = gated_hidden_size[-1] * 2 + gated_hidden_size[-1] * 2
+        # for global feat
+        if set2set_ntypes_direct is not None:
+            readout_out_size += gated_hidden_size[-1] * len(set2set_ntypes_direct)
+
+        # need dropout?
+        delta = 1e-3
+        if fc_dropout < delta:
+            apply_drop = False
+        else:
+            apply_drop = True
+
+        # fc layer to map to feature to bond energy
+        self.fc_layers = nn.ModuleList()
+        in_size = readout_out_size
+        for i in range(fc_num_layers):
+            out_size = fc_hidden_size[i]
+            self.fc_layers.append(nn.Linear(in_size, out_size))
+            # batch norm
+            if fc_batch_norm:
+                self.fc_layers.append(nn.BatchNorm1d(out_size))
+            # activation
+            self.fc_layers.append(fc_activation)
+            # dropout
+            if apply_drop:
+                self.fc_layers.append(nn.Dropout(fc_dropout))
+
+            in_size = out_size
+
+        # final output layer, mapping feature to the corresponding shape
+        self.fc_layers.append(nn.Linear(in_size, outdim))
+        self.fc_layers.append(nn.Softmax())
+
     def forward(self, graph, feats, reactions, target, stdev, norm_atom=None, norm_bond=None):
 
         pred_filtered_index = []
@@ -68,16 +180,16 @@ class GatedGCNReactionNetworkDebug(GatedGCNMol):
 
         #print(pred_filtered)
         #ret_tensor = torch.cat(pred_filtered)
-        try: 
-            ret_tensor = torch.Tensor(pred_filtered)
-        except: 
-            ret_tensor = torch.cat(pred_filtered)
+        #try: 
+        #    ret_tensor = torch.Tensor(pred_filtered)
+        #except: 
+        ret_tensor = torch.cat(pred_filtered)
         try:
             stdev_filtered = torch.Tensor(stdev_filtered)
         except: 
             stdev_filtered = torch.cat(stdev_filtered)
 
-
+        #print(F.softmax(feats))
         return feats, ret_tensor, stdev_filtered
 
 

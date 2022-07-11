@@ -136,7 +136,7 @@ def get_grapher():
 
 
 if __name__ == "__main__":
-
+    test = True
     # seed random number generators
     seed_torch()
     dict_ret = parse_settings()
@@ -150,10 +150,12 @@ if __name__ == "__main__":
         dict_ret["gpu"] = "cpu"
 
     if bool(dict_ret["test"]):
+        path_mg_data = "/home/santiagovargas/Documents/Dataset/mg_dataset/"
+
         mols, attrs, labels = read_input_files(
-            "examples/train/molecules.sdf",
-            "examples/train/molecule_attributes.yaml",
-            "examples/train/reactions.yaml",
+            path_mg_data + "mg_struct_bond_rgrn.sdf",
+            path_mg_data + "mg_feature_bond_rgrn.yaml",
+            path_mg_data + "mg_label_bond_rgrn.yaml",
         )
     else:
         path_mg_data = "/home/santiagovargas/Documents/Dataset/mg_dataset/"
@@ -164,16 +166,6 @@ if __name__ == "__main__":
             path_mg_data + "examples/train/molecule_attributes_libe.yaml",
             path_mg_data + "examples/train/reactions_libe.yaml",
         )
-
-        # todo
-        mols, attrs, labels = read_input_files(
-            "../train/molecules_libe.sdf",
-            "../train/train/molecule_attributes_libe.yaml",
-            "../train/train/reactions_libe.yaml",
-        )
-
-        print("sheesh")
-
     model = load_model(dict_ret['model_path'])
     dataset = load_dataset(
         dict_ret["model_path"],

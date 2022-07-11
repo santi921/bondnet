@@ -376,7 +376,7 @@ def warn_stdout(message, category, filename, lineno, file=None, line=None):
     sys.stdout.write(warnings.formatwarning(message, category, filename, lineno))
 
 
-def parse_settings(file="./input_files/input_1.txt"):
+def parse_settings(file="./input_files/input_2.txt"):
 
     # some default values that get written over if in the file
     test = False

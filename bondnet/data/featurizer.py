@@ -507,6 +507,7 @@ class BondAsEdgeCompleteFeaturizer(BondFeaturizer):
         return {"feat": feats}
 
 
+
 class AtomFeaturizerMinimum(BaseFeaturizer):
     """
     Featurize atoms in a molecule.
@@ -749,39 +750,6 @@ class GlobalFeaturizer(BaseFeaturizer):
         return {"feat": feats}
 
 
-def one_hot_encoding(x, allowable_set):
-    """One-hot encoding.
-
-    Parameters
-    ----------
-    x : str, int or Chem.rdchem.HybridizationType
-    allowable_set : list
-        The elements of the allowable_set should be of the
-        same type as x.
-
-    Returns
-    -------
-    list
-        List of int (0 or 1) where at most one value is 1.
-        If the i-th value is 1, then we must have x == allowable_set[i].
-    """
-    return list(map(int, list(map(lambda s: x == s, allowable_set))))
-
-
-def multi_hot_encoding(x, allowable_set):
-    """Multi-hot encoding.
-
-    Args:
-        x (list): any type that can be compared with elements in allowable_set
-        allowable_set (list): allowed values for x to take
-
-    Returns:
-        list: List of int (0 or 1) where zero or more values can be 1.
-            If the i-th value is 1, then we must have allowable_set[i] in x.
-    """
-    return list(map(int, list(map(lambda s: s in x, allowable_set))))
-
-
 class DistanceBins(BaseFeaturizer):
     """
     Put the distance into a bins. As used in MPNN.
@@ -858,3 +826,405 @@ class RBF(BaseFeaturizer):
         radial = edge_distance - self.centers
         coef = -1 / self.gap
         return list(np.exp(coef * (radial ** 2)))
+
+
+
+
+##### TODO TODO TODO
+##### TODO TODO TODO
+##### TODO TODO TODO
+##### TODO TODO TODO
+class GraphAtomFeaturizerFull(BaseFeaturizer):
+    """
+    Featurize atoms in a molecule.
+
+    The atom indices will be preserved, i.e. feature i corresponds to atom i.
+    """
+
+    def __call__(self, mol, **kwargs):
+        """
+        Parameters
+        ----------
+        mol : graph object
+
+        Returns
+        -------
+            Dictionary for atom features
+        """
+        try:
+            species = sorted(kwargs["dataset_species"])
+        except KeyError as e:
+            raise KeyError(
+                "{} `dataset_species` needed for {}.".format(e, self.__class__.__name__)
+            )
+
+        feats = []
+        is_donor = defaultdict(int)
+        is_acceptor = defaultdict(int)
+
+        fdef_name = os.path.join(RDConfig.RDDataDir, "BaseFeatures.fdef")
+        mol_featurizer = ChemicalFeatures.BuildFeatureFactory(fdef_name)
+        mol_feats = mol_featurizer.GetFeaturesForMol(mol)
+
+        for i in range(len(mol_feats)):
+            if mol_feats[i].GetFamily() == "Donor":
+                node_list = mol_feats[i].GetAtomIds()
+                for u in node_list:
+                    is_donor[u] = 1
+            elif mol_feats[i].GetFamily() == "Acceptor":
+                node_list = mol_feats[i].GetAtomIds()
+                for u in node_list:
+                    is_acceptor[u] = 1
+
+        ring = mol.GetRingInfo()
+        allowed_ring_size = [3, 4, 5, 6, 7]
+        num_atoms = mol.GetNumAtoms()
+        for u in range(num_atoms):
+            ft = [is_acceptor[u], is_donor[u]]
+
+            atom = mol.GetAtomWithIdx(u)
+
+            # ft.append(atom.GetDegree())
+            ft.append(atom.GetTotalDegree())
+
+            # ft.append(atom.GetExplicitValence())
+            # ft.append(atom.GetImplicitValence())
+            ft.append(atom.GetTotalValence())
+
+            # ft.append(atom.GetFormalCharge())
+            ft.append(atom.GetNumRadicalElectrons())
+
+            ft.append(int(atom.GetIsAromatic()))
+            ft.append(int(atom.IsInRing()))
+
+            # ft.append(atom.GetNumExplicitHs())
+            # ft.append(atom.GetNumImplicitHs())
+            ft.append(atom.GetTotalNumHs(includeNeighbors=True))
+
+            # ft.append(atom.GetAtomicNum())
+            ft += one_hot_encoding(atom.GetSymbol(), species)
+
+            ft += one_hot_encoding(
+                atom.GetHybridization(),
+                [
+                    Chem.rdchem.HybridizationType.S,
+                    Chem.rdchem.HybridizationType.SP,
+                    Chem.rdchem.HybridizationType.SP2,
+                    Chem.rdchem.HybridizationType.SP3,
+                    # Chem.rdchem.HybridizationType.SP3D,
+                    # Chem.rdchem.HybridizationType.SP3D2,
+                ],
+            )
+
+            for s in allowed_ring_size:
+                ft.append(ring.IsAtomInRingOfSize(u, s))
+
+            feats.append(ft)
+
+        feats = torch.tensor(feats, dtype=getattr(torch, self.dtype))
+        self._feature_size = feats.shape[1]
+        self._feature_name = (
+            [
+                "acceptor",
+                "donor",
+                # "degree",
+                "total degree",
+                # "explicit valence",
+                # "implicit valence",
+                "total valence",
+                # "formal charge",
+                "num radical electrons",
+                "is aromatic",
+                "is in ring",
+                # "num explicit H",
+                # "num implicit H",
+                "num total H",
+                # "atomic number",
+            ]
+            + ["chemical symbol"] * len(species)
+            + ["hybridization"] * 4
+            + ["ring size"] * 5
+        )
+
+        return {"feat": feats}
+
+
+##### TODO TODO TODO
+##### TODO TODO TODO
+##### TODO TODO TODO
+##### TODO TODO TODO
+class GraphAtomFeaturizerNoXYZ(BaseFeaturizer):
+    """
+    Featurize atoms in a molecule.
+
+    The atom indices will be preserved, i.e. feature i corresponds to atom i.
+    """
+
+    def __call__(self, mol, **kwargs):
+        """
+        Parameters
+        ----------
+        mol : graph object
+
+        Returns
+        -------
+            Dictionary for atom features
+        """
+        try:
+            species = sorted(kwargs["dataset_species"])
+        except KeyError as e:
+            raise KeyError(
+                "{} `dataset_species` needed for {}.".format(e, self.__class__.__name__)
+            )
+
+        feats = []
+        is_donor = defaultdict(int)
+        is_acceptor = defaultdict(int)
+
+        fdef_name = os.path.join(RDConfig.RDDataDir, "BaseFeatures.fdef")
+        mol_featurizer = ChemicalFeatures.BuildFeatureFactory(fdef_name)
+        mol_feats = mol_featurizer.GetFeaturesForMol(mol)
+
+        for i in range(len(mol_feats)):
+            if mol_feats[i].GetFamily() == "Donor":
+                node_list = mol_feats[i].GetAtomIds()
+                for u in node_list:
+                    is_donor[u] = 1
+            elif mol_feats[i].GetFamily() == "Acceptor":
+                node_list = mol_feats[i].GetAtomIds()
+                for u in node_list:
+                    is_acceptor[u] = 1
+
+        ring = mol.GetRingInfo()
+        allowed_ring_size = [3, 4, 5, 6, 7]
+        num_atoms = mol.GetNumAtoms()
+        for u in range(num_atoms):
+            ft = [is_acceptor[u], is_donor[u]]
+
+            atom = mol.GetAtomWithIdx(u)
+
+            # ft.append(atom.GetDegree())
+            ft.append(atom.GetTotalDegree())
+
+            # ft.append(atom.GetExplicitValence())
+            # ft.append(atom.GetImplicitValence())
+            ft.append(atom.GetTotalValence())
+
+            # ft.append(atom.GetFormalCharge())
+            ft.append(atom.GetNumRadicalElectrons())
+
+            ft.append(int(atom.GetIsAromatic()))
+            ft.append(int(atom.IsInRing()))
+
+            # ft.append(atom.GetNumExplicitHs())
+            # ft.append(atom.GetNumImplicitHs())
+            ft.append(atom.GetTotalNumHs(includeNeighbors=True))
+
+            # ft.append(atom.GetAtomicNum())
+            ft += one_hot_encoding(atom.GetSymbol(), species)
+
+            ft += one_hot_encoding(
+                atom.GetHybridization(),
+                [
+                    Chem.rdchem.HybridizationType.S,
+                    Chem.rdchem.HybridizationType.SP,
+                    Chem.rdchem.HybridizationType.SP2,
+                    Chem.rdchem.HybridizationType.SP3,
+                    # Chem.rdchem.HybridizationType.SP3D,
+                    # Chem.rdchem.HybridizationType.SP3D2,
+                ],
+            )
+
+            for s in allowed_ring_size:
+                ft.append(ring.IsAtomInRingOfSize(u, s))
+
+            feats.append(ft)
+
+        feats = torch.tensor(feats, dtype=getattr(torch, self.dtype))
+        self._feature_size = feats.shape[1]
+        self._feature_name = (
+            [
+                "acceptor",
+                "donor",
+                # "degree",
+                "total degree",
+                # "explicit valence",
+                # "implicit valence",
+                "total valence",
+                # "formal charge",
+                "num radical electrons",
+                "is aromatic",
+                "is in ring",
+                # "num explicit H",
+                # "num implicit H",
+                "num total H",
+                # "atomic number",
+            ]
+            + ["chemical symbol"] * len(species)
+            + ["hybridization"] * 4
+            + ["ring size"] * 5
+        )
+
+        return {"feat": feats}
+
+##### TODO TODO TODO
+##### TODO TODO TODO
+##### TODO TODO TODO
+##### TODO TODO TODO
+class GlobalFeaturizerGraph(BaseFeaturizer):
+    """
+    Featurize the global state of a molecules using number of atoms, number of bonds,
+    molecular weight, and optionally charge and solvent environment.
+
+
+    Args:
+        allowed_charges (list, optional): charges allowed the the molecules to take.
+        solvent_environment (list, optional): solvent environment in which the
+        calculations for the molecule take place
+    """
+
+    def __init__(self, allowed_charges=None, solvent_environment=None, dtype="float32"):
+        super(GlobalFeaturizer, self).__init__(dtype)
+        self.allowed_charges = allowed_charges
+        self.solvent_environment = solvent_environment
+
+    def __call__(self, mol, **kwargs):
+
+        pt = GetPeriodicTable()
+        g = [
+            mol.GetNumAtoms(),
+            mol.GetNumBonds(),
+            sum([pt.GetAtomicWeight(a.GetAtomicNum()) for a in mol.GetAtoms()]),
+        ]
+
+        if self.allowed_charges is not None or self.solvent_environment is not None:
+            try:
+                feats_info = kwargs["extra_feats_info"]
+            except KeyError as e:
+                raise KeyError(
+                    "{} `extra_feats_info` needed for {}.".format(
+                        e, self.__class__.__name__
+                    )
+                )
+
+            if self.allowed_charges is not None:
+                g += one_hot_encoding(feats_info["charge"], self.allowed_charges)
+
+            if self.solvent_environment is not None:
+                # if only two solvent_environment, we use 0/1 to denote the feature
+                if len(self.solvent_environment) == 2:
+                    ft = self.solvent_environment.index(feats_info["environment"])
+                    g += [ft]
+                # if more than two, we create a one-hot encoding
+                else:
+                    g += one_hot_encoding(
+                        feats_info["environment"], self.solvent_environment
+                    )
+
+        feats = torch.tensor([g], dtype=getattr(torch, self.dtype))
+
+        self._feature_size = feats.shape[1]
+        self._feature_name = ["num atoms", "num bonds", "molecule weight"]
+        if self.allowed_charges is not None:
+            self._feature_name += ["charge one hot"] * len(self.allowed_charges)
+        if self.solvent_environment is not None:
+            if len(self.solvent_environment) == 2:
+                self._feature_name += ["solvent"]
+            else:
+                self._feature_name += ["solvent"] * len(self.solvent_environment)
+
+        return {"feat": feats}
+
+class AtomFeaturizerGraphMin(BaseFeaturizer):
+    """
+    Featurize atoms in a molecule.
+
+    Mimimum set of info without hybridization info.
+    """
+
+    def __call__(self, mol, **kwargs):
+        """
+        Args:
+            mol (rdkit.Chem.rdchem.Mol): RDKit molecule object
+
+            Also `extra_feats_info` should be provided as `kwargs` as additional info.
+
+        Returns:
+            Dictionary of atom features
+        """
+        try:
+            species = sorted(kwargs["dataset_species"])
+        except KeyError as e:
+            raise KeyError(
+                "{} `dataset_species` needed for {}.".format(e, self.__class__.__name__)
+            )
+        try:
+            feats_info = kwargs["extra_feats_info"]
+        except KeyError as e:
+            raise KeyError(
+                "{} `extra_feats_info` needed for {}.".format(e, self.__class__.__name__)
+            )
+
+        feats = []
+
+        ring = mol.GetRingInfo()
+        allowed_ring_size = [3, 4, 5, 6, 7]
+        num_atoms = mol.GetNumAtoms()
+        for i in range(num_atoms):
+            ft = []
+            atom = mol.GetAtomWithIdx(i)
+
+            ft.append(atom.GetTotalDegree())
+            ft.append(int(atom.IsInRing()))
+            ft.append(atom.GetTotalNumHs(includeNeighbors=True))
+
+            ft += one_hot_encoding(atom.GetSymbol(), species)
+
+            for s in allowed_ring_size:
+                ft.append(ring.IsAtomInRingOfSize(i, s))
+
+            feats.append(ft)
+
+        feats = torch.tensor(feats, dtype=getattr(torch, self.dtype))
+        self._feature_size = feats.shape[1]
+        self._feature_name = (
+            ["total degree", "is in ring", "total H"]
+            + ["chemical symbol"] * len(species)
+            + ["ring size"] * 5
+        )
+
+        return {"feat": feats}
+
+
+def one_hot_encoding(x, allowable_set):
+    """One-hot encoding.
+
+    Parameters
+    ----------
+    x : str, int or Chem.rdchem.HybridizationType
+    allowable_set : list
+        The elements of the allowable_set should be of the
+        same type as x.
+
+    Returns
+    -------
+    list
+        List of int (0 or 1) where at most one value is 1.
+        If the i-th value is 1, then we must have x == allowable_set[i].
+    """
+    return list(map(int, list(map(lambda s: x == s, allowable_set))))
+
+
+def multi_hot_encoding(x, allowable_set):
+    """Multi-hot encoding.
+
+    Args:
+        x (list): any type that can be compared with elements in allowable_set
+        allowable_set (list): allowed values for x to take
+
+    Returns:
+        list: List of int (0 or 1) where zero or more values can be 1.
+            If the i-th value is 1, then we must have allowable_set[i] in x.
+    """
+    return list(map(int, list(map(lambda s: s in x, allowable_set))))
+

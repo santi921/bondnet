@@ -1,3 +1,4 @@
+from re import L
 import time 
 import pandas as pd
 import networkx as nx
@@ -15,7 +16,7 @@ from rdkit import Chem
 Chem.WrapLogs()
 
 
-def process_species_graph(row):
+def process_species_graph(row, classifier = False):
     '''
     Takes a row and processes the products/reactants - entirely defined by graphs from row
 
@@ -172,7 +173,7 @@ def process_species_graph(row):
         rxn._bond_mapping_by_int_index = bond_map 
     return rxn
 
-def process_species_rdkit(row):
+def process_species_rdkit(row, classifier = False):
     '''
     Takes a row and processes the products/reactants - entirely defined by rdkit definitions
 
@@ -273,10 +274,17 @@ def process_species_rdkit(row):
         if(row["bonds_broken"] != []):
             broken_bond = row['bonds_broken'][0]
 
+        value = row["dE_barrier"]
+        if(classifier): 
+            if(value < 1): value = 0
+            elif(value < 2  and value > 1): value = 1
+            else: value = 2
+
+
         rxn = Reaction(
             reactants = reactant_list, 
             products=product_list, 
-            free_energy= row["dE_barrier"],
+            free_energy= value,
             broken_bond = broken_bond,
             identifier = id
             )
@@ -380,7 +388,7 @@ def create_struct_label_dataset_reaction_network(filename, out_file):
         group_mode='charge_0'
     )
 
-def create_reaction_network_files(filename, out_file):
+def create_reaction_network_files(filename, out_file, classifier = False):
     '''
     Processes json file from emmet to use in training bondnet 
 
@@ -399,7 +407,7 @@ def create_reaction_network_files(filename, out_file):
     with ProcessPool(max_workers=12 , max_tasks=10) as pool:
         for _, row in mg_df.iterrows():
             #process_species = process_species_rdkit
-            future = pool.schedule(process_species_rdkit, args = [row], timeout = 30)
+            future = pool.schedule(process_species_rdkit, args = [row, True], timeout = 30)
             future.add_done_callback(task_done)
             try:
                 rxn_raw.append(future.result())
@@ -437,13 +445,24 @@ def create_reaction_network_files(filename, out_file):
 
     extractor = ReactionCollection(reactions)
     # works
-    all_mols, all_labels, features = extractor.create_struct_label_dataset_reaction_based_regression_alt(
-        struct_file=path_mg_data + "mg_struct_bond_rgrn.sdf",
-        label_file=path_mg_data + "mg_label_bond_rgrn.yaml",
-        feature_file=path_mg_data + "mg_feature_bond_rgrn.yaml",
-        group_mode='charge_0'
-    )
+    if(classifier): 
+        all_mols, all_labels, features = extractor.create_struct_label_dataset_reaction_based_regression_alt(
+            struct_file=path_mg_data + "mg_struct_bond_rgrn_classify.sdf",
+            label_file=path_mg_data + "mg_label_bond_rgrn_classify.yaml",
+            feature_file=path_mg_data + "mg_feature_bond_rgrn_classify.yaml",
+            group_mode='charge_0'
+        )
+
+    else: 
+        all_mols, all_labels, features = extractor.create_struct_label_dataset_reaction_based_regression_alt(
+            struct_file=path_mg_data + "mg_struct_bond_rgrn.sdf",
+            label_file=path_mg_data + "mg_label_bond_rgrn.yaml",
+            feature_file=path_mg_data + "mg_feature_bond_rgrn.yaml",
+            group_mode='charge_0'
+        )
     return all_mols, all_labels, features
+
+
 
 def process_data(): 
     # create_struct_label_dataset_reaction_network(filename='', out_file='./')
