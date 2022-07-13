@@ -738,6 +738,7 @@ class ReactionDataset(BaseDataset):
 
 
 class ReactionNetworkDataset(BaseDataset):
+
     def _load(self):
 
         logger.info("Start loading dataset")
@@ -884,6 +885,37 @@ class ReactionNetworkDataset(BaseDataset):
 
         logger.info(f"Finish loading {len(self.labels)} reactions...")
 
+
+    @staticmethod 
+    def build_graphs(grapher, molecules, features, species):
+        """
+        Build DGL graphs using grapher for the molecules.
+
+        Args:
+            grapher (Grapher): grapher object to create DGL graphs
+            molecules (list): rdkit molecules
+            features (list): each element is a dict of extra features for a molecule
+            species (list): chemical species (str) in all molecules
+
+        Returns:
+            list: DGL graphs
+        """
+
+        graphs = []
+        for i, (m, feats) in enumerate(zip(molecules, features)):
+            if m is not None:
+                g = grapher.build_graph_and_featurize(
+                    m, extra_feats_info=feats, dataset_species=species
+                )
+                # add this for check purpose; some entries in the sdf file may fail
+                g.graph_id = i
+            else:
+                g = None
+
+            graphs.append(g)
+
+        return graphs
+
     @staticmethod
     def get_labels(labels):
         if isinstance(labels, Path):
@@ -1003,7 +1035,7 @@ class ReactionNetworkDatasetClassify(BaseDataset):
                 else:
                     environemnt = None
 
-                lab_temp = torch.zeros(3)
+                lab_temp = torch.zeros(5)
                 lab_temp[int(lb['value'][0])] = 1
                 label = {
                     "value": lab_temp,
@@ -1246,3 +1278,4 @@ def train_validation_test_split_selected_bond_in_train(
         Subset(dataset, val_idx),
         Subset(dataset, test_idx),
     ]
+

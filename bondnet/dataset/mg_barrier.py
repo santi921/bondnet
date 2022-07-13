@@ -34,11 +34,16 @@ def process_species_graph(row, classifier = False):
     coords_products_full = [i["xyz"] for i in row['product_molecule_graph']["molecule"]["sites"]]
     bonds_reactant = row['reactant_bonds']
     bonds_products = row['product_bonds']
-
+    
     charge = row['charge']
     id = str(row["reactant_id"])
     free_energy = row['product_free_energy']
-
+    
+    # invalid bond defined - remove this filter if doing thermo, not TS props
+    #if(row["bonds_broken"] == [] or len(row["bonds_broken"]) > 1): 
+    #    return []
+    #if(row['bonds_formed']):
+    
     reactant_mol = xyz2mol(atoms = species_reactant, 
         coordinates = coords_reactant, 
         charge = charge,
@@ -173,6 +178,8 @@ def process_species_graph(row, classifier = False):
         rxn._bond_mapping_by_int_index = bond_map 
     return rxn
 
+
+
 def process_species_rdkit(row, classifier = False):
     '''
     Takes a row and processes the products/reactants - entirely defined by rdkit definitions
@@ -276,10 +283,11 @@ def process_species_rdkit(row, classifier = False):
 
         value = row["dE_barrier"]
         if(classifier): 
-            if(value < 1): value = 0
-            elif(value < 2  and value > 1): value = 1
-            else: value = 2
-
+            if(value <= 0.04): value = 0
+            elif(value < 0.3  and value > 0.04): value = 1
+            elif(value < 0.7  and value > 0.3): value = 2
+            elif(value < 1.5  and value > 0.7): value = 3
+            else: value = 4
 
         rxn = Reaction(
             reactants = reactant_list, 

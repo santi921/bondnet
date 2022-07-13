@@ -155,7 +155,7 @@ class ReactionInNetwork:
 class ReactionNetwork:
     """
     Args:
-        molecules (list): a sequence of Molecules
+        molecules (list): a sequence of Molecules as graphs
         reactions (list): a sequence of Reaction.
     """
 

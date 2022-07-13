@@ -2,6 +2,7 @@ import time
 from importlib_metadata import Prepared 
 import torch
 from torch.nn import CrossEntropyLoss
+from sklearn.metrics import f1_score
 from bondnet.data.dataset import ReactionNetworkDatasetClassify
 from bondnet.data.dataloader import DataLoaderReactionNetwork
 from bondnet.data.featurizer import (
@@ -31,7 +32,7 @@ def train(optimizer, model, nodes, data_loader, loss_fn):
     epoch_loss = 0.0
     accuracy = 0.0
     count = 0.0
-
+    
     for it, (batched_graph, label) in enumerate(data_loader):
         
         feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
@@ -39,7 +40,7 @@ def train(optimizer, model, nodes, data_loader, loss_fn):
         stdev = label["scaler_stdev"]
 
         pred, target_filtered, stdev_filtered = model(batched_graph, feats, label["reaction"], target,  stdev)
-        target_filtered = torch.reshape(target_filtered, (int(target_filtered.shape[0]/3), 3))
+        target_filtered = torch.reshape(target_filtered, (int(target_filtered.shape[0]/5), 5))
         target_filtered = torch.argmax(target_filtered,axis=1)
         loss = loss_fn(pred,torch.flatten(target_filtered))
         optimizer.zero_grad()
@@ -49,15 +50,17 @@ def train(optimizer, model, nodes, data_loader, loss_fn):
         accuracy += (torch.argmax(pred, axis = 1) == target_filtered).sum().item()
         epoch_loss += loss.detach().item()
         count += len(target_filtered)
-    
+        f1 = f1_score(target_filtered.data, torch.argmax(pred, axis = 1).detach(), average = 'weighted')           
+
+
     epoch_loss /= it + 1
     accuracy /= count
     print("molecules considered: {}".format(int(count)))
-    return epoch_loss, accuracy
+    return epoch_loss, accuracy, f1
 
 def evaluate(model, nodes, data_loader):
     model.eval()
-
+    
     with torch.no_grad():
         accuracy = 0.0
         count = 0.0
@@ -68,14 +71,15 @@ def evaluate(model, nodes, data_loader):
             stdev = label["scaler_stdev"]
 
             pred, target_filtered, stdev_filtered = model(batched_graph, feats, label["reaction"], target,  stdev)
-            target_filtered = torch.reshape(target_filtered, (int(target_filtered.shape[0]/3), 3))
+            target_filtered = torch.reshape(target_filtered, (int(target_filtered.shape[0]/5), 5))
             target_filtered = torch.argmax(target_filtered,axis=1)
-            print(pred)
-            accuracy += (torch.argmax(pred, axis = 1) == target_filtered).sum().item()
-            
-            count += len(target_filtered)
 
-    return accuracy / count
+            
+            accuracy += (torch.argmax(pred, axis = 1) == target_filtered).sum().item()
+            count += len(target_filtered)
+            f1 = f1_score(target_filtered.data, torch.argmax(pred, axis = 1).detach(), average = 'weighted')           
+            
+    return accuracy / count, f1
 
 def get_grapher():
     atom_featurizer = AtomFeaturizerFull()
@@ -92,25 +96,25 @@ def training_loop(model, train_loader, val_loader, test_loader):
     # optimizer, loss function and metric function
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     #loss_func = MSELoss(reduction="mean")
-    loss_func = CrossEntropyLoss(weight = torch.tensor([1., 10., 10., 20.]))
+    loss_func = CrossEntropyLoss(weight = torch.tensor([1., 1., 1., 1., 1.]))
     feature_names = ["atom", "bond", "global"]
     best = 1e10
     num_epochs = 200
 
     # main training loop
-    print("# Epoch     Loss         TrainAcc        ValAcc")
+    print("# Epoch     Loss         TrainAcc        ValAcc        F1 train        F1 test")
     for epoch in range(num_epochs):
 
         # train on training set 
-        loss, train_acc = train(optimizer, model, feature_names, train_loader, loss_func)
+        loss, train_acc, f1_train = train(optimizer, model, feature_names, train_loader, loss_func)
         # evaluate on validation set
-        val_acc = evaluate(model, feature_names, val_loader)
+        val_acc, f1_val = evaluate(model, feature_names, val_loader)
         # save checkpoint for best performing model 
         is_best = val_acc < best
         if is_best:
             best = val_acc
             torch.save(model.state_dict(), 'checkpoint.pkl')
-        print("{:5d}   {:12.6e}   {:12.6e}   {:12.6e}".format(epoch, loss, train_acc, val_acc))
+        print("{:5d}   {:12.4e}   {:12.4e}   {:12.4e}   {:12.4e}   {:12.4e}".format(epoch, loss, train_acc, val_acc, f1_train, f1_val))
 
 
     # load best performing model and test it's performance on the test set
@@ -151,7 +155,7 @@ def main():
         fc_num_layers=2,
         fc_hidden_size=[128, 64],
         fc_activation='ReLU',
-        outdim=3
+        outdim=5
     )
 
     training_loop(model_mg, train_loader_mg, val_loader_mg, test_loader_mg)

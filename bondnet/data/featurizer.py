@@ -12,8 +12,8 @@ from rdkit import Chem
 from rdkit.Chem import ChemicalFeatures
 from rdkit import RDConfig
 from rdkit.Chem.rdchem import GetPeriodicTable
-
-
+import networkx as nx
+from bondnet.data.utils import *
 class BaseFeaturizer:
     def __init__(self, dtype="float32"):
         if dtype not in ["float32", "float64"]:
@@ -829,9 +829,6 @@ class RBF(BaseFeaturizer):
 
 
 
-
-##### TODO TODO TODO
-##### TODO TODO TODO
 ##### TODO TODO TODO
 ##### TODO TODO TODO
 class GraphAtomFeaturizerFull(BaseFeaturizer):
@@ -949,128 +946,7 @@ class GraphAtomFeaturizerFull(BaseFeaturizer):
         return {"feat": feats}
 
 
-##### TODO TODO TODO
-##### TODO TODO TODO
-##### TODO TODO TODO
-##### TODO TODO TODO
-class GraphAtomFeaturizerNoXYZ(BaseFeaturizer):
-    """
-    Featurize atoms in a molecule.
 
-    The atom indices will be preserved, i.e. feature i corresponds to atom i.
-    """
-
-    def __call__(self, mol, **kwargs):
-        """
-        Parameters
-        ----------
-        mol : graph object
-
-        Returns
-        -------
-            Dictionary for atom features
-        """
-        try:
-            species = sorted(kwargs["dataset_species"])
-        except KeyError as e:
-            raise KeyError(
-                "{} `dataset_species` needed for {}.".format(e, self.__class__.__name__)
-            )
-
-        feats = []
-        is_donor = defaultdict(int)
-        is_acceptor = defaultdict(int)
-
-        fdef_name = os.path.join(RDConfig.RDDataDir, "BaseFeatures.fdef")
-        mol_featurizer = ChemicalFeatures.BuildFeatureFactory(fdef_name)
-        mol_feats = mol_featurizer.GetFeaturesForMol(mol)
-
-        for i in range(len(mol_feats)):
-            if mol_feats[i].GetFamily() == "Donor":
-                node_list = mol_feats[i].GetAtomIds()
-                for u in node_list:
-                    is_donor[u] = 1
-            elif mol_feats[i].GetFamily() == "Acceptor":
-                node_list = mol_feats[i].GetAtomIds()
-                for u in node_list:
-                    is_acceptor[u] = 1
-
-        ring = mol.GetRingInfo()
-        allowed_ring_size = [3, 4, 5, 6, 7]
-        num_atoms = mol.GetNumAtoms()
-        for u in range(num_atoms):
-            ft = [is_acceptor[u], is_donor[u]]
-
-            atom = mol.GetAtomWithIdx(u)
-
-            # ft.append(atom.GetDegree())
-            ft.append(atom.GetTotalDegree())
-
-            # ft.append(atom.GetExplicitValence())
-            # ft.append(atom.GetImplicitValence())
-            ft.append(atom.GetTotalValence())
-
-            # ft.append(atom.GetFormalCharge())
-            ft.append(atom.GetNumRadicalElectrons())
-
-            ft.append(int(atom.GetIsAromatic()))
-            ft.append(int(atom.IsInRing()))
-
-            # ft.append(atom.GetNumExplicitHs())
-            # ft.append(atom.GetNumImplicitHs())
-            ft.append(atom.GetTotalNumHs(includeNeighbors=True))
-
-            # ft.append(atom.GetAtomicNum())
-            ft += one_hot_encoding(atom.GetSymbol(), species)
-
-            ft += one_hot_encoding(
-                atom.GetHybridization(),
-                [
-                    Chem.rdchem.HybridizationType.S,
-                    Chem.rdchem.HybridizationType.SP,
-                    Chem.rdchem.HybridizationType.SP2,
-                    Chem.rdchem.HybridizationType.SP3,
-                    # Chem.rdchem.HybridizationType.SP3D,
-                    # Chem.rdchem.HybridizationType.SP3D2,
-                ],
-            )
-
-            for s in allowed_ring_size:
-                ft.append(ring.IsAtomInRingOfSize(u, s))
-
-            feats.append(ft)
-
-        feats = torch.tensor(feats, dtype=getattr(torch, self.dtype))
-        self._feature_size = feats.shape[1]
-        self._feature_name = (
-            [
-                "acceptor",
-                "donor",
-                # "degree",
-                "total degree",
-                # "explicit valence",
-                # "implicit valence",
-                "total valence",
-                # "formal charge",
-                "num radical electrons",
-                "is aromatic",
-                "is in ring",
-                # "num explicit H",
-                # "num implicit H",
-                "num total H",
-                # "atomic number",
-            ]
-            + ["chemical symbol"] * len(species)
-            + ["hybridization"] * 4
-            + ["ring size"] * 5
-        )
-
-        return {"feat": feats}
-
-##### TODO TODO TODO
-##### TODO TODO TODO
-##### TODO TODO TODO
-##### TODO TODO TODO
 class GlobalFeaturizerGraph(BaseFeaturizer):
     """
     Featurize the global state of a molecules using number of atoms, number of bonds,
@@ -1089,12 +965,27 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
         self.solvent_environment = solvent_environment
 
     def __call__(self, mol, **kwargs):
+        
+        num_atoms, mw = 0, 0
+        num_bonds = len(mol['reactant_bonds'])
 
         pt = GetPeriodicTable()
+        atom_types = list(mol['composition'].keys())      
+        for atom in atom_types: 
+            num_atom_type = int(mol['composition'][atom])
+            num_atoms += num_atom_type
+            mw += num_atom_type * pt.GetAtomicWeight(atom)
+        
+        columns = mol.keys()
+        if 'reactant_bonds' in columns: 
+            bond_key = "reactant_bonds"
+        else: 
+            bond_key = "product_bonds"
+            
         g = [
-            mol.GetNumAtoms(),
-            mol.GetNumBonds(),
-            sum([pt.GetAtomicWeight(a.GetAtomicNum()) for a in mol.GetAtoms()]),
+            num_atoms,
+            len(mol[bond_key]),
+            mw,
         ]
 
         if self.allowed_charges is not None or self.solvent_environment is not None:
@@ -1135,7 +1026,7 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
 
         return {"feat": feats}
 
-class AtomFeaturizerGraphMin(BaseFeaturizer):
+class AtomFeaturizerGraph(BaseFeaturizer):
     """
     Featurize atoms in a molecule.
 
@@ -1145,13 +1036,15 @@ class AtomFeaturizerGraphMin(BaseFeaturizer):
     def __call__(self, mol, **kwargs):
         """
         Args:
-            mol (rdkit.Chem.rdchem.Mol): RDKit molecule object
+            mol (pandas series): 
+            row of pandas array w/pymagen molecule, bondlist, and  molecule
 
             Also `extra_feats_info` should be provided as `kwargs` as additional info.
 
         Returns:
             Dictionary of atom features
         """
+
         try:
             species = sorted(kwargs["dataset_species"])
         except KeyError as e:
@@ -1164,25 +1057,47 @@ class AtomFeaturizerGraphMin(BaseFeaturizer):
             raise KeyError(
                 "{} `extra_feats_info` needed for {}.".format(e, self.__class__.__name__)
             )
-
+        
         feats = []
-
-        ring = mol.GetRingInfo()
+        num_atoms = 0 
         allowed_ring_size = [3, 4, 5, 6, 7]
-        num_atoms = mol.GetNumAtoms()
-        for i in range(num_atoms):
+        columns = mol.keys()
+        # figure out if reactant row or col row was passed
+        
+        if 'reactant_bonds' in columns: 
+            bond_key = "reactant_bonds"
+            graph_key = "reactant_molecule_graph"
+        else: 
+            bond_key = "product_bonds"
+            graph_key = "product_molecule_graph"
+
+        atom_types = list(mol['composition'].keys())      
+        for atom in atom_types: 
+            num_atoms += int(mol['composition'][atom])
+        
+        # need to error handle here for products that are split
+        species_len = mol[graph_key]['molecule']['sites']
+        species_sites = mol[graph_key]['molecule']['sites']
+        # need to error handle here for products that are split
+
+        bond_list = mol[bond_key]    
+        species_order = [i['name'] for i in species_len]
+        
+        nx_graph = nx.Graph()
+        [nx_graph.add_node(i) for i in range(len(species_order))]
+        nx_graph.add_edges_from(bond_list)
+        cycles = nx.cycle_basis(nx_graph, root = 1) # this gets cycles
+        
+        for atom_ind in range(num_atoms):
             ft = []
-            atom = mol.GetAtomWithIdx(i)
-
-            ft.append(atom.GetTotalDegree())
-            ft.append(int(atom.IsInRing()))
-            ft.append(atom.GetTotalNumHs(includeNeighbors=True))
-
-            ft += one_hot_encoding(atom.GetSymbol(), species)
-
-            for s in allowed_ring_size:
-                ft.append(ring.IsAtomInRingOfSize(i, s))
-
+            atom_element = species_sites[atom_ind]
+            h_count, degree = h_count_and_degree(atom_ind, bond_list, species_order)
+            ring_inclusion, ring_size_list = ring_features(atom_ind, cycles, allowed_ring_size)
+            ft.append(degree)
+            ft.append(ring_inclusion)
+            ft.append(h_count)
+            ft += one_hot_encoding((atom_element), species)
+            ft += ring_size_list
             feats.append(ft)
 
         feats = torch.tensor(feats, dtype=getattr(torch, self.dtype))
@@ -1190,11 +1105,10 @@ class AtomFeaturizerGraphMin(BaseFeaturizer):
         self._feature_name = (
             ["total degree", "is in ring", "total H"]
             + ["chemical symbol"] * len(species)
-            + ["ring size"] * 5
+            + ["ring size"] * len(allowed_ring_size) 
         )
 
         return {"feat": feats}
-
 
 def one_hot_encoding(x, allowable_set):
     """One-hot encoding.
@@ -1214,7 +1128,6 @@ def one_hot_encoding(x, allowable_set):
     """
     return list(map(int, list(map(lambda s: x == s, allowable_set))))
 
-
 def multi_hot_encoding(x, allowable_set):
     """Multi-hot encoding.
 
@@ -1228,3 +1141,57 @@ def multi_hot_encoding(x, allowable_set):
     """
     return list(map(int, list(map(lambda s: s in x, allowable_set))))
 
+def h_count_and_degree(atom_ind, bond_list, species_order):
+    """
+    gets the number of H-atoms connected to an atom + degree of bonding 
+    takes: 
+        atom_ind(int): index of atom 
+        bond_list(list of lists): list of bonds in graph
+        species_order: order of atoms in graph to match nodes
+    """
+    # h count
+    atom_bonds = []
+    h_count = 0 
+    for i in bond_list: 
+        if(atom_ind in i): atom_bonds.append(i)
+    if(atom_bonds != 0):
+        for bond in atom_bonds: 
+            bond_copy = bond[:]
+            bond_copy.remove(atom_ind)
+            if(species_order[bond_copy[0]] == 'H'):
+                h_count += 1
+    return h_count, int(len(atom_bonds))
+
+def ring_features(atom_ind, cycles, allowed_ring_size):
+    '''
+        returns an atom's ring inclusion and ring size features 
+        takes: 
+            atom_ind(int) - an atom's index
+            cycles(list of list) - cycles detected in the graph
+            allow_ring_size(list) - list of allowed ring sizes
+        returns: 
+            ring_inclusion - int of whether atom is in a ring
+            ring_size_ret_list - one-hot list of whether 
+
+    '''
+    
+    ring_inclusion = 0 
+    ring_size = 0 # find largest allowable ring that this atom is a part o
+    ring_size_ret_list = [0 for i in allowed_ring_size]
+
+    if(cycles != []):
+        min_ring = 100
+        for i in cycles: 
+            if(atom_ind in i):
+                if(len(i) in allowed_ring_size and len(i) < min_ring):
+                    ring_inclusion = 1 
+                    ring_size = int(len(i))                    
+        if(min_ring < 100): ring_size = min_ring
+    
+    #one hot encode the detected ring size
+    if(ring_size != 0): 
+        print(ring_size)
+        print(allowed_ring_size.index(ring_size))
+        ring_size_ret_list[allowed_ring_size.index(ring_size)] = 1
+
+    return ring_inclusion, ring_size_ret_list 

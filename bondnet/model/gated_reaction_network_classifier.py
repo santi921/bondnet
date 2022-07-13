@@ -116,7 +116,7 @@ class GatedGCNReactionNetworkClassifier(GatedGCNMol):
 
         # final output layer, mapping feature to the corresponding shape
         self.fc_layers.append(nn.Linear(in_size, outdim))
-        self.fc_layers.append(nn.Softmax())
+        self.fc_layers.append(nn.Softmax(dim=1))
 
     def forward(self, graph, feats, reactions, target, stdev, norm_atom=None, norm_bond=None):
 
