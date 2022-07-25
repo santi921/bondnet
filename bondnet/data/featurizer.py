@@ -16,7 +16,6 @@ import networkx as nx
 from bondnet.data.utils import *
 
 
-
 class BaseFeaturizer:
     def __init__(self, dtype="float32"):
         if dtype not in ["float32", "float64"]:
@@ -412,7 +411,9 @@ class BondAsEdgeBidirectedFeaturizer(BondFeaturizer):
 
         feats = torch.tensor(feats, dtype=getattr(torch, self.dtype))
         self._feature_size = feats.shape[1]
-        self._feature_name = ["is aromatic", "is in ring", "is conjugated"] + ["type"] * 4
+        self._feature_name = ["is aromatic", "is in ring", "is conjugated"] + [
+            "type"
+        ] * 4
         if self.length_featurizer:
             self._feature_name += self.length_featurizer.feature_name
 
@@ -503,7 +504,9 @@ class BondAsEdgeCompleteFeaturizer(BondFeaturizer):
 
         feats = torch.tensor(feats, dtype=getattr(torch, self.dtype))
         self._feature_size = feats.shape[1]
-        self._feature_name = ["is aromatic", "is in ring", "is conjugated"] + ["type"] * 4
+        self._feature_name = ["is aromatic", "is in ring", "is conjugated"] + [
+            "type"
+        ] * 4
         if self.length_featurizer:
             self._feature_name += self.length_featurizer.feature_name
 
@@ -537,7 +540,9 @@ class AtomFeaturizerMinimum(BaseFeaturizer):
             feats_info = kwargs["extra_feats_info"]
         except KeyError as e:
             raise KeyError(
-                "{} `extra_feats_info` needed for {}.".format(e, self.__class__.__name__)
+                "{} `extra_feats_info` needed for {}.".format(
+                    e, self.__class__.__name__
+                )
             )
 
         feats = []
@@ -830,12 +835,12 @@ class RBF(BaseFeaturizer):
         return list(np.exp(coef * (radial ** 2)))
 
 
-#class GraphBondFeaturizer(BaseFeaturizer):
+# class GraphBondFeaturizer(BaseFeaturizer):
 
 ##### TODO TODO TODO
 ##### TODO TODO TODO
-#class GraphAtomFeaturizerFull(BaseFeaturizer):
-# include hybridization data 
+# class GraphAtomFeaturizerFull(BaseFeaturizer):
+# include hybridization data
 # include xyz data????
 
 # done
@@ -857,23 +862,23 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
         self.solvent_environment = solvent_environment
 
     def __call__(self, mol, **kwargs):
-        
+
         num_atoms, mw = 0, 0
-        num_bonds = len(mol['reactant_bonds'])
+        num_bonds = len(mol["reactant_bonds"])
 
         pt = GetPeriodicTable()
-        atom_types = list(mol['composition'].keys())      
-        for atom in atom_types: 
-            num_atom_type = int(mol['composition'][atom])
+        atom_types = list(mol["composition"].keys())
+        for atom in atom_types:
+            num_atom_type = int(mol["composition"][atom])
             num_atoms += num_atom_type
             mw += num_atom_type * pt.GetAtomicWeight(atom)
-        
+
         columns = mol.keys()
-        if 'reactant_bonds' in columns: 
+        if "reactant_bonds" in columns:
             bond_key = "reactant_bonds"
-        else: 
+        else:
             bond_key = "product_bonds"
-            
+
         g = [
             num_atoms,
             len(mol[bond_key]),
@@ -918,6 +923,7 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
 
         return {"feat": feats}
 
+
 # done
 class AtomFeaturizerGraph(BaseFeaturizer):
 
@@ -930,7 +936,7 @@ class AtomFeaturizerGraph(BaseFeaturizer):
     def __call__(self, mol, **kwargs):
         """
         Args:
-            mol (pandas series): 
+            mol (pandas series):
             row of pandas array w/pymagen molecule, bondlist, and  molecule
 
             Also `extra_feats_info` should be provided as `kwargs` as additional info.
@@ -949,38 +955,40 @@ class AtomFeaturizerGraph(BaseFeaturizer):
             feats_info = kwargs["extra_feats_info"]
         except KeyError as e:
             raise KeyError(
-                "{} `extra_feats_info` needed for {}.".format(e, self.__class__.__name__)
+                "{} `extra_feats_info` needed for {}.".format(
+                    e, self.__class__.__name__
+                )
             )
-        
+
         feats = []
-        num_atoms = 0 
+        num_atoms = 0
         allowed_ring_size = [3, 4, 5, 6, 7]
         columns = mol.keys()
         # figure out if reactant row or col row was passed
-        
-        if 'reactant_bonds' in columns: 
+
+        if "reactant_bonds" in columns:
             bond_key = "reactant_bonds"
             graph_key = "reactant_molecule_graph"
-        else: 
+        else:
             bond_key = "product_bonds"
             graph_key = "product_molecule_graph"
 
-        atom_types = list(mol['composition'].keys())      
-        for atom in atom_types: 
-            num_atoms += int(mol['composition'][atom])
-        
+        atom_types = list(mol["composition"].keys())
+        for atom in atom_types:
+            num_atoms += int(mol["composition"][atom])
+
         # need to error handle here for products that are split
-        species_len = mol[graph_key]['molecule']['sites']
-        species_sites = mol[graph_key]['molecule']['sites']
+        species_sites = mol[graph_key]["molecule"]["sites"]
+        atom_num = len(species_sites)
         # need to error handle here for products that are split
 
-        bond_list = mol[bond_key]    
-        species_order = [i['name'] for i in species_len]
-        
-        cycles = find_cycles(atom_num, bond_list, edges = False)
-        #cycles = nx.cycle_basis(nx_graph) # this gets cycles
+        bond_list = mol[bond_key]
+        species_order = [i["name"] for i in atom_num]
+
+        cycles = find_rings(atom_num, bond_list, edges=False)
+        # cycles = nx.cycle_basis(nx_graph) # this gets cycles
         ring_info = ring_features_from_atom_full(num_atoms, cycles, allowed_ring_size)
-        
+
         for atom_ind in range(num_atoms):
             ft = []
             atom_element = species_sites[atom_ind]
@@ -998,11 +1006,15 @@ class AtomFeaturizerGraph(BaseFeaturizer):
         self._feature_name = (
             ["total degree", "is in ring", "total H"]
             + ["chemical symbol"] * len(species)
-            + ["ring size"] * len(allowed_ring_size) 
+            + ["ring size"] * len(allowed_ring_size)
         )
 
         return {"feat": feats}
 
+
+# TODO TODO 
+# TODO TODO 
+# TODO TODO 
 
 class BondAsNodeGraphFeaturizer(BondFeaturizer):
     """
@@ -1040,66 +1052,4 @@ class BondAsNodeGraphFeaturizer(BondFeaturizer):
             Dictionary for bond features
         """
 
-        # Note, this needs to be set such that single atom molecule works
-        if self.dative:
-            num_feats = 12
-        else:
-            num_feats = 11
-
-        num_bonds = mol.GetNumBonds()
-
-        if num_bonds == 0:
-            ft = [0.0 for _ in range(num_feats)]
-            if self.length_featurizer:
-                ft += [0.0 for _ in range(len(self.length_featurizer.feature_name))]
-            feats = [ft]
-
-        else:
-            ring = mol.GetRingInfo()
-            allowed_ring_size = [3, 4, 5, 6, 7]
-
-            feats = []
-            for u in range(num_bonds):
-                bond = mol.GetBondWithIdx(u)
-
-                ft = [
-                    int(bond.IsInRing()),
-                    int(bond.GetIsConjugated()),
-                ]
-                for s in allowed_ring_size:
-                    ft.append(ring.IsBondInRingOfSize(u, s))
-
-                allowed_bond_type = [
-                    Chem.rdchem.BondType.SINGLE,
-                    Chem.rdchem.BondType.DOUBLE,
-                    Chem.rdchem.BondType.TRIPLE,
-                    Chem.rdchem.BondType.AROMATIC,
-                    # Chem.rdchem.BondType.IONIC,
-                ]
-                if self.dative:
-                    allowed_bond_type.append(Chem.rdchem.BondType.DATIVE)
-                ft += one_hot_encoding(bond.GetBondType(), allowed_bond_type)
-
-                if self.length_featurizer:
-                    at1 = bond.GetBeginAtomIdx()
-                    at2 = bond.GetEndAtomIdx()
-                    atoms_pos = mol.GetConformer().GetPositions()
-                    bond_length = np.linalg.norm(atoms_pos[at1] - atoms_pos[at2])
-                    ft += self.length_featurizer(bond_length)
-
-                feats.append(ft)
-
-        feats = torch.tensor(feats, dtype=getattr(torch, self.dtype))
-        self._feature_size = feats.shape[1]
-        self._feature_name = (
-            ["in_ring", "conjugated"]
-            + ["ring size"] * 5
-            + ["single", "double", "triple", "aromatic"]
-        )
-        if self.dative:
-            self._feature_name += ["dative"]
-        if self.length_featurizer:
-            self._feature_name += self.length_featurizer.feature_name
-
-        return {"feat": feats}
-
+        return None

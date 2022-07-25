@@ -97,7 +97,6 @@ class GatedGCNReactionNetwork(GatedGCNMol):
         return all_feats
 
 
-
 def _split_batched_output(graph, value):
     """
     Split a tensor into `num_graphs` chunks, the size of each chunk equals the
@@ -150,8 +149,8 @@ def mol_graph_to_rxn_graph(graph, feats, reactions):
 
         reactants = [graphs[i] for i in rxn.reactants]
         products = [graphs[i] for i in rxn.products]
-        #print(len(torch.cat([p.nodes['bond'].data['ft'] for p in reactants])), 
-        #len(torch.cat([p.nodes['bond'].data['ft'] for p in products])))
+        # print(len(torch.cat([p.nodes['bond'].data['ft'] for p in reactants])),
+        # len(torch.cat([p.nodes['bond'].data['ft'] for p in products])))
         # whether a molecule has bonds?
         has_bonds = {
             # we support only one reactant now, so no it is assumed always to have bond
@@ -162,8 +161,8 @@ def mol_graph_to_rxn_graph(graph, feats, reactions):
 
         ##################################################
         graph = reactants[0]
-        ft_name = 'ft'
-        nt = 'bond'
+        ft_name = "ft"
+        nt = "bond"
         reactants_ft = [p.nodes[nt].data[ft_name] for p in reactants]
         products_ft = [p.nodes[nt].data[ft_name] for p in products]
         products_ft = list(itertools.compress(products_ft, has_bonds["products"]))
@@ -172,15 +171,16 @@ def mol_graph_to_rxn_graph(graph, feats, reactions):
         reactants_ft = torch.cat(reactants_ft)
         products_ft = torch.cat(products_ft)
         # reorder products_ft such that atoms/bonds have the same order as reactants
-        products_ft = products_ft[mappings[nt]] 
+        products_ft = products_ft[mappings[nt]]
         # adds padding if bond isn't mapped/doesn't exist
         g, fts = create_rxn_graph(
-        reactants, products, mappings, has_bonds, tuple(feats.keys()))            
-        if(len(products_ft) == len(reactants_ft)):
+            reactants, products, mappings, has_bonds, tuple(feats.keys())
+        )
+        if len(products_ft) == len(reactants_ft):
             reaction_graphs.append(g)
             reaction_feats.append(fts)
         ##################################################
-    
+
     # batched reaction graph and data
     batched_graph = dgl.batch(reaction_graphs)
     batched_feats = {}
@@ -226,12 +226,12 @@ def create_rxn_graph(
     for nt in ntypes:
         reactants_ft = [p.nodes[nt].data[ft_name] for p in reactants]
         products_ft = [p.nodes[nt].data[ft_name] for p in products]
-    
+
         # remove bond ft if the corresponding molecule has no bond
         # this is necessary because, to make heterogeneous graph work, we create
         # fictitious bond features for molecule without any bond (i.e. single atom
         # molecule, e.g. H+)
-        
+
         if nt == "bond":
             products_ft = list(itertools.compress(products_ft, has_bonds["products"]))
             # add a feature with all zeros for the broken bond
@@ -249,24 +249,25 @@ def create_rxn_graph(
                 f"products_ft ({len(products_ft)}) and mappings[{nt}] "
                 f"({len(mappings[nt])}) have different length"
             )
-            products_ft = products_ft[mappings[nt]] 
-            
+            products_ft = products_ft[mappings[nt]]
+
             ##########################################
-            # adds padding if bond isn't mapped/doesn't exist            
-            if(len(products_ft) != len(reactants_ft)):
-                #print(len(mappings[nt]), len(products_ft), len(reactants_ft))
+            # adds padding if bond isn't mapped/doesn't exist
+            if len(products_ft) != len(reactants_ft):
+                # print(len(mappings[nt]), len(products_ft), len(reactants_ft))
                 unequal = True
-                while(unequal):
-                    if(len(products_ft) <  len(reactants_ft)):
+                while unequal:
+                    if len(products_ft) < len(reactants_ft):
                         products_ft = torch.cat(
-                            (products_ft, torch.zeros(
-                                1,products_ft.size()[1])), 0)
-                    else: 
+                            (products_ft, torch.zeros(1, products_ft.size()[1])), 0
+                        )
+                    else:
                         print("rip")
                         reactants_ft = torch.cat(
-                            (reactants_ft, torch.zeros(
-                                1,reactants_ft.size()[1])), 0)
-                    if(len(products_ft) == len(reactants_ft)): unequal = False
+                            (reactants_ft, torch.zeros(1, reactants_ft.size()[1])), 0
+                        )
+                    if len(products_ft) == len(reactants_ft):
+                        unequal = False
             ##########################################
 
         feats[nt] = products_ft - reactants_ft

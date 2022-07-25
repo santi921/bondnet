@@ -186,7 +186,9 @@ def read_rdkit_mols_from_file(filename, format="sdf"):
             pdbs = f.read()
         pdbs = [s.strip() for s in pdbs.split("$$$$\n")]
         pdbs = [s for s in pdbs if s != ""]
-        molecules = [Chem.MolFromPDBBlock(p, sanitize=True, removeHs=False) for p in pdbs]
+        molecules = [
+            Chem.MolFromPDBBlock(p, sanitize=True, removeHs=False) for p in pdbs
+        ]
 
         return molecules
 
@@ -358,7 +360,9 @@ def create_rdkit_mol_from_mol_graph(
     # we need to adjust the their formal charge so as not to violate valence rule
     formal_charge = adjust_formal_charge(species, bonds, metals)
 
-    m = create_rdkit_mol(species, coords, bond_types, formal_charge, name, force_sanitize)
+    m = create_rdkit_mol(
+        species, coords, bond_types, formal_charge, name, force_sanitize
+    )
 
     return m, bond_types
 

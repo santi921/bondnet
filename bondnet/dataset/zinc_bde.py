@@ -53,24 +53,24 @@ def read_zinc_bde_dataset(dirname):
     n_bad = 0
     mols = []
     bond_energies = []
-    
-    filenames = glob(str(dirname)+"/*.sdf")
-    print(str(dirname)+"/*.sdf")
+
+    filenames = glob(str(dirname) + "/*.sdf")
+    print(str(dirname) + "/*.sdf")
     for i, fname in enumerate(filenames):
-        try:   
+        try:
             m = Chem.SDMolSupplier(fname)[0]
             if m is None:
-                n_bad += 1       
+                n_bad += 1
             title, energies = parse_title_and_energies(fname)
             mw = rdkit_mol_to_wrapper_mol(m, charge=0, identifier=f"{title}_{i}")
             mols.append(mw)
             bond_energies.append(energies)
         except:
-            print("failed molecule: " + str(i))    #print(m)
+            print("failed molecule: " + str(i))  # print(m)
             n_bad += 1
 
     print(f"{n_bad} bad molecules ignored.")
-    
+
     mol_reservoir = set(mols)
 
     n_bad = 0
@@ -83,8 +83,8 @@ def read_zinc_bde_dataset(dirname):
         for bond, reason in extractor.no_reaction_reason.items():
             if reason.compute and reason.fail:
                 print(
-                     f"Creating reaction by breaking bond {bond} of molecule {m.id} "
-                     f"fails because {reason.reason}"
+                    f"Creating reaction by breaking bond {bond} of molecule {m.id} "
+                    f"fails because {reason.reason}"
                 )
                 n_bad += 1
 
@@ -100,7 +100,7 @@ def plot_zinc_mols(dirname="~/Documents/Dataset/ZINC_BDE"):
     filenames = dirname.glob("*.sdf")
     for i, fname in enumerate(filenames):
         print(fname)
-        #m = Chem.MolFromMolFile(str(fname), sanitize=True, removeHs=False)
+        # m = Chem.MolFromMolFile(str(fname), sanitize=True, removeHs=False)
         m = Chem.SDMolSupplier()[0]
         if m is not None:
             m = rdkit_mol_to_wrapper_mol(m)

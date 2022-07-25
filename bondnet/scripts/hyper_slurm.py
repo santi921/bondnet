@@ -63,7 +63,7 @@ with ht.Scheduler(n_parallel=batch_size) as scheduler:
                         ##############
                         # lowprior es1
                         #############
-                        "#SBATCH --partition=es1", # change for xsede
+                        "#SBATCH --partition=es1",  # change for xsede
                         "#SBATCH --qos=es_lowprio",
                         "#SBATCH --account=ac_mp",
                         #############

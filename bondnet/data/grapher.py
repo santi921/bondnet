@@ -324,7 +324,6 @@ class HeteroCompleteGraph(BaseGraph):
         return g
 
 
-
 class HeteroCompleteGraphFromPandas(BaseGraph):
     """
     Convert a RDKit molecule to a DGLHeteroGraph and featurize for it.
@@ -353,13 +352,15 @@ class HeteroCompleteGraphFromPandas(BaseGraph):
         )
         self.global_featurizer = global_featurizer
 
-    def build_graph(self, row, reactant = True): # done
-        num_atoms = 0 
-        if reactant: key_id = "reactant_id"
-        else: key_id = "product_id"
-        atom_types = list(row['composition'].keys())      
-        for atom in atom_types: 
-            num_atoms += int(row['composition'][atom])
+    def build_graph(self, row, reactant=True):  # done
+        num_atoms = 0
+        if reactant:
+            key_id = "reactant_id"
+        else:
+            key_id = "product_id"
+        atom_types = list(row["composition"].keys())
+        for atom in atom_types:
+            num_atoms += int(row["composition"][atom])
         num_bonds = num_atoms * (num_atoms - 1) // 2
 
         a2b = []

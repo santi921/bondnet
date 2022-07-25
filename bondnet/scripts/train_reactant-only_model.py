@@ -40,7 +40,9 @@ def parse_args():
 
     # gated layer
     parser.add_argument("--gated-num-layers", type=int, default=3)
-    parser.add_argument("--gated-hidden-size", type=int, nargs="+", default=[64, 64, 64])
+    parser.add_argument(
+        "--gated-hidden-size", type=int, nargs="+", default=[64, 64, 64]
+    )
     parser.add_argument("--gated-num-fc-layers", type=int, default=1)
     parser.add_argument("--gated-graph-norm", type=int, default=0)
     parser.add_argument("--gated-batch-norm", type=int, default=1)
@@ -280,7 +282,9 @@ def main_worker(gpu, world_size, args):
         dataset_state_dict_filename = args.dataset_state_dict_filename
 
         if dataset_state_dict_filename is None:
-            warnings.warn("Restore with `args.dataset_state_dict_filename` set to None.")
+            warnings.warn(
+                "Restore with `args.dataset_state_dict_filename` set to None."
+            )
         elif not Path(dataset_state_dict_filename).exists():
             warnings.warn(
                 f"`{dataset_state_dict_filename} not found; set "
@@ -397,7 +401,9 @@ def main_worker(gpu, world_size, args):
         try:
 
             if args.gpu is None:
-                checkpoint = load_checkpoints(state_dict_objs, filename="checkpoint.pkl")
+                checkpoint = load_checkpoints(
+                    state_dict_objs, filename="checkpoint.pkl"
+                )
             else:
                 # Map model to be loaded to specified single gpu.
                 loc = "cuda:{}".format(args.gpu)
@@ -407,7 +413,9 @@ def main_worker(gpu, world_size, args):
 
             args.start_epoch = checkpoint["epoch"]
             best = checkpoint["best"]
-            print(f"Successfully load checkpoints, best {best}, epoch {args.start_epoch}")
+            print(
+                f"Successfully load checkpoints, best {best}, epoch {args.start_epoch}"
+            )
 
         except FileNotFoundError as e:
             warnings.warn(str(e) + " Continue without loading checkpoints.")

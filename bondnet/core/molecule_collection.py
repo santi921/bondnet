@@ -228,7 +228,8 @@ class MoleculeCollection:
         return succeed
 
     def filter_by_bond_species(
-        self, not_allowed=[("Li", "H"), ("Li", "Li"), ("Mg", "Mg"), ("H", "Mg")],
+        self,
+        not_allowed=[("Li", "H"), ("Li", "Li"), ("Mg", "Mg"), ("H", "Mg")],
     ):
         """
         Remove molecules with bonds formed between species that typically violate
@@ -362,7 +363,7 @@ class MoleculeCollection:
         Filter molecules by a property. The property is specified in `key` and the
             value is specified in `value`. Molecules with `m.key = value` are kept and
             others are removed.
-            
+
         Args:
             key (str): molecule property to filter
             value: value the property

@@ -86,7 +86,9 @@ def read_dataset(filename):
                 logger.warning(
                     "Ignore bad reaction (conversion its mol failed): "
                     "{} -> {}. Bad mol is: {}".format(
-                        smiles[idx_r], smiles[idx_p], smiles[i],
+                        smiles[idx_r],
+                        smiles[idx_p],
+                        smiles[i],
                     )
                 )
                 break
@@ -244,7 +246,9 @@ def bucket_rxns_by_altered_bond_types(reactions, n_bonds_altered=1):
             )
         )
 
-        rxns_bucket[(rct_bonds_not_in_prdt_type, prdt_bonds_not_in_rct_type)].append(rxn)
+        rxns_bucket[(rct_bonds_not_in_prdt_type, prdt_bonds_not_in_rct_type)].append(
+            rxn
+        )
 
     num_rxns = {k: len(v) for k, v in rxns_bucket.items()}
     print(f"type of bonds changes: {num_rxns}")

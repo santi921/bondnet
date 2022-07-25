@@ -579,8 +579,7 @@ def int_atom(atom):
 
 
 def get_UA(maxValence_list, valence_list):
-    """
-    """
+    """ """
     UA = []
     DU = []
     for i, (maxValence, valence) in enumerate(zip(maxValence_list, valence_list)):
@@ -592,8 +591,7 @@ def get_UA(maxValence_list, valence_list):
 
 
 def get_BO(AC, UA, DU, valences, UA_pairs, use_graph=True):
-    """
-    """
+    """ """
     BO = AC.copy()
     DU_save = []
 
@@ -611,8 +609,7 @@ def get_BO(AC, UA, DU, valences, UA_pairs, use_graph=True):
 
 
 def valences_not_too_large(BO, valences):
-    """
-    """
+    """ """
     number_of_bonds_list = BO.sum(axis=1)
     for valence, number_of_bonds in zip(valences, number_of_bonds_list):
         if number_of_bonds > valence:
@@ -674,9 +671,9 @@ def BO_is_OK(
         BO -
         AC -
         charge -
-        DU - 
+        DU -
     optional
-        allow_charges_fragments - 
+        allow_charges_fragments -
     returns:
         boolean - true of molecule is OK, false if not
     """
@@ -703,8 +700,7 @@ def BO_is_OK(
 
 
 def get_atomic_charge(atom, atomic_valence_electrons, BO_valence):
-    """
-    """
+    """ """
 
     if atom == 1:
         charge = 1 - BO_valence
@@ -836,10 +832,9 @@ def set_atomic_charges(
     BO_matrix,
     mol_charge,
     use_atom_maps,
-    metals = False
+    metals=False,
 ):
-    """
-    """
+    """ """
     q = 0
     for i, atom in enumerate(atoms):
         a = mol.GetAtomWithIdx(i)
@@ -855,16 +850,16 @@ def set_atomic_charges(
             if number_of_single_bonds_to_C == 3 and q + 1 < mol_charge:
                 q += 2
                 charge = 1
-        if(metals == True):
+        if metals == True:
             if atom == 12:
                 number_of_single_bonds_to_Mg = list(BO_matrix[i, :]).count(1)
-                if number_of_single_bonds_to_Mg == 5: 
+                if number_of_single_bonds_to_Mg == 5:
                     charge = 1
-                else: 
+                else:
                     charge = 2
             if atom == 3:
-                    charge = 1
-        
+                charge = 1
+
         if abs(charge) > 0:
             a.SetFormalCharge(int(charge))
 
@@ -892,8 +887,7 @@ def set_atomic_radicals(
 
 
 def get_bonds(UA, AC):
-    """
-    """
+    """ """
     bonds = []
 
     for k, i in enumerate(UA):
@@ -905,8 +899,7 @@ def get_bonds(UA, AC):
 
 
 def get_UA_pairs(UA, AC, use_graph=True):
-    """
-    """
+    """ """
 
     bonds = get_bonds(UA, AC)
 
@@ -948,7 +941,7 @@ def AC2BO(AC, atoms, charge, allow_charged_fragments=True, use_graph=True):
     # make a list of valences, e.g. for CO: [[4],[2,1]]
     valences_list_of_lists = []
     AC_valence = list(AC.sum(axis=1))
-    fail = 0 
+    fail = 0
 
     for i, (atomicNum, valence) in enumerate(zip(atoms, AC_valence)):
         # valence can't be smaller than number of neighbourgs
@@ -965,7 +958,7 @@ def AC2BO(AC, atoms, charge, allow_charged_fragments=True, use_graph=True):
                 ". Stopping",
             )
             fail = 1
-            #sys.exit()
+            # sys.exit()
         valences_list_of_lists.append(possible_valence)
 
     # convert [[4],[2,1]] to [[4,2],[4,1]]
@@ -1040,8 +1033,7 @@ def AC2mol(
     use_graph=True,
     use_atom_maps=True,
 ):
-    """
-    """
+    """ """
 
     # convert AC matrix to bond order (BO) matrix
     BO, atomic_valence_electrons, fail = AC2BO(
@@ -1064,7 +1056,7 @@ def AC2mol(
     )
 
     # If charge is not correct don't return mol
-    #if Chem.GetFormalCharge(mol) != charge:
+    # if Chem.GetFormalCharge(mol) != charge:
     #    return []
 
     # BO2mol returns an arbitrary resonance form. Let's make the rest
@@ -1077,8 +1069,7 @@ def AC2mol(
 
 
 def get_proto_mol(atoms):
-    """
-    """
+    """ """
     mol = Chem.MolFromSmarts("[#" + str(atoms[0]) + "]")
     rwMol = Chem.RWMol(mol)
     for i in range(1, len(atoms)):
@@ -1091,8 +1082,7 @@ def get_proto_mol(atoms):
 
 
 def read_xyz_file(filename, look_for_charge=True):
-    """
-    """
+    """ """
 
     atomic_symbols = []
     xyz_coordinates = []
@@ -1288,19 +1278,18 @@ def xyz2mol(
             chiral_stereo_check(new_mol)
     if fail:
         return []
-    
+
     return new_mols
 
 
 def sdf_writer():
     """
     write sdf file for a molecule w/custom bonding
-    takes: 
-        atoms - 
-        bonds - 
-        features - 
+    takes:
+        atoms -
+        bonds -
+        features -
     returns
-    
-    
-    """
 
+
+    """

@@ -28,7 +28,7 @@ from bondnet.utils import (
     seed_torch,
     pickle_dump,
     yaml_dump,
-    parse_settings
+    parse_settings,
 )
 
 best = np.finfo(np.float32).max
@@ -38,19 +38,26 @@ def parse_args():
     parser = argparse.ArgumentParser(description="GatedReactionNetwork")
 
     # input files
-    parser.add_argument("--molecule_file", type=str,
-                        default='examples/train/molecules.sdf')
-    parser.add_argument("--molecule_attributes_file", type=str,
-                        default='examples/train/molecule_attributes.yaml')
-    parser.add_argument("--reaction_file", type=str,
-                        default='examples/train/reactions.yaml')
+    parser.add_argument(
+        "--molecule_file", type=str, default="examples/train/molecules.sdf"
+    )
+    parser.add_argument(
+        "--molecule_attributes_file",
+        type=str,
+        default="examples/train/molecule_attributes.yaml",
+    )
+    parser.add_argument(
+        "--reaction_file", type=str, default="examples/train/reactions.yaml"
+    )
 
     # embedding layer
     parser.add_argument("--embedding-size", type=int, default=24)
 
     # gated layer
     parser.add_argument("--gated-num-layers", type=int, default=3)
-    parser.add_argument("--gated-hidden-size", type=int, nargs="+", default=[64, 64, 64])
+    parser.add_argument(
+        "--gated-hidden-size", type=int, nargs="+", default=[64, 64, 64]
+    )
     parser.add_argument("--gated-num-fc-layers", type=int, default=2)
     parser.add_argument("--gated-graph-norm", type=int, default=0)
     parser.add_argument("--gated-batch-norm", type=int, default=1)
@@ -240,7 +247,9 @@ def main_worker(gpu, world_size, dict_ret):
     global best
     dict_ret["gpu"] = gpu
 
-    if not dict_ret["distributed"] or (dict_ret["distributed"] and dict_ret["gpu"] == 0):
+    if not dict_ret["distributed"] or (
+        dict_ret["distributed"] and dict_ret["gpu"] == 0
+    ):
         print("\n\nStart training at:", datetime.now())
 
     if args.distributed:
@@ -259,7 +268,9 @@ def main_worker(gpu, world_size, dict_ret):
         dataset_state_dict_filename = args.dataset_state_dict_filename
 
         if dataset_state_dict_filename is None:
-            warnings.warn("Restore with `args.dataset_state_dict_filename` set to None.")
+            warnings.warn(
+                "Restore with `args.dataset_state_dict_filename` set to None."
+            )
         elif not Path(dataset_state_dict_filename).exists():
             warnings.warn(
                 f"`{dataset_state_dict_filename} not found; set "
@@ -287,7 +298,9 @@ def main_worker(gpu, world_size, dict_ret):
         dataset, validation=0.1, test=0.1
     )
 
-    if not dict_ret["distributed"] or (dict_ret["distributed"] and dict_ret["on_gpu"] == 0):
+    if not dict_ret["distributed"] or (
+        dict_ret["distributed"] and dict_ret["on_gpu"] == 0
+    ):
         torch.save(dataset.state_dict(), args.dataset_state_dict_filename)
         print(
             "Trainset size: {}, valset size: {}: testset size: {}.".format(
@@ -377,7 +390,9 @@ def main_worker(gpu, world_size, dict_ret):
         try:
 
             if args.gpu is None:
-                checkpoint = load_checkpoints(state_dict_objs, filename="checkpoint.pkl")
+                checkpoint = load_checkpoints(
+                    state_dict_objs, filename="checkpoint.pkl"
+                )
             else:
                 # Map model to be loaded to specified single gpu.
                 loc = "cuda:{}".format(dict_ret["gpu"])
@@ -387,7 +402,7 @@ def main_worker(gpu, world_size, dict_ret):
 
             args.start_epoch = checkpoint["epoch"]
             best = checkpoint["best"]
-            start_epoch  = dict_ret["start_epoch"]
+            start_epoch = dict_ret["start_epoch"]
             print(f"Successfully load checkpoints, best {best}, epoch {start_epoch}")
 
         except FileNotFoundError as e:
@@ -395,7 +410,9 @@ def main_worker(gpu, world_size, dict_ret):
             pass
 
     # start training
-    if not dict_ret["distributed"] or (dict_ret["distributed"] and dict_ret["on_gpu"] == 0):
+    if not dict_ret["distributed"] or (
+        dict_ret["distributed"] and dict_ret["on_gpu"] == 0
+    ):
         print("\n\n# Epoch     Loss         TrainAcc        ValAcc     Time (s)")
         sys.stdout.flush()
 
@@ -432,7 +449,9 @@ def main_worker(gpu, world_size, dict_ret):
             best = val_acc
 
         # save checkpoint
-        if not dict_ret["distributed"] or (dict_ret["distributed"] and dict_ret["on_gpu"] == 0):
+        if not dict_ret["distributed"] or (
+            dict_ret["distributed"] and dict_ret["on_gpu"] == 0
+        ):
 
             misc_objs = {"best": best, "epoch": epoch}
 
@@ -463,7 +482,9 @@ def main_worker(gpu, world_size, dict_ret):
             state_dict_objs, map_location=loc, filename="best_checkpoint.pkl"
         )
 
-    if not dict_ret["distributed"] or (dict_ret["distributed"] and dict_ret["gpu"] == 0):
+    if not dict_ret["distributed"] or (
+        dict_ret["distributed"] and dict_ret["gpu"] == 0
+    ):
         test_acc = evaluate(model, feature_names, test_loader, metric, dict_ret["gpu"])
 
         print("\n#TestAcc: {:12.6e} \n".format(test_acc))
@@ -472,17 +493,20 @@ def main_worker(gpu, world_size, dict_ret):
 
 def main():
     dict_ret = parse_settings()
-    
+
     if dict_ret["on_gpu"]:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         dict_ret["gpu"] = device
     else:
         dict_ret["gpu"] = "cpu"
 
-
     if dict_ret["distributed"]:
         # DDP
-        world_size = torch.cuda.device_count() if dict_ret["num_gpu"] is None else dict_ret["num_gpu"]
+        world_size = (
+            torch.cuda.device_count()
+            if dict_ret["num_gpu"] is None
+            else dict_ret["num_gpu"]
+        )
         mp.spawn(main_worker, nprocs=world_size, args=(world_size, dict_ret))
 
     else:

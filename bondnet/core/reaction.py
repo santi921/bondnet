@@ -87,7 +87,7 @@ class Reaction:
         Returns:
             tuple: sorted index of broken bond (a 2-tuple of atom index)
         """
-        
+
         if self._broken_bond is None:
             if len(self.products) == 1:
                 bonds = is_valid_A_to_B_reaction(
@@ -95,11 +95,14 @@ class Reaction:
                 )
             else:
                 bonds = is_valid_A_to_B_C_reaction(
-                    self.reactants[0], self.products[0], self.products[1], first_only=True
+                    self.reactants[0],
+                    self.products[0],
+                    self.products[1],
+                    first_only=True,
                 )
             if not bonds:
 
-                #print(self.atom_mapping)
+                # print(self.atom_mapping)
                 msg = f"Reaction id: {self.get_id()}. "
                 msg += "Reactants id: "
                 for m in self.reactants:
@@ -158,12 +161,12 @@ class Reaction:
         """
         if self._atom_mapping is not None:
             return self._atom_mapping
-            #print("using predetermined maps")
-        #else: print("computing maps")
+            # print("using predetermined maps")
+        # else: print("computing maps")
         # get subgraphs of reactant by breaking the bond
         # if A->B reaction, there is one element in subgraphs
         # if A->B+C reaction, there are two
-        
+
         bond = self.get_broken_bond()
         original = copy.deepcopy(self.reactants[0].mol_graph)
         original.break_edge(bond[0], bond[1], allow_reverse=True)
@@ -204,7 +207,7 @@ class Reaction:
         self._atom_mapping = mapping
 
     def set_bond_mapping_by_sdf_int_index(self, mapping):
-        self._bond_mapping_by_sdf_int_index = mapping 
+        self._bond_mapping_by_sdf_int_index = mapping
 
     def bond_mapping_by_int_index(self):
         r"""
@@ -348,12 +351,12 @@ class Reaction:
             list (dict): each dict is the mapping for one product, from sdf bond index
                 of product to sdf bond index of reactant
         """
-        
+
         if self._bond_mapping_by_sdf_int_index is not None:
             return self._bond_mapping_by_sdf_int_index
 
         reactant = self.reactants[0]
-        
+
         # reactant sdf bond index (tuple) to sdf bond index (integer)
         reactant_index_tuple2int = {
             b: i for i, b in enumerate(reactant.get_sdf_bond_indices(zero_based=True))
@@ -361,15 +364,14 @@ class Reaction:
 
         # bond mapping between product sdf and reactant sdf
         bond_mapping = []
-        
-        product_to_reactant_mapping = self.bond_mapping_by_tuple_index() # fail point
 
+        product_to_reactant_mapping = self.bond_mapping_by_tuple_index()  # fail point
 
         for p, p2r in zip(self.products, product_to_reactant_mapping):
 
             mp = {}
             # product sdf bond index (list of tuple)
-            
+
             psb = p.get_sdf_bond_indices(zero_based=True)
 
             # ib: product sdf bond index (int)
@@ -378,10 +380,10 @@ class Reaction:
 
                 # reactant graph bond index (tuple)
                 rsbt = p2r[b]
-                
+
                 # reactant sdf bond index (int)
-                rsbi = reactant_index_tuple2int[rsbt] # fail point
-                
+                rsbi = reactant_index_tuple2int[rsbt]  # fail point
+
                 # product sdf bond index (int) to reactant sdf bond index (int)
                 mp[ib] = rsbi
 
@@ -467,12 +469,12 @@ class ReactionsGroup:
             for rxn in reactions:
                 try:
                     self._add_one(rxn)
-                    #print("succ rxn")
+                    # print("succ rxn")
                 except:
                     pass
-                    #print("failed rxn")
+                    # print("failed rxn")
         else:
-            
+
             self._add_one(reactions)
 
     def _add_one(self, rxn):
@@ -508,7 +510,9 @@ class ReactionsOfSameBond(ReactionsGroup):
                 )
         return self._broken_bond
 
-    def create_complement_reactions(self, allowed_charge=[-1, 0, 1], mol_reservoir=None):
+    def create_complement_reactions(
+        self, allowed_charge=[-1, 0, 1], mol_reservoir=None
+    ):
         """
         Create reactions to complement the ones present in the database such that each
         bond has reactions of all combination of charges.
@@ -572,7 +576,9 @@ class ReactionsOfSameBond(ReactionsGroup):
                         else:
                             products_charge.append((charge[1], charge[0]))
 
-                missing_charge = list(set(target_products_charge) - set(products_charge))
+                missing_charge = list(
+                    set(target_products_charge) - set(products_charge)
+                )
 
         # create reactions and mols
         comp_rxns, comp_mols = create_reactions_from_reactant(
@@ -648,15 +654,15 @@ class ReactionsMultiplePerBond(ReactionsGroup):
         # doing this instead of looping over self.reactions ensures bonds without
         # reactions are correctly represented
         bond_rxns_dict = {b: [] for b in self.reactant.bonds}
- 
+
         # assign rxn to bond group
         for rxn in self.reactions:
             # i'm going to assume that if this index isn't here but
-            # is in evan's db's that it's a mismatch in bond labelling 
+            # is in evan's db's that it's a mismatch in bond labelling
             # between rdkit and us
-            if(rxn.get_broken_bond() in bond_rxns_dict):
+            if rxn.get_broken_bond() in bond_rxns_dict:
                 bond_rxns_dict[rxn.get_broken_bond()].append(rxn)
-            else: 
+            else:
                 bond_rxns_dict[rxn.get_broken_bond()] = []
                 bond_rxns_dict[rxn.get_broken_bond()].append(rxn)
 
@@ -683,7 +689,10 @@ class ReactionsMultiplePerBond(ReactionsGroup):
         return reactions
 
     def order_reactions(
-        self, one_per_iso_bond_group=True, complement_reactions=False, mol_reservoir=None
+        self,
+        one_per_iso_bond_group=True,
+        complement_reactions=False,
+        mol_reservoir=None,
     ):
         """
         Order reactions by energy.
@@ -766,7 +775,10 @@ class ReactionsOnePerBond(ReactionsMultiplePerBond):
             self._reactions.append(rxn)
 
     def order_reactions(
-        self, one_per_iso_bond_group=True, complement_reactions=False, mol_reservoir=None
+        self,
+        one_per_iso_bond_group=True,
+        complement_reactions=False,
+        mol_reservoir=None,
     ):
         """
         Order reactions by energy.
@@ -1295,7 +1307,7 @@ def search_mol_reservoir(mol, reservoir):
     Args:
         mol (MoleculeWrapper): the molecule to determine.
         reservoir (set): MoleculeWrapper reservoir set
-        
+
     Returns:
         None: if not in
         m: if yes, the molecule in the reservoir
@@ -1333,7 +1345,9 @@ def factor_integer(x, allowed, num=2):
                 res.append((i, j))
 
         if not res:
-            raise RuntimeError(f"cannot factor charge {x} with allowed values {allowed}")
+            raise RuntimeError(
+                f"cannot factor charge {x} with allowed values {allowed}"
+            )
 
         return res
     else:

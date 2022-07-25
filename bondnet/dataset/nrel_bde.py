@@ -99,7 +99,10 @@ def read_nrel_bde_dataset(filename):
                 logger.warning(
                     "Ignore bad reaction (conversion its mol failed): "
                     "{} -> {} + {}. Bad mol is: {}".format(
-                        smiles[idx_r], smiles[idx_p1], smiles[idx_p2], smiles[i],
+                        smiles[idx_r],
+                        smiles[idx_p1],
+                        smiles[idx_p2],
+                        smiles[i],
                     )
                 )
                 break

@@ -78,7 +78,9 @@ def predict_single_molecule(
             else:
                 format = "smiles"
 
-    predictor = PredictionOneReactant(molecule, charge, format, allowed_charge, ring_bond)
+    predictor = PredictionOneReactant(
+        molecule, charge, format, allowed_charge, ring_bond
+    )
 
     molecules, labels, extra_features = predictor.prepare_data()
     predictions = get_prediction(
@@ -88,7 +90,9 @@ def predict_single_molecule(
     return predictor.write_results(predictions, figure_name, write_result)
 
 
-def predict_multiple_molecules(model_name, molecule_file, charge_file, out_file, format):
+def predict_multiple_molecules(
+    model_name, molecule_file, charge_file, out_file, format
+):
     """
     Make predictions of bond energies of multiple molecules.
 

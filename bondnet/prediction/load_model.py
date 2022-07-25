@@ -163,7 +163,10 @@ def load_dataset(model_path, molecules, labels, extra_features):
         # predict_by_struct_label_extra_feats_files()
         if not isinstance(extra_features, (str, Path)):
 
-            env_map = {"thf": "smd_thf", "g2": "smd_7.23,1.4097,0,0.859,36.83,0.00,0.00"}
+            env_map = {
+                "thf": "smd_thf",
+                "g2": "smd_7.23,1.4097,0,0.859,36.83,0.00,0.00",
+            }
             env = model_info["environment"]
             if env not in env_map:
                 raise RuntimeError(

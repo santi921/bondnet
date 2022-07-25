@@ -230,7 +230,7 @@ class GatedGCNConv(nn.Module):
 
 class GatedGCNConv1(GatedGCNConv):
     """
-    Compared with GatedGCNConv, we use hgat attention layer to update global feature.  
+    Compared with GatedGCNConv, we use hgat attention layer to update global feature.
     """
 
     def __init__(

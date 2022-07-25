@@ -381,7 +381,7 @@ class ReactionCollection:
         for rxn in self.reactions:
             reactant = rxn.reactants[0]
             grouped_reactions[reactant].append(rxn)
-        #print("grouped reaction by reactant: "+ str(len(grouped_reactions)))
+        # print("grouped reaction by reactant: "+ str(len(grouped_reactions)))
         return grouped_reactions
 
     def group_by_reactant_charge_0(self):
@@ -404,7 +404,7 @@ class ReactionCollection:
 
             for rxn in groups[reactant]:
                 zero_charge = True
-                #for m in rxn.reactants + rxn.products:
+                # for m in rxn.reactants + rxn.products:
                 #    #if m.charge != 0:
                 #    #    zero_charge = False
                 #    #    break
@@ -414,8 +414,8 @@ class ReactionCollection:
             if zero_charge_rxns:
                 ropb = ReactionsOnePerBond(reactant, zero_charge_rxns)
                 new_groups.append(ropb)
-        #print("zero charge groups" + str(len(zero_charge_rxns)))
-        #print("new groups " + str(len(new_groups)))
+        # print("zero charge groups" + str(len(zero_charge_rxns)))
+        # print("new groups " + str(len(new_groups)))
         return new_groups
 
     def group_by_reactant_lowest_energy(self):
@@ -433,7 +433,7 @@ class ReactionCollection:
         """
 
         groups = self.group_by_reactant()
-        #print("groups by reactant" + str(len(groups)))
+        # print("groups by reactant" + str(len(groups)))
 
         new_groups = []
         for reactant in groups:
@@ -453,7 +453,7 @@ class ReactionCollection:
 
             ropb = ReactionsOnePerBond(reactant, lowest_energy_reaction.keys())
             new_groups.append(ropb)
-        #print("reactants groups again or whatever" + str(len(new_groups)))
+        # print("reactants groups again or whatever" + str(len(new_groups)))
         return new_groups
 
     def group_by_reactant_all(self):
@@ -469,7 +469,8 @@ class ReactionCollection:
 
         groups = self.group_by_reactant()
         new_groups = [
-            ReactionsMultiplePerBond(reactant, rxns) for reactant, rxns in groups.items()
+            ReactionsMultiplePerBond(reactant, rxns)
+            for reactant, rxns in groups.items()
         ]
 
         return new_groups
@@ -787,7 +788,7 @@ class ReactionCollection:
         else:
             with multiprocessing.Pool(nprocs) as p:
                 mappings = p.map(get_atom_bond_mapping, reactions)
-        
+
         print("done with atom mappings")
 
         labels = []  # one per reaction
@@ -813,7 +814,6 @@ class ReactionCollection:
         # molecule features
         features = self.get_feature(mol_reservoir, bond_indices=None)
 
-        
         if write_to_file:
             # write sdf
             self.write_sdf(mol_reservoir, struct_file)
@@ -825,7 +825,9 @@ class ReactionCollection:
             if feature_file is not None:
                 yaml_dump(features, feature_file)
 
-        logger.info("Finish creating struct label feature files for rxn ntwk regression")
+        logger.info(
+            "Finish creating struct label feature files for rxn ntwk regression"
+        )
 
         return rdkit_mols, labels, features
 
@@ -913,7 +915,9 @@ class ReactionCollection:
             if feature_file is not None:
                 yaml_dump(features, feature_file)
 
-        logger.info("Finish creating struct label feature files for rxn ntwk regression")
+        logger.info(
+            "Finish creating struct label feature files for rxn ntwk regression"
+        )
 
         return rdkit_mols, labels, features
 
@@ -1086,7 +1090,7 @@ class ReactionCollection:
                     all_labels.append(data)
                     all_mols.extend(mols)
                     print("succ")
-                except: 
+                except:
                     print("rip")
         # write sdf
         self.write_sdf(all_mols, struct_file)
@@ -1110,7 +1114,7 @@ class ReactionCollection:
         feature_file=None,
         group_mode="all",
         one_per_iso_bond_group=True,
-        write = True
+        write=True,
     ):
         """
         Write the reaction
@@ -1155,10 +1159,12 @@ class ReactionCollection:
             # rxn: a reaction for one bond and a specific combination of charges
             for i, rxn in enumerate(reactions):
                 mols = rxn.reactants + rxn.products
-                mols_id = [rxn.reactants[0].id] + [str(i.id)+"_"+str(ind) for ind,i in enumerate(rxn.products)]
+                mols_id = [rxn.reactants[0].id] + [
+                    str(i.id) + "_" + str(ind) for ind, i in enumerate(rxn.products)
+                ]
                 all_mols.extend(mols)
                 all_mol_ids.extend(mols_id)
-        
+
         for grp in grouped_rxns:
             reactions = grp.order_reactions(
                 one_per_iso_bond_group, complement_reactions=False
@@ -1167,37 +1173,39 @@ class ReactionCollection:
             # rxn: a reaction for one bond and a specific combination of charges
             for i, rxn in enumerate(reactions):
                 reactant_id = [rxn.reactants[0].id]
-                product_ids = [str(i.id)+"_"+str(ind) for ind,i in enumerate(rxn.products)]
+                product_ids = [
+                    str(i.id) + "_" + str(ind) for ind, i in enumerate(rxn.products)
+                ]
                 energy = rxn.get_free_energy()
 
                 # bond mapping between product sdf and reactant sdf
-                #print("bonds total to consider: {}, bonds in mapping: {}"\
+                # print("bonds total to consider: {}, bonds in mapping: {}"\
                 #    .format(len(rxn.reactants[0].bonds) , len(rxn._bond_mapping_by_int_index)))
-                
+
                 data = {
                     "value": [energy],
                     "num_mols": len(reactant_id + product_ids),
-                    "products":[all_mol_ids.index(prod_id) for prod_id in product_ids],
-                    "reactants":[all_mol_ids.index(reactant_id[0])],
+                    "products": [all_mol_ids.index(prod_id) for prod_id in product_ids],
+                    "reactants": [all_mol_ids.index(reactant_id[0])],
                     "atom_mapping": rxn.atom_mapping(),
                     "bond_mapping": rxn.bond_mapping_by_sdf_int_index(),
                     "id": [rxn.get_id()],
                 }
                 all_labels.append(data)
-    
+
         # write sdf - should be the same but we might need to get indeces again
         self.write_sdf_custom(all_mols, struct_file)
-        # label file 
+        # label file
         yaml_dump(all_labels, label_file)
         # write feature - done
         if feature_file is not None:
             features = self.get_feature(all_mols, bond_indices=None)
             # extra features (global) that could be included
-            features = [{'charge':i['charge']} for i in features]
+            features = [{"charge": i["charge"]} for i in features]
             yaml_dump(features, feature_file)
-        
+
         features = self.get_feature(all_mols, bond_indices=None)
-        features = [{'charge':i['charge']} for i in features]
+        features = [{"charge": i["charge"]} for i in features]
         print("features: {}".format(len(features)))
         print("labels: {}".format(len(all_labels)))
         print("molecules: {}".format(len(all_mols)))
@@ -1399,7 +1407,7 @@ class ReactionCollection:
         broken_bond_pairs = []
 
         for grp in grouped_rxns:
-            
+
             reactant = grp.reactant
 
             ordered_rxns = grp.order_reactions(
@@ -1531,8 +1539,8 @@ class ReactionCollection:
         create_directory(filename)
         with open(to_path(filename), "w") as f:
             for i, m in enumerate(molecules):
-                
-                #else: charge = m.charge
+
+                # else: charge = m.charge
                 name = "{}_{}_{}_{}_index-{}".format(
                     m.id, m.formula, m.charge, m.free_energy, i
                 )
@@ -1555,12 +1563,12 @@ class ReactionCollection:
         create_directory(filename)
         with open(to_path(filename), "w") as f:
             for i, m in enumerate(molecules):
-                
-                #else: charge = m.charge
-                #name = "{}_{}_{}_{}_index-{}".format(
+
+                # else: charge = m.charge
+                # name = "{}_{}_{}_{}_index-{}".format(
                 #    m.id, m.formula, m.charge, m.free_energy, i
-                #)
-                sdf = m.write_custom(index = i)
+                # )
+                sdf = m.write_custom(index=i)
                 f.write(sdf)
 
         logger.info("Finish writing sdf file: {}".format(filename))
@@ -1593,7 +1601,10 @@ class ReactionCollection:
         return all_feats
 
     def create_input_files(
-        self, mol_file="molecules.sdf", mol_attr_file="attr.yaml", rxn_file="rxn.yaml",
+        self,
+        mol_file="molecules.sdf",
+        mol_attr_file="attr.yaml",
+        rxn_file="rxn.yaml",
     ):
         """
         Convert the reaction to input files expected from an end user.
@@ -1646,7 +1657,7 @@ class ReactionCollection:
 def get_molecules_from_reactions(reactions):
     """Return a list of unique molecules participating in all reactions."""
     mols = set()
-    #mols = []
+    # mols = []
     for r in reactions:
         mols.update(r.reactants + r.products)
     return list(mols)
@@ -1691,10 +1702,8 @@ def get_same_bond_breaking_reactions_between_two_reaction_groups(
             if len(mgs1) == len(mgs2) == 2:
                 if (
                     mgs1[0].isomorphic_to(mgs2[0]) and mgs1[1].isomorphic_to(mgs2[1])
-                ) or (mgs1[0].isomorphic_to(mgs2[1]) and mgs1[1].isomorphic_to(mgs2[0])):
+                ) or (
+                    mgs1[0].isomorphic_to(mgs2[1]) and mgs1[1].isomorphic_to(mgs2[0])
+                ):
                     res.append((group1[b1], group2[b2]))
     return res
-
-
-
-

@@ -88,7 +88,11 @@ class BasePrediction:
         self.read_reactions()
         extractor = ReactionCollection(self.reactions)
 
-        mols, labls, feats = extractor.create_regression_dataset_reaction_network_simple(
+        (
+            mols,
+            labls,
+            feats,
+        ) = extractor.create_regression_dataset_reaction_network_simple(
             write_to_file=False
         )
 
@@ -502,7 +506,9 @@ class PredictionByReaction(BasePrediction):
                 )
 
             mol_graphs = [MoleculeGraph.from_dict(d) for d in mol_graph_dicts]
-            molecules = [MoleculeWrapper(g, id=str(i)) for i, g in enumerate(mol_graphs)]
+            molecules = [
+                MoleculeWrapper(g, id=str(i)) for i, g in enumerate(mol_graphs)
+            ]
 
         else:
             # read rdkit mols

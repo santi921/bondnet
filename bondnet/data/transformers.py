@@ -124,8 +124,12 @@ class HomoGraphFeatureStandardScaler:
 
         # standardize
         if self._mean is not None and self._std is not None:
-            node_feats = (torch.cat(node_feats) - self._mean["node"]) / self._std["node"]
-            edge_feats = (torch.cat(edge_feats) - self._mean["edge"]) / self._std["edge"]
+            node_feats = (torch.cat(node_feats) - self._mean["node"]) / self._std[
+                "node"
+            ]
+            edge_feats = (torch.cat(edge_feats) - self._mean["edge"]) / self._std[
+                "edge"
+            ]
         else:
             self._std = {}
             self._mean = {}

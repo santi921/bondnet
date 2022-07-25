@@ -166,17 +166,19 @@ if __name__ == "__main__":
             path_mg_data + "examples/train/molecule_attributes_libe.yaml",
             path_mg_data + "examples/train/reactions_libe.yaml",
         )
-    model = load_model(dict_ret['model_path'])
+    model = load_model(dict_ret["model_path"])
     dataset = load_dataset(
-        dict_ret["model_path"],
-        molecules=mols,
-        labels=labels,
-        extra_features=attrs)
+        dict_ret["model_path"], molecules=mols, labels=labels, extra_features=attrs
+    )
     feature_size = dataset.feature_size
 
-    trainset, valset, testset = train_validation_test_split(dataset, validation=0.1, test=0.1)
+    trainset, valset, testset = train_validation_test_split(
+        dataset, validation=0.1, test=0.1
+    )
     # we train with a batch size of 100
-    train_loader = DataLoaderReactionNetwork(trainset, batch_size=dict_ret["batch_size"],shuffle=True)
+    train_loader = DataLoaderReactionNetwork(
+        trainset, batch_size=dict_ret["batch_size"], shuffle=True
+    )
     # larger val and test set batch_size is faster but needs more memory
     # adjust the batch size of to fit memory
     bs = max(len(valset) // 10, 1)
@@ -205,7 +207,6 @@ if __name__ == "__main__":
     )
     stopper = EarlyStopping(patience=150)
 
-
     print("Number of Trainable Model Params: {}".format(params))
     print("-" * 20 + "now disabling gradients" + "-" * 20)
     # model.fc_layers.requires_grad_(False)
@@ -215,7 +216,6 @@ if __name__ == "__main__":
 
     # main training loop
     print("# Epoch     Loss         TrainAcc        ValAcc")
-
 
     for epoch in range(dict_ret["start_epoch"], dict_ret["epochs"]):
         ti = time.time()

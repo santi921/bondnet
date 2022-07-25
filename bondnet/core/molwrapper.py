@@ -128,7 +128,6 @@ class MoleculeWrapper:
     def rdkit_mol(self, m):
         self._rdkit_mol = m
 
-
     @property
     def fragments(self):
         """
@@ -221,13 +220,13 @@ class MoleculeWrapper:
 
     def is_bond_in_ring(self, bond):
         """
-       Whether a bond in ring.
+        Whether a bond in ring.
 
-       Args:
-           bond (tuple): bond index
+        Args:
+            bond (tuple): bond index
 
-       Returns:
-           bool: bond in ring or not
+        Returns:
+            bool: bond in ring or not
         """
         ring_info = self.mol_graph.find_rings()
         ring_bonds = set([tuple(sorted(bond)) for ring in ring_info for bond in ring])
@@ -378,9 +377,8 @@ class MoleculeWrapper:
         atom_count = len(self.pymatgen_mol.sites)
         sdf = ""
         name = "{}_{}_{}_{}_index-{}".format(
-                        self.id, self.formula,
-                        self.charge, self.free_energy, index
-                    )
+            self.id, self.formula, self.charge, self.free_energy, index
+        )
         sdf += name + "\n"
         sdf += "     RDKit          3D\n\n"
         sdf += "  0  0  0  0  0  0  0  0  0  0999 V3000\n"
@@ -388,19 +386,23 @@ class MoleculeWrapper:
         sdf += "M  V30 COUNTS {} {} 0 0 0\n".format(atom_count, bond_count)
         sdf += "M  V30 BEGIN ATOM\n"
         # this is done
-        for ind in range(len(self.pymatgen_mol.sites)): 
+        for ind in range(len(self.pymatgen_mol.sites)):
             charge = self.rdkit_mol.GetAtomWithIdx(ind).GetFormalCharge()
-            element = self.pymatgen_mol[ind].as_dict()["species"][0]['element']
+            element = self.pymatgen_mol[ind].as_dict()["species"][0]["element"]
             x, y, z = self.pymatgen_mol[ind].as_dict()["xyz"]
-            if(charge != 0):
-                sdf += "M  V30 {} {} {:.5f} {:.5f} {:.5f} 0 CHG={}\n".format(ind+1, element, x, y, z, charge)
+            if charge != 0:
+                sdf += "M  V30 {} {} {:.5f} {:.5f} {:.5f} 0 CHG={}\n".format(
+                    ind + 1, element, x, y, z, charge
+                )
             else:
-                sdf += "M  V30 {} {} {:.5f} {:.5f} {:.5f} 0\n".format(ind+1, element, x, y, z)
+                sdf += "M  V30 {} {} {:.5f} {:.5f} {:.5f} 0\n".format(
+                    ind + 1, element, x, y, z
+                )
 
         sdf += "M  V30 END ATOM\n"
-        if(atom_count > 1): 
+        if atom_count > 1:
             sdf += "M  V30 BEGIN BOND\n"
-            '''
+            """
             if(bond_count == 0): 
                 a_atom = self.pymatgen_mol[0].as_dict()["species"][0]['element']
                 b_atom = self.pymatgen_mol[1].as_dict()["species"][0]['element']
@@ -409,23 +411,27 @@ class MoleculeWrapper:
                 if(a_atom=='N' or b_atom=='N'): order = 3
                 if(a_atom=="O" or b_atom=='O'): order = 2
                 sdf += "M  V30 {} {} {} {}\n".format(1, order, 1, 2)
-            '''
-            for ind, bond in enumerate(bonds): 
+            """
+            for ind, bond in enumerate(bonds):
                 double_cond = False
                 a, b = bond
                 try:
-                    double_cond = 'DOUBLE' == str(self.rdkit_mol.GetBondBetweenAtoms(a,b).GetBondType())
-                except: 
+                    double_cond = "DOUBLE" == str(
+                        self.rdkit_mol.GetBondBetweenAtoms(a, b).GetBondType()
+                    )
+                except:
                     pass
-                if(double_cond): order = 2
-                else: order = 1
-                sdf += "M  V30 {} {} {} {}\n".format(ind+1, order, a+1, b+1)
+                if double_cond:
+                    order = 2
+                else:
+                    order = 1
+                sdf += "M  V30 {} {} {} {}\n".format(ind + 1, order, a + 1, b + 1)
 
             sdf += "M  V30 END BOND\n"
         sdf += "M  V30 END CTAB\n"
         sdf += "M  END\n"
         sdf += "$$$$\n"
-        
+
         return sdf
 
     def draw(self, filename=None, show_atom_idx=False):
@@ -499,6 +505,7 @@ class MoleculeWrapper:
 
     def __str__(self):
         return self.__expr__()
+
 
 def create_wrapper_mol_from_atoms_and_bonds(
     species, coords, bonds, charge=0, free_energy=None, identifier=None

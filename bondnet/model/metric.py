@@ -175,7 +175,9 @@ class EarlyStopping:
         else:
             self.counter += 1
             if not self.silent:
-                print("EarlyStopping counter: {}/{}".format(self.counter, self.patience))
+                print(
+                    "EarlyStopping counter: {}/{}".format(self.counter, self.patience)
+                )
             if self.counter >= self.patience:
                 self.early_stop = True
         return self.early_stop

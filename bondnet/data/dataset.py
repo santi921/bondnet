@@ -16,35 +16,35 @@ logger = logging.getLogger(__name__)
 
 class BaseDataset:
     """
-    Base dataset class.
+     Base dataset class.
 
-   Args:
-    grapher (BaseGraph): grapher object that build different types of graphs:
-        `hetero`, `homo_bidirected` and `homo_complete`.
-        For hetero graph, atom, bond, and global state are all represented as
-        graph nodes. For homo graph, atoms are represented as node and bond are
-        represented as graph edges.
-    molecules (list or str): rdkit molecules. If a string, it should be the path
-        to the sdf file of the molecules.
-    labels (list or str): each element is a dict representing the label for a bond,
-        molecule or reaction. If a string, it should be the path to the label file.
-    extra_features (list or str or None): each element is a dict representing extra
-        features provided to the molecules. If a string, it should be the path to the
-        feature file. If `None`, features will be calculated only using rdkit.
-    feature_transformer (bool): If `True`, standardize the features by subtracting the
-        means and then dividing the standard deviations.
-    label_transformer (bool): If `True`, standardize the label by subtracting the
-        means and then dividing the standard deviations. More explicitly,
-        labels are standardized by y' = (y - mean(y))/std(y), the model will be
-        trained on this scaled value. However for metric measure (e.g. MAE) we need
-        to convert y' back to y, i.e. y = y' * std(y) + mean(y), the model
-        prediction is then y^ = y'^ *std(y) + mean(y), where ^ means predictions.
-        Then MAE is |y^-y| = |y'^ - y'| *std(y), i.e. we just need to multiple
-        standard deviation to get back to the original scale. Similar analysis
-        applies to RMSE.
-    state_dict_filename (str or None): If `None`, feature mean and std (if
-        feature_transformer is True) and label mean and std (if label_transformer is True)
-        are computed from the dataset; otherwise, they are read from the file.
+    Args:
+     grapher (BaseGraph): grapher object that build different types of graphs:
+         `hetero`, `homo_bidirected` and `homo_complete`.
+         For hetero graph, atom, bond, and global state are all represented as
+         graph nodes. For homo graph, atoms are represented as node and bond are
+         represented as graph edges.
+     molecules (list or str): rdkit molecules. If a string, it should be the path
+         to the sdf file of the molecules.
+     labels (list or str): each element is a dict representing the label for a bond,
+         molecule or reaction. If a string, it should be the path to the label file.
+     extra_features (list or str or None): each element is a dict representing extra
+         features provided to the molecules. If a string, it should be the path to the
+         feature file. If `None`, features will be calculated only using rdkit.
+     feature_transformer (bool): If `True`, standardize the features by subtracting the
+         means and then dividing the standard deviations.
+     label_transformer (bool): If `True`, standardize the label by subtracting the
+         means and then dividing the standard deviations. More explicitly,
+         labels are standardized by y' = (y - mean(y))/std(y), the model will be
+         trained on this scaled value. However for metric measure (e.g. MAE) we need
+         to convert y' back to y, i.e. y = y' * std(y) + mean(y), the model
+         prediction is then y^ = y'^ *std(y) + mean(y), where ^ means predictions.
+         Then MAE is |y^-y| = |y'^ - y'| *std(y), i.e. we just need to multiple
+         standard deviation to get back to the original scale. Similar analysis
+         applies to RMSE.
+     state_dict_filename (str or None): If `None`, feature mean and std (if
+         feature_transformer is True) and label mean and std (if label_transformer is True)
+         are computed from the dataset; otherwise, they are read from the file.
     """
 
     def __init__(
@@ -66,9 +66,10 @@ class BaseDataset:
         self.molecules = (
             to_path(molecules) if isinstance(molecules, (str, Path)) else molecules
         )
-        try: 
+        try:
             self.molecules = [mol.rdkit_mol() for mol in self.molecules]
-        except: print("molecules already some rdkit object")
+        except:
+            print("molecules already some rdkit object")
 
         self.raw_labels = to_path(labels) if isinstance(labels, (str, Path)) else labels
         self.extra_features = (
@@ -216,7 +217,10 @@ class BaseDataset:
             g (DGLGraph or DGLHeteroGraph): graph ith data point
             lb (dict): Labels of the data point
         """
-        g, lb, = self.graphs[item], self.labels[item]
+        g, lb, = (
+            self.graphs[item],
+            self.labels[item],
+        )
         return g, lb
 
     def __len__(self):
@@ -698,14 +702,18 @@ class ReactionDataset(BaseDataset):
         self.labels = []
         for rxn, lb, gmp in zip(reactions, raw_labels, global_mapping):
             if None not in rxn:
-                lb["value"] = torch.tensor(lb["value"], dtype=getattr(torch, self.dtype))
+                lb["value"] = torch.tensor(
+                    lb["value"], dtype=getattr(torch, self.dtype)
+                )
                 lb["global_mapping"] = gmp
                 self.graphs.append(rxn)
                 self.labels.append(lb)
 
         # transformers
         if self.feature_transformer:
-            graphs = list(itertools.chain.from_iterable(self.graphs))  # flatten the list
+            graphs = list(
+                itertools.chain.from_iterable(self.graphs)
+            )  # flatten the list
             feature_scaler = HeteroGraphFeatureStandardScaler()
             graphs = feature_scaler(graphs)
             num_mols = [len(rxn) for rxn in self.graphs]
@@ -738,15 +746,16 @@ class ReactionDataset(BaseDataset):
 
 
 class ReactionNetworkDataset(BaseDataset):
-
     def _load(self):
 
         logger.info("Start loading dataset")
 
         # get molecules, labels, and extra features
         molecules = self.get_molecules(self.molecules)
-        try:molecules = [mol.rdkit_mol for mol in molecules]
-        except:pass
+        try:
+            molecules = [mol.rdkit_mol for mol in molecules]
+        except:
+            pass
         raw_labels = self.get_labels(self.raw_labels)
         if self.extra_features is not None:
             extra_features = self.get_features(self.extra_features)
@@ -767,10 +776,9 @@ class ReactionNetworkDataset(BaseDataset):
         else:
             species = self.state_dict()["species"]
             assert species is not None, "Corrupted state_dict file, `species` not found"
-        
-        
+
         print("about to build graphs...might want to do this separately")
-        
+
         # create dgl graphs
         graphs = self.build_graphs(self.grapher, molecules, extra_features, species)
         graphs_not_none_indices = [i for i, g in enumerate(graphs) if g is not None]
@@ -838,7 +846,9 @@ class ReactionNetworkDataset(BaseDataset):
                 else:
                     environemnt = None
                 label = {
-                    "value": torch.tensor(lb["value"], dtype=getattr(torch, self.dtype)),
+                    "value": torch.tensor(
+                        lb["value"], dtype=getattr(torch, self.dtype)
+                    ),
                     "id": lb["id"],
                     "environment": environemnt,
                 }
@@ -885,8 +895,7 @@ class ReactionNetworkDataset(BaseDataset):
 
         logger.info(f"Finish loading {len(self.labels)} reactions...")
 
-
-    @staticmethod 
+    @staticmethod
     def build_graphs(grapher, molecules, features, species):
         """
         Build DGL graphs using grapher for the molecules.
@@ -935,6 +944,7 @@ class ReactionNetworkDataset(BaseDataset):
     def __len__(self):
         return len(self.reaction_ids)
 
+
 class ReactionNetworkDatasetClassify(BaseDataset):
     def _load(self):
 
@@ -942,8 +952,10 @@ class ReactionNetworkDatasetClassify(BaseDataset):
 
         # get molecules, labels, and extra features
         molecules = self.get_molecules(self.molecules)
-        try:molecules = [mol.rdkit_mol for mol in molecules]
-        except:pass
+        try:
+            molecules = [mol.rdkit_mol for mol in molecules]
+        except:
+            pass
         raw_labels = self.get_labels(self.raw_labels)
         if self.extra_features is not None:
             extra_features = self.get_features(self.extra_features)
@@ -964,10 +976,9 @@ class ReactionNetworkDatasetClassify(BaseDataset):
         else:
             species = self.state_dict()["species"]
             assert species is not None, "Corrupted state_dict file, `species` not found"
-        
-        
+
         print("about to build graphs...might want to do this separately")
-        
+
         # create dgl graphs
         graphs = self.build_graphs(self.grapher, molecules, extra_features, species)
         graphs_not_none_indices = [i for i, g in enumerate(graphs) if g is not None]
@@ -1036,7 +1047,7 @@ class ReactionNetworkDatasetClassify(BaseDataset):
                     environemnt = None
 
                 lab_temp = torch.zeros(5)
-                lab_temp[int(lb['value'][0])] = 1
+                lab_temp[int(lb["value"][0])] = 1
                 label = {
                     "value": lab_temp,
                     "id": lb["id"],
@@ -1278,4 +1289,3 @@ def train_validation_test_split_selected_bond_in_train(
         Subset(dataset, val_idx),
         Subset(dataset, test_idx),
     ]
-

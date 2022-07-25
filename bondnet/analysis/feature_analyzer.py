@@ -419,7 +419,9 @@ class StdevThreshold(FeatureAggregator):
                 indices.append(i)
             else:
                 less_than = "no"
-            fmt = "{:2d} ({})" + " " * (max_name_len - len(name)) + " {:.5f}  {:.5f}  {}"
+            fmt = (
+                "{:2d} ({})" + " " * (max_name_len - len(name)) + " {:.5f}  {:.5f}  {}"
+            )
             print(fmt.format(i, name, s, m, less_than))
         print("=" * 80)
 

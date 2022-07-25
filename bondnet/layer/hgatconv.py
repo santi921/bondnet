@@ -156,7 +156,9 @@ class NodeAttentionLayer(nn.Module):
         # attention node
         for ntype, feats in zip(self.attn_nodes, attn_feats):
             feats = self.feat_drop(feats)
-            feats = self.fc_layers[ntype](feats).view(-1, self.num_heads, self.out_feats)
+            feats = self.fc_layers[ntype](feats).view(
+                -1, self.num_heads, self.out_feats
+            )
             el = (feats * self.attn_l).sum(dim=-1).unsqueeze(-1)
             graph.nodes[ntype].data.update({"ft": feats, "el": el})
 
@@ -353,7 +355,8 @@ def heterograph_edge_softmax(graph, edge_types, edge_data):
         g.edges[etype].data["e"] = edata
 
     g.multi_update_all(
-        {etype: (fn.copy_e("e", "m"), fn.max("m", "emax")) for etype in edge_types}, "max"
+        {etype: (fn.copy_e("e", "m"), fn.max("m", "emax")) for etype in edge_types},
+        "max",
     )
     # subtract max and compute exponential
     for etype in edge_types:
@@ -364,7 +367,10 @@ def heterograph_edge_softmax(graph, edge_types, edge_data):
 
     # e sum
     g.multi_update_all(
-        {etype: (fn.copy_e("out", "m"), fn.sum("m", "out_sum")) for etype in edge_types},
+        {
+            etype: (fn.copy_e("out", "m"), fn.sum("m", "out_sum"))
+            for etype in edge_types
+        },
         "sum",
     )
 
