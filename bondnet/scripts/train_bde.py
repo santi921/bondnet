@@ -13,7 +13,7 @@ from bondnet.data.grapher import HeteroMoleculeGraph, HeteroCompleteGraphFromPan
 from bondnet.data.dataset import train_validation_test_split
 from bondnet.model.gated_reaction_network import GatedGCNReactionNetwork
 from bondnet.scripts.create_label_file import read_input_files
-from bondnet.model.metric import WeightedL1Loss
+from bondnet.model.metric import WeightedL1Loss, WeightedMSELoss
 from bondnet.utils import seed_torch
 from torchsummary import summary
 
@@ -50,9 +50,16 @@ def train(optimizer, model, nodes, data_loader, loss_fn, metric_fn):
         stdev = label["scaler_stdev"]
 
         pred = model(batched_graph, feats, label["reaction"])
-        pred = pred.view(-1)
+        #pred = pred.view(-1)
+        target_new_shape = (len(target), 1)
+        target = target.view(target_new_shape)
+        pred_new_shape = (len(pred), 1)
+        pred = pred.view(pred_new_shape)
+        try:
+            loss = loss_fn(pred, target, stdev)
+        except:    
+            loss = loss_fn(pred, target)
 
-        loss = loss_fn(pred, target)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step() # here is the actual optimizer step
@@ -66,12 +73,12 @@ def train(optimizer, model, nodes, data_loader, loss_fn, metric_fn):
 
     return epoch_loss, accuracy
 def get_grapher():
-    atom_featurizer = AtomFeaturizerMinimum()
+    #atom_featurizer = AtomFeaturizerMinimum()
     #bond_featurizer = BondAsNodeFeaturizerMinimum()
     #global_featurizer = GlobalFeaturizer(allowed_charges=[-2, -1, 0, 1])
     #grapher = HeteroMoleculeGraph(atom_featurizer, bond_featurizer, global_featurizer)
     
-    atom_featurizer = None #AtomFeaturizerGraph()
+    atom_featurizer = AtomFeaturizerGraph()
     bond_featurizer = BondAsNodeGraphFeaturizer()
     global_featurizer = GlobalFeaturizerGraph(allowed_charges=[-2, -1, 0, 1])
     grapher = HeteroCompleteGraphFromDGLAndPandas(
@@ -90,15 +97,16 @@ dataset = ReactionNetworkDatasetGraphs(
 
 )
 
-trainset, valset, testset = train_validation_test_split(dataset, validation=0.1, test=0.15)
-train_loader = DataLoaderReactionNetwork(trainset, batch_size=100,shuffle=True)
-test_loader = DataLoaderReactionNetwork(testset, batch_size=100,shuffle=True)
+trainset, valset, testset = train_validation_test_split(dataset, validation=0.15, test=0.15)
+dataset_loader = DataLoaderReactionNetwork(dataset, batch_size=25,shuffle=True)
+train_loader = DataLoaderReactionNetwork(trainset, batch_size=25,shuffle=True)
 val_loader = DataLoaderReactionNetwork(valset, batch_size=len(valset), shuffle=False)
+test_loader = DataLoaderReactionNetwork(testset, batch_size=len(testset), shuffle=False)
 
 model = GatedGCNReactionNetwork(
     in_feats=dataset.feature_size,
     embedding_size=24,
-    gated_num_layers=2,
+    gated_num_layers=3,
     gated_hidden_size=[64, 64, 64],
     gated_activation="ReLU",
     fc_num_layers=2,
@@ -110,13 +118,15 @@ model = GatedGCNReactionNetwork(
 
 t1 = time.time()
 # optimizer, loss function and metric function
-optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
-loss_func = MSELoss(reduction="mean")
+optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+#loss_func = MSELoss(reduction="mean")
+#loss_func = torch.nn.L1Loss(reduction='mean')
+loss_func = WeightedMSELoss(reduction="sum")
 metric = WeightedL1Loss(reduction="sum")
 
 feature_names = ["atom", "bond", "global"]
 best = 1e10
-num_epochs = 20
+num_epochs = 100
 
 # main training loop
 print("# Epoch     Loss         TrainAcc        ValAcc")
@@ -125,7 +135,7 @@ for epoch in range(num_epochs):
     # train on training set 
     loss, train_acc = train(optimizer, model, feature_names, train_loader, loss_func, metric)
     # evaluate on validation set
-    val_acc = evaluate(model, feature_names, test_loader, metric)
+    val_acc = evaluate(model, feature_names, val_loader, metric)
     # save checkpoint for best performing model 
     is_best = val_acc < best
     if is_best:
@@ -141,3 +151,4 @@ test_acc = evaluate(model, feature_names, test_loader, metric)
 print("TestAcc: {:12.6e}".format(test_acc))
 t2 = time.time()
 print("Time to Training: {:5.1f} seconds".format(float(t2 - t1)))
+

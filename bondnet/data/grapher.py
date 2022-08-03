@@ -485,9 +485,6 @@ class HeteroCompleteGraphFromDGLAndPandas(BaseGraph):
         return g
 
     def featurize(self, g, row, **kwargs):
-        # still need to map to product/rxn
-        if self.global_featurizer is not None:
-            g.nodes["global"].data.update(self.global_featurizer(row, **kwargs))
 
         if self.atom_featurizer is not None:
             #print(self.atom_featurizer(row, **kwargs))
@@ -496,4 +493,8 @@ class HeteroCompleteGraphFromDGLAndPandas(BaseGraph):
         if self.bond_featurizer is not None:
             #print(self.bond_featurizer(row, **kwargs))
             g.nodes["bond"].data.update(self.bond_featurizer(row, **kwargs))
+        
+        if self.global_featurizer is not None:
+            g.nodes["global"].data.update(self.global_featurizer(row, **kwargs))
+
         return g

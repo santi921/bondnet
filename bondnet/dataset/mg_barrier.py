@@ -68,7 +68,6 @@ def process_species_graph(row, classifier=False):
     bonds_reactant = row[reactant_key+"_bonds"]
     bonds_products = row[product_key+"_bonds"]
 
-
     reactant = create_wrapper_mol_from_atoms_and_bonds(
         species_reactant,
         coords_reactant,
@@ -194,9 +193,12 @@ def process_species_graph(row, classifier=False):
             if row["bonds_broken"] != []:
                 broken_bond = row["bonds_broken"][0]
         if(reverse_rxn):
-            value = row['transition_state_energy'] - row['product_energy']
+            #value = row['transition_state_energy'] - row['product_energy']
+            value = row['reactant_energy'] - row['product_energy']
+
         else: 
-            value = row["dE_barrier"]
+            value = row['product_energy'] - row['reactant_energy']
+            #value = row["dE_barrier"]
 
         rxn = Reaction(
             reactants=reactant_list,
@@ -579,7 +581,7 @@ def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_fi
     start_time = time.perf_counter()
     reactions, ind_val, rxn_raw, ind_final = [], [], [], []
     with ProcessPool(max_workers=12, max_tasks=10) as pool:
-        #for ind, row in mg_df.head(1000).iterrows():
+        #for ind, row in mg_df.head(100).iterrows():
         for ind, row in mg_df.iterrows(): 
             # process_species = process_species_rdkit
             future = pool.schedule(process_species_graph, args=[row, True], timeout=30)

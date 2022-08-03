@@ -944,6 +944,12 @@ class AtomFeaturizerGraph(BaseFeaturizer):
             Dictionary of atom features
         """
 
+        #print(mol)
+        #print(mol.coords)
+        #print(mol.charge)
+        #print(mol.species)
+        
+
         try:
             species = sorted(kwargs["dataset_species"])
         except KeyError as e:
@@ -962,15 +968,6 @@ class AtomFeaturizerGraph(BaseFeaturizer):
         feats = []
         num_atoms = 0
         allowed_ring_size = [3, 4, 5, 6, 7]
-        # columns = mol.keys()
-        # figure out if reactant row or col row was passed
-
-        #if "reactant_bonds" in columns:
-        #    bond_key = "reactant_bonds"
-        #    graph_key = "reactant_molecule_graph"
-        #else:
-        #    bond_key = "product_bonds"
-        #    graph_key = "product_molecule_graph"
 
         atom_types = list(mol.composition_dict.keys())
         for atom in atom_types:
@@ -978,18 +975,13 @@ class AtomFeaturizerGraph(BaseFeaturizer):
 
         # need to error handle here for products that are split
         species_sites = mol.species
-        #species_sites 
         atom_num = len(species_sites)
-        # need to error handle here for products that are split
 
-        #bond_list = mol[bond_key]
         bond_list_tuple =  list(mol.bonds.keys())
         bond_list = []
         [bond_list.append(list(bond)) for bond in bond_list_tuple]
-        #species_order = [i["name"] for i in species_sites]
         
         cycles = find_rings(atom_num, bond_list, edges=False)
-        # cycles = nx.cycle_basis(nx_graph) # this gets cycles
         ring_info = ring_features_from_atom_full(num_atoms, cycles, allowed_ring_size)
 
         for atom_ind in range(num_atoms):
@@ -1011,6 +1003,8 @@ class AtomFeaturizerGraph(BaseFeaturizer):
             + ["chemical symbol"] * len(species)
             + ["ring size"] * len(allowed_ring_size)
         )
+        print(species)
+        print(feats)
 
         return {"feat": feats}
 
@@ -1041,30 +1035,18 @@ class BondAsNodeGraphFeaturizer(BondFeaturizer):
 
         feats, bond_list_only_metal,no_metal_binary = [], [], []
         num_atoms = 0 
-        num_feats = 12
+        num_feats = 7
         allowed_ring_size = [3, 4, 5, 6, 7]
 
         charge = int(mol.charge)
-        #key = 'product'
-        #if 'reactant_bonds' in columns: key = 'reactant'    
-
         atoms = [int_atom(i) for i in mol.species]
-        #atoms = [int_atom(atom['name']) for atom in mol[key + "_structure"]["sites"]]
         xyz_coordinates = mol.coords
-        #xyz_coordinates = [i["xyz"] for i in mol[key + "_structure"]["sites"]]
         bond_list = list(mol.bonds)
-        #bond_list = mol[key + "_bonds"]   
         num_bonds = len(bond_list) 
-        
-        # fuck
-        bond_list_no_metal = mol.nonmetal_bonds # nonmetal bonds
+        bond_list_no_metal = mol.nonmetal_bonds 
 
-        #atom_types = list(mol.composition_dict.keys()) # need to process this beforehand for products 
         num_atoms = int(mol.num_atoms)
         
-        #for atom in atom_types: 
-        #    num_atoms += int(mol['composition'][atom])
-        #species_sites = mol[key + "_molecule_graph"]['molecule']['sites']
         if(num_bonds == 0):
             ft = [0.0 for _ in range(num_feats)]
             if self.length_featurizer:
@@ -1081,14 +1063,13 @@ class BondAsNodeGraphFeaturizer(BondFeaturizer):
 
             cycles = find_rings(num_atoms, bond_list_no_metal, allowed_ring_size, edges = True)
             
-            try:               
-                rdkit_mol = xyz2mol(atoms = atoms, coordinates = xyz_coordinates, charge = charge)
-                rdkit_dict = rdkit_bond_desc(rdkit_mol[0])
-            except: 
-                rdkit_mol = []
-                rdkit_dict = {}
-
-            rdkit_dict_keys = list(rdkit_dict.keys())
+            #try:               
+            #    rdkit_mol = xyz2mol(atoms = atoms, coordinates = xyz_coordinates, charge = charge)
+            #    rdkit_dict = rdkit_bond_desc(rdkit_mol[0])
+            #except: 
+            #    rdkit_mol = []
+            #    rdkit_dict = {}
+            #rdkit_dict_keys = list(rdkit_dict.keys())
             
             ring_dict = ring_features_for_bonds_full(bond_list, no_metal_binary, cycles, allowed_ring_size)  
             ring_dict_keys = list(ring_dict.keys())
@@ -1103,10 +1084,10 @@ class BondAsNodeGraphFeaturizer(BondFeaturizer):
                     ft += [0,0]
                     ft += [0 for i in range(len(allowed_ring_size))]
 
-                if(tuple(bond) in rdkit_dict_keys):
-                    ft += rdkit_dict[tuple(bond)] 
-                else:
-                    ft += [0,0,0,0,0]
+                #if(tuple(bond) in rdkit_dict_keys):
+                #    ft += rdkit_dict[tuple(bond)] 
+                #else:
+                #    ft += [0,0,0,0,0]
                 feats.append(ft)
 
         feats = torch.tensor(feats, dtype=getattr(torch, self.dtype))
@@ -1114,9 +1095,10 @@ class BondAsNodeGraphFeaturizer(BondFeaturizer):
         self._feature_name = (
             ['metal bond'] +
             ['ring inclusion'] +
-            ["ring size"] * 5 +
-            ["conjugated", "single", "double", "triple", "aromatic"]
+            ["ring size"] * 5
+            #+["conjugated", "single", "double", "triple", "aromatic"]
         )
+        #print(feats)
 
 
         if self.length_featurizer:
