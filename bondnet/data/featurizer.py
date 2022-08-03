@@ -13,8 +13,15 @@ from rdkit.Chem import ChemicalFeatures
 from rdkit import RDConfig
 from rdkit.Chem.rdchem import GetPeriodicTable
 import networkx as nx
-from bondnet.data.utils import *
-
+from bondnet.utils import *
+from bondnet.data.utils import (
+    one_hot_encoding,
+    h_count_and_degree,
+    ring_features_from_atom_full,
+    ring_features_for_bonds_full,
+    rdkit_bond_desc,
+    find_rings,
+)
 
 class BaseFeaturizer:
     def __init__(self, dtype="float32"):
@@ -757,6 +764,88 @@ class GlobalFeaturizer(BaseFeaturizer):
         return {"feat": feats}
 
 
+class GlobalFeaturizerGraph(BaseFeaturizer):
+    """
+    Featurize the global state of a molecules using number of atoms, number of bonds,
+    molecular weight, and optionally charge and solvent environment.
+
+
+    Args:
+        allowed_charges (list, optional): charges allowed the the molecules to take.
+        solvent_environment (list, optional): solvent environment in which the
+        calculations for the molecule take place
+    """
+
+    def __init__(self, allowed_charges=None, solvent_environment=None, dtype="float32"):
+        super(GlobalFeaturizerGraph, self).__init__(dtype)
+        self.allowed_charges = allowed_charges
+        self.solvent_environment = solvent_environment
+
+    def __call__(self, mol, **kwargs):
+        """
+        mol can either be an molwrapper object
+        """
+        pt = GetPeriodicTable()
+        num_atoms, mw = 0, 0
+
+        atom_types = list(mol.composition_dict.keys())
+        for atom in atom_types:
+            num_atom_type = int(mol.composition_dict[atom])
+            num_atoms += num_atom_type
+            mw += num_atom_type * pt.GetAtomicWeight(atom)
+
+        # columns = mol.keys()
+        #if "reactant_bonds" in columns:
+        #    bond_key = "reactant_bonds"
+        #else:
+        #    bond_key = "product_bonds"
+
+        g = [
+            num_atoms,
+            #len(mol[bond_key]),
+            len(mol.bonds),
+            mw,
+        ]
+
+        if self.allowed_charges is not None or self.solvent_environment is not None:
+            try:
+                feats_info = kwargs["extra_feats_info"]
+            except KeyError as e:
+                raise KeyError(
+                    "{} `extra_feats_info` needed for {}.".format(
+                        e, self.__class__.__name__
+                    )
+                )
+
+            if self.allowed_charges is not None:
+                g += one_hot_encoding(feats_info["charge"], self.allowed_charges)
+
+            if self.solvent_environment is not None:
+                # if only two solvent_environment, we use 0/1 to denote the feature
+                if len(self.solvent_environment) == 2:
+                    ft = self.solvent_environment.index(feats_info["environment"])
+                    g += [ft]
+                # if more than two, we create a one-hot encoding
+                else:
+                    g += one_hot_encoding(
+                        feats_info["environment"], self.solvent_environment
+                    )
+
+        feats = torch.tensor([g], dtype=getattr(torch, self.dtype))
+
+        self._feature_size = feats.shape[1]
+        self._feature_name = ["num atoms", "num bonds", "molecule weight"]
+        if self.allowed_charges is not None:
+            self._feature_name += ["charge one hot"] * len(self.allowed_charges)
+        if self.solvent_environment is not None:
+            if len(self.solvent_environment) == 2:
+                self._feature_name += ["solvent"]
+            else:
+                self._feature_name += ["solvent"] * len(self.solvent_environment)
+
+        return {"feat": feats}
+
+
 class DistanceBins(BaseFeaturizer):
     """
     Put the distance into a bins. As used in MPNN.
@@ -834,97 +923,7 @@ class RBF(BaseFeaturizer):
         coef = -1 / self.gap
         return list(np.exp(coef * (radial ** 2)))
 
-
-# class GraphBondFeaturizer(BaseFeaturizer):
-
-##### TODO TODO TODO
-##### TODO TODO TODO
-# class GraphAtomFeaturizerFull(BaseFeaturizer):
-# include hybridization data
-# include xyz data????
-
-# done
-class GlobalFeaturizerGraph(BaseFeaturizer):
-    """
-    Featurize the global state of a molecules using number of atoms, number of bonds,
-    molecular weight, and optionally charge and solvent environment.
-
-
-    Args:
-        allowed_charges (list, optional): charges allowed the the molecules to take.
-        solvent_environment (list, optional): solvent environment in which the
-        calculations for the molecule take place
-    """
-
-    def __init__(self, allowed_charges=None, solvent_environment=None, dtype="float32"):
-        super(GlobalFeaturizer, self).__init__(dtype)
-        self.allowed_charges = allowed_charges
-        self.solvent_environment = solvent_environment
-
-    def __call__(self, mol, **kwargs):
-
-        num_atoms, mw = 0, 0
-        num_bonds = len(mol["reactant_bonds"])
-
-        pt = GetPeriodicTable()
-        atom_types = list(mol["composition"].keys())
-        for atom in atom_types:
-            num_atom_type = int(mol["composition"][atom])
-            num_atoms += num_atom_type
-            mw += num_atom_type * pt.GetAtomicWeight(atom)
-
-        columns = mol.keys()
-        if "reactant_bonds" in columns:
-            bond_key = "reactant_bonds"
-        else:
-            bond_key = "product_bonds"
-
-        g = [
-            num_atoms,
-            len(mol[bond_key]),
-            mw,
-        ]
-
-        if self.allowed_charges is not None or self.solvent_environment is not None:
-            try:
-                feats_info = kwargs["extra_feats_info"]
-            except KeyError as e:
-                raise KeyError(
-                    "{} `extra_feats_info` needed for {}.".format(
-                        e, self.__class__.__name__
-                    )
-                )
-
-            if self.allowed_charges is not None:
-                g += one_hot_encoding(feats_info["charge"], self.allowed_charges)
-
-            if self.solvent_environment is not None:
-                # if only two solvent_environment, we use 0/1 to denote the feature
-                if len(self.solvent_environment) == 2:
-                    ft = self.solvent_environment.index(feats_info["environment"])
-                    g += [ft]
-                # if more than two, we create a one-hot encoding
-                else:
-                    g += one_hot_encoding(
-                        feats_info["environment"], self.solvent_environment
-                    )
-
-        feats = torch.tensor([g], dtype=getattr(torch, self.dtype))
-
-        self._feature_size = feats.shape[1]
-        self._feature_name = ["num atoms", "num bonds", "molecule weight"]
-        if self.allowed_charges is not None:
-            self._feature_name += ["charge one hot"] * len(self.allowed_charges)
-        if self.solvent_environment is not None:
-            if len(self.solvent_environment) == 2:
-                self._feature_name += ["solvent"]
-            else:
-                self._feature_name += ["solvent"] * len(self.solvent_environment)
-
-        return {"feat": feats}
-
-
-# done
+# NEW FEATURIZERS
 class AtomFeaturizerGraph(BaseFeaturizer):
 
     """
@@ -963,28 +962,32 @@ class AtomFeaturizerGraph(BaseFeaturizer):
         feats = []
         num_atoms = 0
         allowed_ring_size = [3, 4, 5, 6, 7]
-        columns = mol.keys()
+        # columns = mol.keys()
         # figure out if reactant row or col row was passed
 
-        if "reactant_bonds" in columns:
-            bond_key = "reactant_bonds"
-            graph_key = "reactant_molecule_graph"
-        else:
-            bond_key = "product_bonds"
-            graph_key = "product_molecule_graph"
+        #if "reactant_bonds" in columns:
+        #    bond_key = "reactant_bonds"
+        #    graph_key = "reactant_molecule_graph"
+        #else:
+        #    bond_key = "product_bonds"
+        #    graph_key = "product_molecule_graph"
 
-        atom_types = list(mol["composition"].keys())
+        atom_types = list(mol.composition_dict.keys())
         for atom in atom_types:
-            num_atoms += int(mol["composition"][atom])
+            num_atoms += int(mol.composition_dict[atom])
 
         # need to error handle here for products that are split
-        species_sites = mol[graph_key]["molecule"]["sites"]
+        species_sites = mol.species
+        #species_sites 
         atom_num = len(species_sites)
         # need to error handle here for products that are split
 
-        bond_list = mol[bond_key]
-        species_order = [i["name"] for i in atom_num]
-
+        #bond_list = mol[bond_key]
+        bond_list_tuple =  list(mol.bonds.keys())
+        bond_list = []
+        [bond_list.append(list(bond)) for bond in bond_list_tuple]
+        #species_order = [i["name"] for i in species_sites]
+        
         cycles = find_rings(atom_num, bond_list, edges=False)
         # cycles = nx.cycle_basis(nx_graph) # this gets cycles
         ring_info = ring_features_from_atom_full(num_atoms, cycles, allowed_ring_size)
@@ -992,7 +995,7 @@ class AtomFeaturizerGraph(BaseFeaturizer):
         for atom_ind in range(num_atoms):
             ft = []
             atom_element = species_sites[atom_ind]
-            h_count, degree = h_count_and_degree(atom_ind, bond_list, species_order)
+            h_count, degree = h_count_and_degree(atom_ind, bond_list, species_sites)
             ring_inclusion, ring_size_list = ring_info[atom_ind]
             ft.append(degree)
             ft.append(ring_inclusion)
@@ -1012,12 +1015,8 @@ class AtomFeaturizerGraph(BaseFeaturizer):
         return {"feat": feats}
 
 
-# TODO TODO 
-# TODO TODO 
-# TODO TODO 
-
 class BondAsNodeGraphFeaturizer(BondFeaturizer):
-    """
+    """BaseFeaturizer
     Featurize all bonds in a molecule.
 
     The bond indices will be preserved, i.e. feature i corresponds to atom i.
@@ -1028,28 +1027,99 @@ class BondAsNodeGraphFeaturizer(BondFeaturizer):
         BondAsEdgeBidirectedFeaturizer
     """
 
-    def __init__(
-        self,
-        length_featurizer=None,
-        length_featurizer_args=None,
-        dative=False,
-        dtype="float32",
-    ):
-        super(BondAsNodeFeaturizerFull, self).__init__(
-            length_featurizer, length_featurizer_args, dtype
-        )
-        self.dative = dative
-
     def __call__(self, mol, **kwargs):
         """
         Parameters
         ----------
-        mol : rdkit.Chem.rdchem.Mol
-            RDKit molecule object
+        mol : pandas series with 'bond', 'pymatgen'/'site'/'molecule', and 
+        'composition' columns
 
         Returns
         -------
             Dictionary for bond features
         """
 
-        return None
+        feats, bond_list_only_metal,no_metal_binary = [], [], []
+        num_atoms = 0 
+        num_feats = 12
+        allowed_ring_size = [3, 4, 5, 6, 7]
+
+        charge = int(mol.charge)
+        #key = 'product'
+        #if 'reactant_bonds' in columns: key = 'reactant'    
+
+        atoms = [int_atom(i) for i in mol.species]
+        #atoms = [int_atom(atom['name']) for atom in mol[key + "_structure"]["sites"]]
+        xyz_coordinates = mol.coords
+        #xyz_coordinates = [i["xyz"] for i in mol[key + "_structure"]["sites"]]
+        bond_list = list(mol.bonds)
+        #bond_list = mol[key + "_bonds"]   
+        num_bonds = len(bond_list) 
+        
+        # fuck
+        bond_list_no_metal = mol.nonmetal_bonds # nonmetal bonds
+
+        #atom_types = list(mol.composition_dict.keys()) # need to process this beforehand for products 
+        num_atoms = int(mol.num_atoms)
+        
+        #for atom in atom_types: 
+        #    num_atoms += int(mol['composition'][atom])
+        #species_sites = mol[key + "_molecule_graph"]['molecule']['sites']
+        if(num_bonds == 0):
+            ft = [0.0 for _ in range(num_feats)]
+            if self.length_featurizer:
+                ft += [0.0 for _ in range(len(self.length_featurizer.feature_name))]
+            feats = [ft]
+
+        else:
+            feats = []
+            for i in bond_list:
+                if(i not in bond_list_no_metal): 
+                    bond_list_only_metal.append(i)
+                    no_metal_binary.append(0)
+                else: no_metal_binary.append(1)
+
+            cycles = find_rings(num_atoms, bond_list_no_metal, allowed_ring_size, edges = True)
+            
+            try:               
+                rdkit_mol = xyz2mol(atoms = atoms, coordinates = xyz_coordinates, charge = charge)
+                rdkit_dict = rdkit_bond_desc(rdkit_mol[0])
+            except: 
+                rdkit_mol = []
+                rdkit_dict = {}
+
+            rdkit_dict_keys = list(rdkit_dict.keys())
+            
+            ring_dict = ring_features_for_bonds_full(bond_list, no_metal_binary, cycles, allowed_ring_size)  
+            ring_dict_keys = list(ring_dict.keys())
+            
+            for ind, bond in enumerate(bond_list):
+                ft = []
+                if(tuple(bond) in ring_dict_keys):
+                    ft.append(ring_dict[tuple(bond)][0]) # metal
+                    ft.append(ring_dict[tuple(bond)][1]) # 
+                    ft += ring_dict[tuple(bond)][2] # one hot ring 
+                else: 
+                    ft += [0,0]
+                    ft += [0 for i in range(len(allowed_ring_size))]
+
+                if(tuple(bond) in rdkit_dict_keys):
+                    ft += rdkit_dict[tuple(bond)] 
+                else:
+                    ft += [0,0,0,0,0]
+                feats.append(ft)
+
+        feats = torch.tensor(feats, dtype=getattr(torch, self.dtype))
+        self._feature_size = feats.shape[1]
+        self._feature_name = (
+            ['metal bond'] +
+            ['ring inclusion'] +
+            ["ring size"] * 5 +
+            ["conjugated", "single", "double", "triple", "aromatic"]
+        )
+
+
+        if self.length_featurizer:
+            self._feature_name += self.length_featurizer.feature_name
+
+        return {"feat": feats}

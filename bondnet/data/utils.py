@@ -187,19 +187,20 @@ def ring_features_for_bonds_full(bonds, no_metal_binary, cycles, allowed_ring_si
         allow_ring_size(list) - list of allowed ring sizes
         non_metal_binary - array with one-hot encoding of whether bonds are metal/not
     returns:
-        ring_inclusion - int of whether atom is in a ring
-        ring_size_ret_list - one-hot list of whether
+        ret_dict - dictionary with bond(formatted in root-to-target) with metal-bond binary,
+        ring inclusion and ring_one_hot
 
     """
     ret_dict = {}
     for i, bond in enumerate(bonds):
         if no_metal_binary[i] == 0:
+            inclusion, ring_one_hot = ring_features_from_bond(bond, cycles, allowed_ring_size)
             ret_dict[tuple(bond)] = (
                 0,
-                ring_features_from_bond(bond, cycles, allowed_ring_size)[0],
-                ring_features_from_bond(bond, cycles, allowed_ring_size)[1],
+                inclusion,
+                ring_one_hot,
             )
-        else:
+        else: # we're never including metal bonds in ring formations
             ret_dict[tuple(bond)] = (1, 0, [0 for i in range(len(allowed_ring_size))])
     return ret_dict
 
@@ -296,8 +297,12 @@ def find_rings(atom_num, bond_list, allowed_ring_size=[], edges=True):
 
     cycle_list.sort()
     cycle_list = list(cycle_list for cycle_list, _ in itertools.groupby(cycle_list))
+    for i in range(len(cycle_list)):
+        try:cycle_list.remove([])
+        except: pass
+
     if len(cycle_list) > 1:
-        print("filtering")
+        
         cycle_list = filter_rotations(cycle_list)
 
     if edges == True:
@@ -329,13 +334,7 @@ def rdkit_bond_desc(mol):
         Chem.rdchem.BondType.AROMATIC,
     ]
 
-    #try:
-    #mol = Chem.AddHs(mol)
     num_atoms = len(mol.GetAtoms())
-
-    #except:
-    #    mol = Chem.AddHs(mol[0])
-    #    num_atoms = len(mol[0].GetAtoms())#
 
     for i in range(num_atoms):
         for j in range(num_atoms):
@@ -350,6 +349,6 @@ def rdkit_bond_desc(mol):
                 ft = [int(bond.GetIsConjugated())]
                 ft += one_hot_encoding(
                     bond.GetBondType(), allowed_bond_type
-                )  # bond type
+                ) 
                 detected_bonds_dict[i, j] = ft  # adds with key = to the bond
     return detected_bonds_dict

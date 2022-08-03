@@ -414,8 +414,6 @@ class ReactionCollection:
             if zero_charge_rxns:
                 ropb = ReactionsOnePerBond(reactant, zero_charge_rxns)
                 new_groups.append(ropb)
-        # print("zero charge groups" + str(len(zero_charge_rxns)))
-        # print("new groups " + str(len(new_groups)))
         return new_groups
 
     def group_by_reactant_lowest_energy(self):
@@ -1115,6 +1113,7 @@ class ReactionCollection:
         group_mode="all",
         one_per_iso_bond_group=True,
         write=True,
+        sdf_mapping = True
     ):
         """
         Write the reaction
@@ -1133,6 +1132,7 @@ class ReactionCollection:
                 reactions.
             one_per_iso_bond_group (bool): whether to keep just one reaction from each
                 iso bond group.
+            sdf_mapp(bool): use sdf mapping or just bond index
         """
 
         if group_mode == "all":
@@ -1164,7 +1164,7 @@ class ReactionCollection:
                 ]
                 all_mols.extend(mols)
                 all_mol_ids.extend(mols_id)
-
+        
         for grp in grouped_rxns:
             reactions = grp.order_reactions(
                 one_per_iso_bond_group, complement_reactions=False
@@ -1177,18 +1177,17 @@ class ReactionCollection:
                     str(i.id) + "_" + str(ind) for ind, i in enumerate(rxn.products)
                 ]
                 energy = rxn.get_free_energy()
-
-                # bond mapping between product sdf and reactant sdf
-                # print("bonds total to consider: {}, bonds in mapping: {}"\
-                #    .format(len(rxn.reactants[0].bonds) , len(rxn._bond_mapping_by_int_index)))
-
+                if(sdf_mapping):
+                    mapping = rxn.bond_mapping_by_sdf_int_index()
+                else:
+                    mapping = rxn.bond_mapping_by_int_index()
                 data = {
                     "value": [energy],
                     "num_mols": len(reactant_id + product_ids),
                     "products": [all_mol_ids.index(prod_id) for prod_id in product_ids],
                     "reactants": [all_mol_ids.index(reactant_id[0])],
                     "atom_mapping": rxn.atom_mapping(),
-                    "bond_mapping": rxn.bond_mapping_by_sdf_int_index(),
+                    "bond_mapping": mapping,
                     "id": [rxn.get_id()],
                 }
                 all_labels.append(data)
@@ -1564,10 +1563,6 @@ class ReactionCollection:
         with open(to_path(filename), "w") as f:
             for i, m in enumerate(molecules):
 
-                # else: charge = m.charge
-                # name = "{}_{}_{}_{}_index-{}".format(
-                #    m.id, m.formula, m.charge, m.free_energy, i
-                # )
                 sdf = m.write_custom(index=i)
                 f.write(sdf)
 

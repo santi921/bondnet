@@ -146,17 +146,13 @@ def mol_graph_to_rxn_graph(graph, feats, reactions):
     reaction_graphs = []
     reaction_feats = []
     for rxn in reactions:
-
         reactants = [graphs[i] for i in rxn.reactants]
         products = [graphs[i] for i in rxn.products]
-        # print(len(torch.cat([p.nodes['bond'].data['ft'] for p in reactants])),
-        # len(torch.cat([p.nodes['bond'].data['ft'] for p in products])))
-        # whether a molecule has bonds?
         has_bonds = {
-            # we support only one reactant now, so no it is assumed always to have bond
             "reactants": [True for _ in reactants],
             "products": [True if len(mp) > 0 else False for mp in rxn.bond_mapping],
         }
+        
         mappings = {"atom": rxn.atom_mapping_as_list, "bond": rxn.bond_mapping_as_list}
 
         ##################################################
@@ -179,6 +175,7 @@ def mol_graph_to_rxn_graph(graph, feats, reactions):
         if len(products_ft) == len(reactants_ft):
             reaction_graphs.append(g)
             reaction_feats.append(fts)
+ 
         ##################################################
 
     # batched reaction graph and data

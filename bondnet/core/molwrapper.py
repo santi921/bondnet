@@ -26,9 +26,10 @@ class MoleculeWrapper:
         id (str): (unique) identification of the molecule
     """
 
-    def __init__(self, mol_graph, free_energy=None, id=None):
+    def __init__(self, mol_graph, free_energy=None, id=None, non_metal_bonds = None):
         self.mol_graph = mol_graph
         self.pymatgen_mol = mol_graph.molecule
+        self.nonmetal_bonds = non_metal_bonds
         self.free_energy = free_energy
         self.id = id
 
@@ -805,3 +806,4 @@ def order_two_molecules(m1, m2):
         else:
             return [m1, m2]  # two exactly the same molecules
     raise RuntimeError("Cannot order molecules")
+
