@@ -88,67 +88,67 @@ def get_grapher():
 get_grapher()
 seed_torch()
 
+def main():
+    path_mg_data = "/home/santiagovargas/Documents/Dataset/mg_dataset/"
+    dataset = ReactionNetworkDatasetGraphs(
+        grapher=get_grapher(),
+        file=path_mg_data,
+        out_file = './'
 
-path_mg_data = "/home/santiagovargas/Documents/Dataset/mg_dataset/"
-dataset = ReactionNetworkDatasetGraphs(
-    grapher=get_grapher(),
-    file=path_mg_data,
-    out_file = './'
+    )
 
-)
+    trainset, valset, testset = train_validation_test_split(dataset, validation=0.15, test=0.15)
+    dataset_loader = DataLoaderReactionNetwork(dataset, batch_size=25,shuffle=True)
+    train_loader = DataLoaderReactionNetwork(trainset, batch_size=25,shuffle=True)
+    val_loader = DataLoaderReactionNetwork(valset, batch_size=len(valset), shuffle=False)
+    test_loader = DataLoaderReactionNetwork(testset, batch_size=len(testset), shuffle=False)
 
-trainset, valset, testset = train_validation_test_split(dataset, validation=0.15, test=0.15)
-dataset_loader = DataLoaderReactionNetwork(dataset, batch_size=25,shuffle=True)
-train_loader = DataLoaderReactionNetwork(trainset, batch_size=25,shuffle=True)
-val_loader = DataLoaderReactionNetwork(valset, batch_size=len(valset), shuffle=False)
-test_loader = DataLoaderReactionNetwork(testset, batch_size=len(testset), shuffle=False)
-
-model = GatedGCNReactionNetwork(
-    in_feats=dataset.feature_size,
-    embedding_size=24,
-    gated_num_layers=3,
-    gated_hidden_size=[64, 64, 64],
-    gated_activation="ReLU",
-    fc_num_layers=2,
-    fc_hidden_size=[128, 64],
-    fc_activation='ReLU'
-)
-
-
-
-t1 = time.time()
-# optimizer, loss function and metric function
-optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
-#loss_func = MSELoss(reduction="mean")
-#loss_func = torch.nn.L1Loss(reduction='mean')
-loss_func = WeightedMSELoss(reduction="sum")
-metric = WeightedL1Loss(reduction="sum")
-
-feature_names = ["atom", "bond", "global"]
-best = 1e10
-num_epochs = 100
-
-# main training loop
-print("# Epoch     Loss         TrainAcc        ValAcc")
-for epoch in range(num_epochs):
-
-    # train on training set 
-    loss, train_acc = train(optimizer, model, feature_names, train_loader, loss_func, metric)
-    # evaluate on validation set
-    val_acc = evaluate(model, feature_names, val_loader, metric)
-    # save checkpoint for best performing model 
-    is_best = val_acc < best
-    if is_best:
-        best = val_acc
-        torch.save(model.state_dict(), 'checkpoint.pkl')
-    print("{:5d}   {:12.6e}   {:12.6e}   {:12.6e}".format(epoch, loss, train_acc, val_acc))
+    model = GatedGCNReactionNetwork(
+        in_feats=dataset.feature_size,
+        embedding_size=24,
+        gated_num_layers=3,
+        gated_hidden_size=[64, 64, 64],
+        gated_activation="ReLU",
+        fc_num_layers=2,
+        fc_hidden_size=[128, 64],
+        fc_activation='ReLU'
+    )
 
 
-# load best performing model and test it's performance on the test set
-checkpoint = torch.load("checkpoint.pkl")
-model.load_state_dict(checkpoint)
-test_acc = evaluate(model, feature_names, test_loader, metric)
-print("TestAcc: {:12.6e}".format(test_acc))
-t2 = time.time()
-print("Time to Training: {:5.1f} seconds".format(float(t2 - t1)))
+    t1 = time.time()
+    # optimizer, loss function and metric function
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    #loss_func = MSELoss(reduction="mean")
+    #loss_func = torch.nn.L1Loss(reduction='mean')
+    loss_func = WeightedMSELoss(reduction="sum")
+    metric = WeightedL1Loss(reduction="sum")
 
+    feature_names = ["atom", "bond", "global"]
+    best = 1e10
+    num_epochs = 100
+
+    # main training loop
+    print("# Epoch     Loss         TrainAcc        ValAcc")
+    for epoch in range(num_epochs):
+
+        # train on training set 
+        loss, train_acc = train(optimizer, model, feature_names, train_loader, loss_func, metric)
+        # evaluate on validation set
+        val_acc = evaluate(model, feature_names, val_loader, metric)
+        # save checkpoint for best performing model 
+        is_best = val_acc < best
+        if is_best:
+            best = val_acc
+            torch.save(model.state_dict(), 'checkpoint.pkl')
+        print("{:5d}   {:12.6e}   {:12.6e}   {:12.6e}".format(epoch, loss, train_acc, val_acc))
+
+
+    # load best performing model and test it's performance on the test set
+    checkpoint = torch.load("checkpoint.pkl")
+    model.load_state_dict(checkpoint)
+    test_acc = evaluate(model, feature_names, test_loader, metric)
+    print("TestAcc: {:12.6e}".format(test_acc))
+    t2 = time.time()
+    print("Time to Training: {:5.1f} seconds".format(float(t2 - t1)))
+
+main()

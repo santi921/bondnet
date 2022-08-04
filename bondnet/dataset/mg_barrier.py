@@ -193,12 +193,12 @@ def process_species_graph(row, classifier=False):
             if row["bonds_broken"] != []:
                 broken_bond = row["bonds_broken"][0]
         if(reverse_rxn):
-            #value = row['transition_state_energy'] - row['product_energy']
-            value = row['reactant_energy'] - row['product_energy']
+            value = row['transition_state_energy'] - row['product_energy']
+            #value = row['reactant_energy'] - row['product_energy']
 
         else: 
-            value = row['product_energy'] - row['reactant_energy']
-            #value = row["dE_barrier"]
+            #value = row['product_energy'] - row['reactant_energy']
+            value = row["dE_barrier"]
 
         rxn = Reaction(
             reactants=reactant_list,
@@ -391,9 +391,9 @@ def create_struct_label_dataset_bond_based_regression(filename, out_file):
 
     Args:
         filename: name of the json file to be used to gather data
-        out_file: name of folder where to store the three files for trianing
+        out_file: name of folder where to store the three files for training
     """
-    path_mg_data = "/home/santiagovargas/Documents/Dataset/mg_dataset/"
+    path_mg_data = "../../home/santiagovargas/Documents/Dataset/mg_dataset/"
     path_json = path_mg_data + "20220613_reaction_data.json"
     mg_df = pd.read_json(path_json)
     reactions = []

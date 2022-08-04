@@ -1035,7 +1035,7 @@ class BondAsNodeGraphFeaturizer(BondFeaturizer):
 
         feats, bond_list_only_metal,no_metal_binary = [], [], []
         num_atoms = 0 
-        num_feats = 7
+        num_feats = 12
         allowed_ring_size = [3, 4, 5, 6, 7]
 
         charge = int(mol.charge)
@@ -1063,13 +1063,13 @@ class BondAsNodeGraphFeaturizer(BondFeaturizer):
 
             cycles = find_rings(num_atoms, bond_list_no_metal, allowed_ring_size, edges = True)
             
-            #try:               
-            #    rdkit_mol = xyz2mol(atoms = atoms, coordinates = xyz_coordinates, charge = charge)
-            #    rdkit_dict = rdkit_bond_desc(rdkit_mol[0])
-            #except: 
-            #    rdkit_mol = []
-            #    rdkit_dict = {}
-            #rdkit_dict_keys = list(rdkit_dict.keys())
+            try:               
+                rdkit_mol = xyz2mol(atoms = atoms, coordinates = xyz_coordinates, charge = charge)
+                rdkit_dict = rdkit_bond_desc(rdkit_mol[0])
+            except: 
+                rdkit_mol = []
+                rdkit_dict = {}
+            rdkit_dict_keys = list(rdkit_dict.keys())
             
             ring_dict = ring_features_for_bonds_full(bond_list, no_metal_binary, cycles, allowed_ring_size)  
             ring_dict_keys = list(ring_dict.keys())
@@ -1084,10 +1084,10 @@ class BondAsNodeGraphFeaturizer(BondFeaturizer):
                     ft += [0,0]
                     ft += [0 for i in range(len(allowed_ring_size))]
 
-                #if(tuple(bond) in rdkit_dict_keys):
-                #    ft += rdkit_dict[tuple(bond)] 
-                #else:
-                #    ft += [0,0,0,0,0]
+                if(tuple(bond) in rdkit_dict_keys):
+                    ft += rdkit_dict[tuple(bond)] 
+                else:
+                    ft += [0,0,0,0,0]
                 feats.append(ft)
 
         feats = torch.tensor(feats, dtype=getattr(torch, self.dtype))
@@ -1096,10 +1096,9 @@ class BondAsNodeGraphFeaturizer(BondFeaturizer):
             ['metal bond'] +
             ['ring inclusion'] +
             ["ring size"] * 5
-            #+["conjugated", "single", "double", "triple", "aromatic"]
+            +["conjugated", "single", "double", "triple", "aromatic"]
         )
-        #print(feats)
-
+        
 
         if self.length_featurizer:
             self._feature_name += self.length_featurizer.feature_name
