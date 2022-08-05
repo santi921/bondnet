@@ -154,7 +154,7 @@ def load_model(dict_train):
 def main():
     wandb.init(project="my-test-project")
     
-    path_mg_data = "../dataset/mg_dataset/"
+    path_mg_data = "../dataset/mg_dataset/" # still not working
     dict_train = parse_settings()
 
     dataset = ReactionNetworkDatasetGraphs(

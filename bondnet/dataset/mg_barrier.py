@@ -576,8 +576,9 @@ def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_fi
         bond_map_filter: true uses filter with sdf
         target (str): target for regression either 'ts' or 'diff'
     """
-    path_mg_data = "../dataset/mg_dataset/"
+    path_mg_data = "../../../dataset/mg_dataset/"
     path_json = path_mg_data + "20220613_reaction_data.json"
+
     mg_df = pd.read_json(path_json) 
 
     start_time = time.perf_counter()

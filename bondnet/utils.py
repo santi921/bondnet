@@ -374,7 +374,7 @@ def warn_stdout(message, category, filename, lineno, file=None, line=None):
     sys.stdout.write(warnings.formatwarning(message, category, filename, lineno))
 
 
-def parse_settings(file="./input_files/input_2.txt"):
+def parse_settings(file="settings.txt"):
 
     # some default values that get written over if in the file
     test = False
@@ -384,12 +384,18 @@ def parse_settings(file="./input_files/input_2.txt"):
     save_hyper_params = "./hyper.pkl"
     dataset_state_dict_filename = "./dataset_state_dict.pkl"
     model_path = "./"
-    epochs = 10
+    epochs = 100
     start_epoch = 0
     embedding_size = 24
-    batch_size = 10
+    batch_size = 256
     lr = 0.00001
     num_gpu = 1
+
+    early_stop = True
+    scheduler = False
+    transfer_epochs = 100
+    transfer = True
+    loss = 'weighted_mse'
 
     fc_hidden_size = [128, 64]
     fc_layers = -1
@@ -431,6 +437,18 @@ def parse_settings(file="./input_files/input_2.txt"):
                     model_path = i.split()[1]
                 if i.split()[0] == "num_gpu":
                     num_gpu = int(i.split()[1])
+
+                if i.split()[0] == "early_stop":
+                    early_stop = "True" == i.split()[1]
+                if i.split()[0] == "scheduler":
+                    scheduler = "True" == i.split()[1]
+                if i.split()[0] == "transfer_epochs":
+                    transfer_epochs = int(i.split()[1])
+                if i.split()[0] == "transfer":
+                    transfer = "True" == i.split()[1]
+                if i.split()[0] == "loss":
+                    loss = "True" == i.split()[1]
+
 
                 if i.split()[0] == "batch_size":
                     batch_size = int(i.split()[1])
@@ -517,6 +535,14 @@ def parse_settings(file="./input_files/input_2.txt"):
         print("gated batch norm: " + str(gated_batch_norm))
         print("gated graph norm: " + str(gated_graph_norm))
         print("gated resid: " + str(gated_residual))
+
+        print("early_stop: " + str(early_stop))
+        print("scheduler: " + str(scheduler))
+        print("transfer_epochs: " + str(transfer_epochs))
+        print("transfer: " + str(transfer))
+        print("loss: " + str(loss))
+
+
         print("--" * 20)
 
         dict_ret = {}
@@ -529,15 +555,21 @@ def parse_settings(file="./input_files/input_2.txt"):
         dict_ret["dataset_state_dict_filename"] = Path(dataset_state_dict_filename)
         dict_ret["model_path"] = Path(model_path)
 
+        dict_ret['early_stop'] = early_stop 
+        dict_ret['scheduler'] = scheduler 
+        dict_ret['transfer_epochs'] = transfer_epochs 
+        dict_ret['transfer'] = transfer 
+        dict_ret['loss'] = loss 
+
         dict_ret["start_epoch"] = start_epoch
         dict_ret["embedding_size"] = embedding_size
         dict_ret["batch_size"] = batch_size
-        dict_ret["lr"] = lr
+        dict_ret["learning_rate"] = lr
         dict_ret["weight_decay"] = weight_decay
         dict_ret["restore"] = restore
 
         dict_ret["fc_hidden_size"] = fc_hidden_size
-        dict_ret["fc_layers"] = fc_layers
+        dict_ret["fc_num_layers"] = fc_layers
         dict_ret["fc_dropout"] = fc_dropout
         dict_ret["fc_batch_norm"] = fc_batch_norm
         dict_ret["fc_activation"] = fc_activation
