@@ -14,20 +14,18 @@ import copy
 from pathlib import Path
 import numpy as np
 from typing import List, Any
+from collections import defaultdict
+import networkx as nx
 
-from rdkit.Chem import rdmolops
-from rdkit.Chem import rdchem
+from rdkit import Chem
+from rdkit.Chem import AllChem, rdchem
 
 try:
     from rdkit.Chem import rdEHTTools  # requires RDKit 2019.9.1 or later
 except ImportError:
     rdEHTTools = None
 
-from collections import defaultdict
-import networkx as nx
 
-from rdkit import Chem
-from rdkit.Chem import AllChem, rdmolops
 
 global __ATOM_LIST__
 __ATOM_LIST__ = [
@@ -947,7 +945,7 @@ def AC2BO(AC, atoms, charge, allow_charged_fragments=True, use_graph=True):
         # valence can't be smaller than number of neighbourgs
         possible_valence = [x for x in atomic_valence[atomicNum] if x >= valence]
         if not possible_valence:
-            print(atomicNum, valence, possible_valence)
+            #print(atomicNum, valence, possible_valence)
             print(
                 "Valence of atom",
                 i,

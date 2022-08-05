@@ -340,20 +340,20 @@ class HeteroCompleteGraphFromPandas(BaseGraph):
         )
         self.global_featurizer = global_featurizer
 
-    def build_graph(self, mol, reactant=True):  
+    def build_graph(self, mol, reactant=True):
         num_atoms = 0
-        if reactant: 
+        if reactant:
             key_id = "reactant_id"
-            bonds = mol['reactant_bonds']
-            num_bonds = len(mol['reactant_bonds'])
-        else: 
+            bonds = mol["reactant_bonds"]
+            num_bonds = len(mol["reactant_bonds"])
+        else:
             key_id = "product_id"
-            bonds = mol['product_bonds']
+            bonds = mol["product_bonds"]
         num_bonds = len(bonds)
         atom_types = list(mol["composition"].keys())
         for atom in atom_types:
             num_atoms += int(mol["composition"][atom])
-    
+
         a2b = []
         b2a = []
         if num_bonds == 0:
@@ -404,13 +404,13 @@ class HeteroCompleteGraphFromPandas(BaseGraph):
     def featurize(self, g, row, **kwargs):
         # still need to map to product/rxn
         if self.atom_featurizer is not None:
-            #print(self.atom_featurizer(row, **kwargs))
+            # print(self.atom_featurizer(row, **kwargs))
             g.nodes["atom"].data.update(self.atom_featurizer(row, **kwargs))
         if self.global_featurizer is not None:
             g.nodes["global"].data.update(self.global_featurizer(row, **kwargs))
 
         if self.bond_featurizer is not None:
-            #print(self.bond_featurizer(row, **kwargs))
+            # print(self.bond_featurizer(row, **kwargs))
             g.nodes["bond"].data.update(self.bond_featurizer(row, **kwargs))
         return g
 
@@ -432,7 +432,7 @@ class HeteroCompleteGraphFromDGLAndPandas(BaseGraph):
         )
         self.global_featurizer = global_featurizer
 
-    def build_graph(self, mol, reactant=True):  
+    def build_graph(self, mol, reactant=True):
 
         bonds = list(mol.bonds.keys())
         num_bonds = len(bonds)
@@ -487,13 +487,13 @@ class HeteroCompleteGraphFromDGLAndPandas(BaseGraph):
     def featurize(self, g, row, **kwargs):
 
         if self.atom_featurizer is not None:
-            #print(self.atom_featurizer(row, **kwargs))
+            # print(self.atom_featurizer(row, **kwargs))
             g.nodes["atom"].data.update(self.atom_featurizer(row, **kwargs))
-        
+
         if self.bond_featurizer is not None:
-            #print(self.bond_featurizer(row, **kwargs))
+            # print(self.bond_featurizer(row, **kwargs))
             g.nodes["bond"].data.update(self.bond_featurizer(row, **kwargs))
-        
+
         if self.global_featurizer is not None:
             g.nodes["global"].data.update(self.global_featurizer(row, **kwargs))
 

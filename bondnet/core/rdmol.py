@@ -4,14 +4,14 @@ import logging
 from collections import defaultdict
 from pymatgen.core.structure import Molecule
 from pymatgen.io.babel import BabelMolAdaptor
-from rdkit import Chem
+from rdkit import Chem, RDLogger
 from rdkit.Chem import BondType, AllChem
 from rdkit.Geometry import Point3D
 from openbabel import openbabel as ob
 from bondnet.utils import to_path
 
-logger = logging.getLogger(__name__)
-
+lg = RDLogger.logger()
+lg.setLevel(RDLogger.CRITICAL)
 
 def smiles_to_rdkit_mol(s, add_H=True):
     """
@@ -256,9 +256,9 @@ def create_rdkit_mol(
         try:
             Chem.SanitizeMol(m)
         except Exception as e:
-            warnings.warn(f"Cannot sanitize molecule {name}, because {str(e)}")
+            pass
+            #warnings.warn(f"Cannot sanitize molecule {name}, because {str(e)}")
     m.AddConformer(conformer, assignId=False)
-
     m.SetProp("_Name", str(name))
 
     return m

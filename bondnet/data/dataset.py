@@ -6,15 +6,14 @@ import numpy as np
 from pathlib import Path
 from collections import defaultdict, OrderedDict
 from rdkit import Chem, RDLogger
-RDLogger.DisableLog('rdApp.info')                                                                                                                                                       
 from bondnet.dataset.mg_barrier import create_reaction_network_files_and_valid_rows
 from bondnet.data.reaction_network import ReactionInNetwork, ReactionNetwork
 from bondnet.data.transformers import HeteroGraphFeatureStandardScaler, StandardScaler
 from bondnet.data.utils import get_dataset_species, get_dataset_species_from_json
 from bondnet.utils import to_path, yaml_load, list_split_by_size
 
-logger = logging.getLogger(__name__)
-
+logger = RDLogger.logger()
+logger.setLevel(RDLogger.CRITICAL)
 
 class BaseDataset:
     """
@@ -653,6 +652,7 @@ class MoleculeDataset(BaseDataset):
 
         return rst, extensive
 
+
 class ReactionNetworkDatasetGraphs(BaseDataset):
     def __init__(
         self,
@@ -663,14 +663,21 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         label_transformer=True,
         dtype="float32",
         state_dict_filename=None,
+        target = 'ts'
     ):
 
         if dtype not in ["float32", "float64"]:
             raise ValueError(f"`dtype {dtype}` should be `float32` or `float64`.")
 
         self.grapher = grapher
-        all_mols, all_labels, features, df = create_reaction_network_files_and_valid_rows(
-            file, out_file, bond_map_filter=False)
+        (
+            all_mols,
+            all_labels,
+            features,
+            df,
+        ) = create_reaction_network_files_and_valid_rows(
+            file, out_file, bond_map_filter=False, target=target
+        )
 
         self.molecules = all_mols
         self.raw_labels = all_labels
@@ -682,6 +689,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         self.pandas_df = df
         self.graphs = None
         self.labels = None
+        self.target = target
         self._feature_size = None
         self._feature_name = None
         self._feature_scaler_mean = None
@@ -698,9 +706,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
 
         # get molecules, labels, and extra features
         molecules = self.get_molecules(self.molecules)
-        #print("number of molecules: " + str(len(molecules)))
         raw_labels = self.get_labels(self.raw_labels)
-        #print("number of labels: " + str(len(raw_labels)))
 
         if self.extra_features is not None:
             extra_features = self.get_features(self.extra_features)
@@ -713,27 +719,22 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
             state_dict = torch.load(str(self.state_dict_filename))
             self.load_state_dict(state_dict)
 
-        # get species       
-        #species = get_dataset_species_from_json(self.pandas_df)
+        # get species
+        # species = get_dataset_species_from_json(self.pandas_df)
         system_species = set()
         for _, row in self.pandas_df.iterrows():
-            if row is None:continue
+            if row is None:
+                continue
             species = list(row["composition"].keys())
             system_species.update(species)
         self._species = sorted(system_species)
 
-        #if self.state_dict_filename is None:
-        #    species = get_dataset_species(molecules)
-        #    self._species = species
-        #else:
-        #    species = self.state_dict()["species"]
-        #    assert species is not None, "Corrupted state_dict file, `species` not found"
-
         # create dgl graphs
-        #self.pandas_df
-        graphs = self.build_graphs(self.grapher, self.molecules, extra_features, species)
+        print("constructing graphs & features....")
+        graphs = self.build_graphs(
+            self.grapher, self.molecules, extra_features, species
+        )
         graphs_not_none_indices = [i for i, g in enumerate(graphs) if g is not None]
-        #print(graphs_not_none_indices)
         print("number of graphs valid: " + str(len(graphs_not_none_indices)))
         print("number of graphs: " + str(len(graphs)))
         # store feature name and size
@@ -778,7 +779,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         self.labels = []
         self._failed = []
         for i, lb in enumerate(raw_labels):
-            mol_ids = lb["reactants"] + lb["products"]            
+            mol_ids = lb["reactants"] + lb["products"]
             for d in mol_ids:
                 # ignore reaction whose reactants or products molecule is None
                 if d not in graphs_not_none_indices:
@@ -863,10 +864,10 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         """
 
         graphs = []
-        #for i, (m, feats) in enumerate(zip(molecules, features)):
+        # for i, (m, feats) in enumerate(zip(molecules, features)):
 
-        count = 0 
-        #for ind, mol in molecules.iterrows():
+        count = 0
+        # for ind, mol in molecules.iterrows():
         for ind, mol in enumerate(molecules):
             feats = features[count]
             if mol is not None:
@@ -899,6 +900,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
 
     def __len__(self):
         return len(self.reaction_ids)
+
 
 class ReactionDataset(BaseDataset):
     def _load(self):
@@ -1024,7 +1026,6 @@ class ReactionNetworkDataset(BaseDataset):
         else:
             species = self.state_dict()["species"]
             assert species is not None, "Corrupted state_dict file, `species` not found"
-
 
         # create dgl graphs
         graphs = self.build_graphs(self.grapher, molecules, extra_features, species)
@@ -1160,7 +1161,7 @@ class ReactionNetworkDataset(BaseDataset):
         graphs = []
         for i, (m, feats) in enumerate(zip(molecules, features)):
             if m is not None:
-                
+
                 g = grapher.build_graph_and_featurize(
                     m, extra_feats_info=feats, dataset_species=species
                 )

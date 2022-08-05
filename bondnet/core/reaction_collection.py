@@ -9,6 +9,9 @@ from bondnet.utils import create_directory, pickle_load, pickle_dump, yaml_dump,
 
 logger = logging.getLogger(__name__)
 
+from rdkit import RDLogger
+lg = RDLogger.logger()
+lg.setLevel(RDLogger.CRITICAL)
 
 class ReactionCollection:
     """
@@ -1113,7 +1116,7 @@ class ReactionCollection:
         group_mode="all",
         one_per_iso_bond_group=True,
         write=True,
-        sdf_mapping = True
+        sdf_mapping=True,
     ):
         """
         Write the reaction
@@ -1164,7 +1167,7 @@ class ReactionCollection:
                 ]
                 all_mols.extend(mols)
                 all_mol_ids.extend(mols_id)
-        
+
         for grp in grouped_rxns:
             reactions = grp.order_reactions(
                 one_per_iso_bond_group, complement_reactions=False
@@ -1177,7 +1180,7 @@ class ReactionCollection:
                     str(i.id) + "_" + str(ind) for ind, i in enumerate(rxn.products)
                 ]
                 energy = rxn.get_free_energy()
-                if(sdf_mapping):
+                if sdf_mapping:
                     mapping = rxn.bond_mapping_by_sdf_int_index()
                 else:
                     mapping = rxn.bond_mapping_by_int_index()
@@ -1596,10 +1599,7 @@ class ReactionCollection:
         return all_feats
 
     def create_input_files(
-        self,
-        mol_file="molecules.sdf",
-        mol_attr_file="attr.yaml",
-        rxn_file="rxn.yaml",
+        self, mol_file="molecules.sdf", mol_attr_file="attr.yaml", rxn_file="rxn.yaml",
     ):
         """
         Convert the reaction to input files expected from an end user.

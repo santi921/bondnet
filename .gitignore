@@ -21,7 +21,10 @@ dist/
 *.out
 .idea
 .vscode
-.pytest_cache
+*.pytest_cache
 .DS_Store
 .ipynb_checkpoints
 prediction.png
+*.wandb
+*.txt
+latest-run

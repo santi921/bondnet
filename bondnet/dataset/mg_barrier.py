@@ -20,7 +20,7 @@ from rdkit import Chem
 Chem.WrapLogs()
 
 
-def process_species_graph(row, classifier=False):
+def process_species_graph(row, classifier=False, target = 'ts'):
     """
     Takes a row and processes the products/reactants - entirely defined by graphs from row
 
@@ -38,7 +38,7 @@ def process_species_graph(row, classifier=False):
     reverse_rxn = False
     check_list = row['bonds_formed'] + row['bonds_broken']
     if(len(check_list) == 0 or len(check_list) > 1): 
-        return rxn 
+        return rxn # this would need to change to handle more bonds changes
     else:
         if(row['bonds_broken'] == [] and row['bonds_formed'] != []):
             if(len(row['bonds_formed']) > 1 or len(row['bonds_formed']) == 0): 
@@ -192,13 +192,14 @@ def process_species_graph(row, classifier=False):
         else:
             if row["bonds_broken"] != []:
                 broken_bond = row["bonds_broken"][0]
-        if(reverse_rxn):
-            value = row['transition_state_energy'] - row['product_energy']
-            #value = row['reactant_energy'] - row['product_energy']
+        
+        reactant_key + "_energy"
+        product_key + "_energy"
 
-        else: 
-            #value = row['product_energy'] - row['reactant_energy']
-            value = row["dE_barrier"]
+        if(target == 'ts'):
+            value = row['transition_state_energy'] - row[reactant_key+'_energy']
+        else:
+            value = row[product_key+'_energy'] - row[reactant_key+'_energy']
 
         rxn = Reaction(
             reactants=reactant_list,
@@ -565,7 +566,7 @@ def create_reaction_network_files(filename, out_file, classifier=False):
     return all_mols, all_labels, features
 
 
-def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_filter = True):
+def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_filter = True, target = 'ts'):
     """
     Processes json file from emmet to use in training bondnet
 
@@ -573,18 +574,19 @@ def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_fi
         filename: name of the json file to be used to gather data
         out_file: name of folder where to store the three files for trianing
         bond_map_filter: true uses filter with sdf
+        target (str): target for regression either 'ts' or 'diff'
     """
-    path_mg_data = "/home/santiagovargas/Documents/Dataset/mg_dataset/"
+    path_mg_data = "../dataset/mg_dataset/"
     path_json = path_mg_data + "20220613_reaction_data.json"
     mg_df = pd.read_json(path_json) 
 
     start_time = time.perf_counter()
     reactions, ind_val, rxn_raw, ind_final = [], [], [], []
     with ProcessPool(max_workers=12, max_tasks=10) as pool:
-        #for ind, row in mg_df.head(100).iterrows():
+        #for ind, row in mg_df.head(250).iterrows():
         for ind, row in mg_df.iterrows(): 
             # process_species = process_species_rdkit
-            future = pool.schedule(process_species_graph, args=[row, True], timeout=30)
+            future = pool.schedule(process_species_graph, args=[row, True, target], timeout=30)
             future.add_done_callback(task_done)
             try:
                 rxn_raw.append(future.result())
@@ -670,7 +672,7 @@ def process_data():
     # create_struct_label_dataset_reaction_network(filename='', out_file='./')
     # create_struct_label_dataset_bond_based_regression(filename='', out_file='./')
     all_mols, all_labels, features = create_reaction_network_files(
-        filename="", out_file="./"
+        filename="", out_file="./", target = 'ts'
     )
     return all_mols, all_labels, features
 

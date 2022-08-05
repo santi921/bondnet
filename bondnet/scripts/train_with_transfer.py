@@ -265,10 +265,7 @@ if __name__ == "__main__":
         }
 
         save_checkpoints(
-            state_dict_objs,
-            misc_objs,
-            is_best,
-            msg=f"epoch: {epoch}, score {val_acc}",
+            state_dict_objs, misc_objs, is_best, msg=f"epoch: {epoch}, score {val_acc}",
         )
 
         tt = time.time() - ti

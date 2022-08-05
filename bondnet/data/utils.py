@@ -194,13 +194,15 @@ def ring_features_for_bonds_full(bonds, no_metal_binary, cycles, allowed_ring_si
     ret_dict = {}
     for i, bond in enumerate(bonds):
         if no_metal_binary[i] == 0:
-            inclusion, ring_one_hot = ring_features_from_bond(bond, cycles, allowed_ring_size)
+            inclusion, ring_one_hot = ring_features_from_bond(
+                bond, cycles, allowed_ring_size
+            )
             ret_dict[tuple(bond)] = (
                 0,
                 inclusion,
                 ring_one_hot,
             )
-        else: # we're never including metal bonds in ring formations
+        else:  # we're never including metal bonds in ring formations
             ret_dict[tuple(bond)] = (1, 0, [0 for i in range(len(allowed_ring_size))])
     return ret_dict
 
@@ -298,11 +300,13 @@ def find_rings(atom_num, bond_list, allowed_ring_size=[], edges=True):
     cycle_list.sort()
     cycle_list = list(cycle_list for cycle_list, _ in itertools.groupby(cycle_list))
     for i in range(len(cycle_list)):
-        try:cycle_list.remove([])
-        except: pass
+        try:
+            cycle_list.remove([])
+        except:
+            pass
 
     if len(cycle_list) > 1:
-        
+
         cycle_list = filter_rotations(cycle_list)
 
     if edges == True:
@@ -347,8 +351,6 @@ def rdkit_bond_desc(mol):
                     ft = []
             if not bond is None:  # checks if rdkit has detected the bond
                 ft = [int(bond.GetIsConjugated())]
-                ft += one_hot_encoding(
-                    bond.GetBondType(), allowed_bond_type
-                ) 
+                ft += one_hot_encoding(bond.GetBondType(), allowed_bond_type)
                 detected_bonds_dict[i, j] = ft  # adds with key = to the bond
     return detected_bonds_dict
