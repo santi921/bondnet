@@ -1,7 +1,8 @@
+import numpy as np 
 import torch, wandb
 from torch.optim import Adam
 from torch.nn import CrossEntropyLoss
-from torchmetrics import R2Score, F1Score
+from torchmetrics import F1Score
 
 from bondnet.model.metric import WeightedL1Loss, WeightedMSELoss
 from bondnet.model.gated_reaction_network import GatedGCNReactionNetwork
@@ -9,24 +10,26 @@ from bondnet.model.gated_reaction_network_classifier import GatedGCNReactionNetw
 
 def evaluate_classifier(model, nodes, data_loader, device = None, categories = 3):
     """
-    basic loop for training a classifier 
+    basic loop for testing a classifier. Gets F1 and accuracy
         
     Args:
-        model(pytorch model) 
-        nodes() 
-        data_loader(loader obj):
-        device(str) :
-        categories(int):
+        model(pytorch model): pytorch model
+        nodes(dict): node feature dictionary
+        data_loader(loader obj): loader object with data to eval
+        device(str): cpu/gpu
+        categories(int): number of categories
     Returns: 
-        dict_ret(dictionary): dictionary with settings 
+        accuracy (float): accuracy
+        f1 (float): f1 score
     """
 
     model.eval()
+    f1 = F1Score(num_classes=5)
+    targets, outputs = [], []
 
     with torch.no_grad():
         accuracy = 0.0
         count = 0.0
-
         for batched_graph, label in data_loader:
             feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
             target = label["value"]
@@ -47,22 +50,33 @@ def evaluate_classifier(model, nodes, data_loader, device = None, categories = 3
             target_filtered = torch.argmax(target_filtered,axis=1)
             accuracy += (torch.argmax(pred, axis = 1) == target_filtered).sum().item()
             
-            f1 = F1Score(num_classes=5)
-            f1_score = f1(target_filtered, torch.argmax(pred, axis = 1))
-            wandb.log({"F1 test": f1_score})
-
+            outputs.append(torch.argmax(pred, axis = 1))
+            targets.append(target_filtered)
             count += len(target_filtered)
 
+            
+    f1_score = f1(outputs, targets, average='samples')
+    wandb.log({"F1 test": f1_score})
+            
     return accuracy / count, f1_score
 
 def evaluate(model, nodes, data_loader, device=None):
+    """
+    basic loop for training a classifier. Gets mae
+        
+    Args:
+        model(pytorch model): pytorch model
+        nodes(dict): node feature dictionary
+        data_loader(loader obj): loader object with data to eval
+        device(str): cpu/gpu
+    Returns: 
+        mae(float): mae
+    """
     metric_fn = WeightedL1Loss(reduction="mean")
-
     model.eval()
 
     with torch.no_grad():
-        accuracy = 0.0
-        count = 0.0
+        count, mae = 0.0, 0.0
         for batched_graph, label in data_loader:
             feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
             target = label["value"]
@@ -82,21 +96,32 @@ def evaluate(model, nodes, data_loader, device=None):
             pred = pred.view(-1)
             target = target.view(-1)
 
-            #accuracy += metric_fn(pred, target, stdev).detach().item()
             try:
-                accuracy += metric_fn(pred, target, weight=None).detach().item()
+                mae += metric_fn(pred, target, weight=None).detach().item()
             except: 
-                accuracy += metric_fn(pred, target).detach().item()     
+                mae += metric_fn(pred, target).detach().item()     
             count += len(target)
 
-    return accuracy / count
+    return mae / count
 
 def train_classifier(model, nodes, data_loader, optimizer, device = None, categories = 3):
-
+    """
+    basic loop for training a classifier. Gets loss and accuracy
+        
+    Args:
+        model(pytorch model): pytorch model
+        nodes(dict): node feature dictionary
+        data_loader(loader obj): loader object with data to eval
+        device(str): cpu/gpu
+        categories(int): number of categories
+    Returns: 
+        accuracy (float): accuracy
+        loss (float): cross entropy loss
+    """
     model.train()
-    epoch_loss = 0.0
-    accuracy = 0.0
-    count = 0.0
+    f1 = F1Score(num_classes=5)
+    targets, outputs = [], []
+    epoch_loss, accuracy, count = 0.0, 0.0, 0.0
 
     for it, (batched_graph, label) in enumerate(data_loader):
 
@@ -117,11 +142,12 @@ def train_classifier(model, nodes, data_loader, optimizer, device = None, catego
         pred, target_filtered, stdev_filtered = model(batched_graph, feats, label["reaction"], target,  stdev)
         target_filtered = torch.reshape(target_filtered, (int(target_filtered.shape[0]/categories), categories))
         target_filtered = torch.argmax(target_filtered, axis=1)
+        outputs.append(torch.argmax(pred, axis = 1))
+        targets.append(target_filtered)
         loss_fn = CrossEntropyLoss(weight = torch.tensor([5., 1., 2. , 1.5, 1.2]))
         loss = loss_fn(pred,torch.flatten(target_filtered))
         optimizer.zero_grad()
         loss.backward() 
-
         optimizer.step() # here is the actual optimizer step
 
         accuracy += (torch.argmax(pred, axis = 1) == target_filtered).sum().item()
@@ -130,9 +156,24 @@ def train_classifier(model, nodes, data_loader, optimizer, device = None, catego
 
     epoch_loss /= it + 1
     accuracy /= count
+    f1_score = f1(outputs, targets, average='samples')
+    wandb.log({"F1 test": f1_score})
+
     return epoch_loss, accuracy
 
 def train(model, nodes, data_loader, optimizer, device=None):
+    """
+    basic loop for training a classifier. Gets loss and accuracy
+        
+    Args:
+        model(pytorch model): pytorch model
+        nodes(dict): node feature dictionary
+        data_loader(loader obj): loader object with data to eval
+        device(str): cpu/gpu
+    Returns: 
+        accuracy (float): accuracy
+        loss (float): MSE
+    """
 
     loss_fn = WeightedMSELoss(reduction="sum")
     metric_fn = WeightedL1Loss(reduction="mean")
@@ -189,6 +230,15 @@ def train(model, nodes, data_loader, optimizer, device=None):
     return epoch_loss, accuracy
 
 def load_model(dict_train): 
+    """
+    returns model and optimizer from dict of parameters
+        
+    Args:
+        dict_train(dict): dictionary
+    Returns: 
+        model (pytorch model): model to train
+        optimizer (pytorch optimizer obj): optimizer
+    """
 
     if(dict_train["classifier"]):
         model = GatedGCNReactionNetworkClassifier(

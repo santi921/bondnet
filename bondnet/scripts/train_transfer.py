@@ -39,14 +39,12 @@ def evaluate_r2(model, nodes, data_loader):
             pred = model(batched_graph, feats, label["reaction"])
             pred = pred.view(-1)
             target = target.view(-1)
-
     r2_call = R2Score()
     r2 = r2_call(pred, target)
     return r2
 
 
 def get_grapher():
-
     atom_featurizer = AtomFeaturizerGraph()
     bond_featurizer = BondAsNodeGraphFeaturizer()
     global_featurizer = GlobalFeaturizerGraph(allowed_charges=[-2, -1, 0, 1])
@@ -74,9 +72,10 @@ def main():
     if dict_train["on_gpu"]:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         dict_train["gpu"] = device
-        model.to(device)
     else:
+        device = "cpu"
         dict_train["gpu"] = "cpu"
+
     print("train on device: {}".format(dict_train["gpu"]))
 
     dataset = ReactionNetworkDatasetGraphs(
@@ -91,6 +90,7 @@ def main():
     
     dict_train['in_feats'] = dataset.feature_size
     model, optimizer = load_model(dict_train)
+    model.to(device)
 
     trainset, valset, testset = train_validation_test_split(
         dataset, validation=0.15, test=0.15
