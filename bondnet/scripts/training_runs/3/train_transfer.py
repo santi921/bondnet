@@ -2,7 +2,8 @@ import torch, time, wandb
 import numpy as np 
 from tqdm import tqdm
 
-from torchmetrics import R2Score
+from torchmetrics import R2Score, F1Score
+from torch.nn import CrossEntropyLoss
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from bondnet.model.metric import EarlyStopping
 
@@ -18,9 +19,10 @@ from bondnet.data.grapher import (
 )
 from bondnet.data.dataset import train_validation_test_split
 from bondnet.model.gated_reaction_network import GatedGCNReactionNetwork
+from bondnet.model.gated_reaction_network_classifier import GatedGCNReactionNetworkClassifier
 #from bondnet.scripts.create_label_file import read_input_files
 from bondnet.model.metric import WeightedL1Loss, WeightedMSELoss
-from bondnet.utils import seed_torch,pickle_dump,parse_settings
+from bondnet.utils import seed_torch, pickle_dump, parse_settings
 
     
 seed_torch()
@@ -135,7 +137,11 @@ def get_grapher():
 
 
 def load_model(dict_train): 
-    model = GatedGCNReactionNetwork(
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=dict_train['learning_rate'])
+    
+    if(dict_train["classifier"]):
+        model = GatedGCNReactionNetworkClassifier(
         in_feats=dict_train['in_feats'],
         embedding_size=dict_train['embedding_size'],
         gated_num_layers=dict_train['gated_num_layers'],
@@ -144,21 +150,36 @@ def load_model(dict_train):
         fc_num_layers=dict_train['fc_num_layers'],
         fc_hidden_size=dict_train['fc_hidden_size'],
         fc_activation=dict_train['fc_activation'],
-    )
-    optimizer = torch.optim.Adam(model.parameters(), lr=dict_train['learning_rate'])
-    loss_func = WeightedMSELoss(reduction="sum")
-    metric = WeightedL1Loss(reduction="mean")
+        )
+        loss_func = CrossEntropyLoss(reduction="sum")
+        metric = F1Score()
+    else: 
+        model = GatedGCNReactionNetwork(
+        in_feats=dict_train['in_feats'],
+        embedding_size=dict_train['embedding_size'],
+        gated_num_layers=dict_train['gated_num_layers'],
+        gated_hidden_size=dict_train['gated_hidden_size'],
+        gated_activation=dict_train['gated_activation'],
+        fc_num_layers=dict_train['fc_num_layers'],
+        fc_hidden_size=dict_train['fc_hidden_size'],
+        fc_activation=dict_train['fc_activation'],
+        )
+        loss_func = WeightedMSELoss(reduction="sum")
+        metric = WeightedL1Loss(reduction="mean")
+
     return model, optimizer, loss_func, metric
 
 
 def main():
     wandb.init(project="my-test-project")
     
-    path_mg_data = "../dataset/mg_dataset/" # still not working
+    path_mg_data = "../dataset/mg_dataset/"
     dict_train = parse_settings()
 
     dataset = ReactionNetworkDatasetGraphs(
-        grapher=get_grapher(), file=path_mg_data, out_file="./", target = 'ts'
+        grapher=get_grapher(), file=path_mg_data, 
+        out_file="./", target = 'ts', 
+        classifier = dict_train["classifier"]
     )
     trainset, valset, testset = train_validation_test_split(
         dataset, validation=0.15, test=0.15
@@ -175,7 +196,6 @@ def main():
     feature_names = ["atom", "bond", "global"]
 
     dict_train['in_feats'] = dataset.feature_size
-    #wandb.config = dict_train
     wandb.config.update(dict_train)
     num_epochs = dict_train['epochs']
     model, optimizer, loss_func, metric = load_model(dict_train)
@@ -186,6 +206,8 @@ def main():
         dict_train["gpu"] = device
     else:
         dict_train["gpu"] = "cpu"
+    
+    print("train on device: {}".format(dict_train["gpu"]))
 
     scheduler = ReduceLROnPlateau(
         optimizer, mode="min", factor=0.4, patience=25, verbose=True)
@@ -207,10 +229,11 @@ def main():
             valset_tranfer, batch_size=dict_train['batch_size'], 
         shuffle=True)
 
-
         print("Initiating Training w/ transfer...")
         model_parameters = filter(lambda p: p.requires_grad, model.parameters())
         params = sum([np.prod(p.size()) for p in model_parameters])
+        loss_func_transfer = WeightedMSELoss(reduction="sum")
+        metric_transfer = WeightedL1Loss(reduction="mean")
         print("Number of Trainable Model Params: {}".format(params))
         
         for epoch in tqdm(range(dict_train['transfer_epochs'])):
@@ -219,15 +242,15 @@ def main():
                 model, 
                 feature_names, 
                 dataset_transfer_loader, 
-                loss_func, 
-                metric,
+                loss_func_transfer, 
+                metric_transfer,
                 dict_train["gpu"]
             )
             val_acc_transfer = evaluate(
                 model, 
                 feature_names, 
                 dataset_transfer_loader_val, 
-                metric, 
+                metric_transfer, 
                 dict_train["gpu"])
 
             if stopper_transfer.step(val_acc_transfer):
@@ -239,8 +262,6 @@ def main():
         params = sum([np.prod(p.size()) for p in model_parameters])
         print("Freezing Gated Layers....")
         print("Number of Trainable Model Params: {}".format(params))
-
-
 
 
     t1 = time.time()

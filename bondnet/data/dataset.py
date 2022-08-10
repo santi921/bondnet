@@ -1,6 +1,4 @@
-import itertools
-import logging
-import torch
+import torch, time, itertools, logging
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -11,6 +9,8 @@ from bondnet.data.reaction_network import ReactionInNetwork, ReactionNetwork
 from bondnet.data.transformers import HeteroGraphFeatureStandardScaler, StandardScaler
 from bondnet.data.utils import get_dataset_species, get_dataset_species_from_json
 from bondnet.utils import to_path, yaml_load, list_split_by_size
+from pebble import ProcessPool
+from concurrent.futures import TimeoutError
 
 logger = RDLogger.logger()
 logger.setLevel(RDLogger.CRITICAL)
@@ -663,7 +663,10 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         label_transformer=True,
         dtype="float32",
         state_dict_filename=None,
-        target = 'ts'
+        target = 'ts', 
+        classifier = False,
+        debug = False,
+        classif_categories = None
     ):
 
         if dtype not in ["float32", "float64"]:
@@ -676,7 +679,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
             features,
             df,
         ) = create_reaction_network_files_and_valid_rows(
-            file, out_file, bond_map_filter=False, target=target
+            file, out_file, bond_map_filter=False, target=target, classifier=classifier, debug=debug
         )
 
         self.molecules = all_mols
@@ -698,6 +701,8 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         self._label_scaler_std = None
         self._species = None
         self._failed = None
+        self.classifier = classifier
+        self.classif_categories = classif_categories
         self._load()
 
     def _load(self):
@@ -731,6 +736,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
 
         # create dgl graphs
         print("constructing graphs & features....")
+
         graphs = self.build_graphs(
             self.grapher, self.molecules, extra_features, species
         )
@@ -798,14 +804,25 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                     environemnt = lb["environment"]
                 else:
                     environemnt = None
-                label = {
-                    "value": torch.tensor(
-                        lb["value"], dtype=getattr(torch, self.dtype)
-                    ),
-                    "id": lb["id"],
-                    "environment": environemnt,
-                }
-                self.labels.append(label)
+
+                if(self.classifier):
+                    lab_temp = torch.zeros(self.classif_categories)
+                    lab_temp[int(lb['value'][0])] = 1
+                    label = {
+                        "value": lab_temp,
+                        "id": lb["id"],
+                        "environment": environemnt,
+                    }
+                    self.labels.append(label)
+                else:
+                    label = {
+                        "value": torch.tensor(
+                            lb["value"], dtype=getattr(torch, self.dtype)
+                        ),
+                        "id": lb["id"],
+                        "environment": environemnt,
+                    }
+                    self.labels.append(label)
 
                 self._failed.append(False)
 
@@ -863,11 +880,34 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
             list: DGL graphs
         """
 
-        graphs = []
-        # for i, (m, feats) in enumerate(zip(molecules, features)):
-
         count = 0
-        # for ind, mol in molecules.iterrows():
+        graphs = []
+
+        '''
+        start_time = time.perf_counter()
+        with ProcessPool(max_workers=10, max_tasks=2) as pool:
+            for ind, mol in enumerate(molecules):
+                if mol is not None:
+                    future = pool.schedule(grapher.build_graph_and_featurize,
+                     args=[mol],
+                     kwargs = {"extra_feats_info":features[count],"dataset_species":species},
+                     timeout = 10) 
+                    future.add_done_callback(task_done)
+                    try:
+                        g = future.result()
+                        g.graph_id = ind
+                        
+                    except:
+                        g = None
+                else:
+                    g = None
+                graphs.append(g)
+                count += 1
+            return graphs
+        end = time.time()
+        print(f"Program finished in {finish_time-start_time} seconds")
+        '''
+
         for ind, mol in enumerate(molecules):
             feats = features[count]
             if mol is not None:
@@ -879,8 +919,10 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
             else:
                 g = None
             graphs.append(g)
-            count += 1
+            count += 1   
+
         return graphs
+        
 
     @staticmethod
     def get_labels(labels):
@@ -1367,3 +1409,5 @@ def train_validation_test_split_selected_bond_in_train(
         Subset(dataset, val_idx),
         Subset(dataset, test_idx),
     ]
+
+

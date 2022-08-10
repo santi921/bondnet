@@ -184,11 +184,7 @@ class GatedGCNReactionNetworkClassifier(GatedGCNMol):
                 pred_filtered.append(target[ind])
                 stdev_filtered.append(stdev[ind].tolist())
 
-        # print(pred_filtered)
-        # ret_tensor = torch.cat(pred_filtered)
-        # try:
-        #    ret_tensor = torch.Tensor(pred_filtered)
-        # except:
+
         ret_tensor = torch.cat(pred_filtered)
         try:
             stdev_filtered = torch.Tensor(stdev_filtered)

@@ -34,6 +34,7 @@ class BaseGraph:
         Returns:
             (DGLGraph)
         """
+
         g = self.build_graph(mol)
         g = self.featurize(g, mol, **kwargs)
         return g
@@ -485,13 +486,14 @@ class HeteroCompleteGraphFromDGLAndPandas(BaseGraph):
         return g
 
     def featurize(self, g, row, **kwargs):
-
+        
         if self.atom_featurizer is not None:
             # print(self.atom_featurizer(row, **kwargs))
             g.nodes["atom"].data.update(self.atom_featurizer(row, **kwargs))
 
         if self.bond_featurizer is not None:
             # print(self.bond_featurizer(row, **kwargs))
+            self.bond_featurizer(row, **kwargs)
             g.nodes["bond"].data.update(self.bond_featurizer(row, **kwargs))
 
         if self.global_featurizer is not None:

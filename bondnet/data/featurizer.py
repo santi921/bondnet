@@ -948,10 +948,7 @@ class AtomFeaturizerGraph(BaseFeaturizer):
             Dictionary of atom features
         """
 
-        # print(mol)
-        # print(mol.coords)
-        # print(mol.charge)
-        # print(mol.species)
+
 
         try:
             species = sorted(kwargs["dataset_species"])
@@ -1035,7 +1032,8 @@ class BondAsNodeGraphFeaturizer(BondFeaturizer):
         -------
             Dictionary for bond features
         """
-
+  
+        
         feats, bond_list_only_metal, no_metal_binary = [], [], []
         num_atoms = 0
         num_feats = 12
@@ -1049,13 +1047,11 @@ class BondAsNodeGraphFeaturizer(BondFeaturizer):
         bond_list_no_metal = mol.nonmetal_bonds
 
         num_atoms = int(mol.num_atoms)
-
         if num_bonds == 0:
             ft = [0.0 for _ in range(num_feats)]
             if self.length_featurizer:
                 ft += [0.0 for _ in range(len(self.length_featurizer.feature_name))]
             feats = [ft]
-
         else:
             feats = []
             for i in bond_list:
@@ -1077,13 +1073,14 @@ class BondAsNodeGraphFeaturizer(BondFeaturizer):
             except:
                 rdkit_mol = []
                 rdkit_dict = {}
+
             rdkit_dict_keys = list(rdkit_dict.keys())
 
+            
             ring_dict = ring_features_for_bonds_full(
                 bond_list, no_metal_binary, cycles, allowed_ring_size
             )
             ring_dict_keys = list(ring_dict.keys())
-
             for ind, bond in enumerate(bond_list):
                 ft = []
                 if tuple(bond) in ring_dict_keys:
@@ -1099,7 +1096,6 @@ class BondAsNodeGraphFeaturizer(BondFeaturizer):
                 else:
                     ft += [0, 0, 0, 0, 0]
                 feats.append(ft)
-
         feats = torch.tensor(feats, dtype=getattr(torch, self.dtype))
         self._feature_size = feats.shape[1]
         self._feature_name = (

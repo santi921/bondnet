@@ -1,3 +1,11 @@
+
+try:
+    from rdkit.Chem import rdEHTTools  # requires RDKit 2019.9.1 or later
+except ImportError:
+    rdEHTTools = None
+from rdkit import Chem
+from rdkit.Chem import AllChem, rdchem, Get3DDistanceMatrix
+
 import os
 import time
 import pickle
@@ -17,13 +25,6 @@ from typing import List, Any
 from collections import defaultdict
 import networkx as nx
 
-from rdkit import Chem
-from rdkit.Chem import AllChem, rdchem
-
-try:
-    from rdkit.Chem import rdEHTTools  # requires RDKit 2019.9.1 or later
-except ImportError:
-    rdEHTTools = None
 
 
 
@@ -375,12 +376,20 @@ def warn_stdout(message, category, filename, lineno, file=None, line=None):
 
 
 def parse_settings(file="settings.txt"):
-
+    """
+    Processes a text file into a dictionary for training
+    
+    Args:
+        file (file): file with settings 
+    Returns: 
+        dict_ret(dictionary): dictionary with settings 
+    """
     # some default values that get written over if in the file
     test = False
     restore = False
     on_gpu = False
     distributed = False
+    classifier = False
     save_hyper_params = "./hyper.pkl"
     dataset_state_dict_filename = "./dataset_state_dict.pkl"
     model_path = "./"
@@ -390,6 +399,7 @@ def parse_settings(file="settings.txt"):
     batch_size = 256
     lr = 0.00001
     num_gpu = 1
+    categories = 3
 
     early_stop = True
     scheduler = False
@@ -448,6 +458,10 @@ def parse_settings(file="settings.txt"):
                     transfer = "True" == i.split()[1]
                 if i.split()[0] == "loss":
                     loss = "True" == i.split()[1]
+                if i.split()[0] == 'classifier':
+                    classifier = "True" == i.split()[1]
+                if i.split()[0] == "categories":
+                    categories = int(i.split()[1])
 
 
                 if i.split()[0] == "batch_size":
@@ -503,50 +517,53 @@ def parse_settings(file="settings.txt"):
 
         print("using the following settings:")
         print("--" * 20)
+        print("Small Dataset?: " + str(test))
         print("restore: " + str(restore))
         print("distributed: " + str(distributed))
-        print("batch size: " + str(batch_size))
         print("on gpu: " + str(on_gpu))
+        print("num gpu: " + str(num_gpu))
+        print("hyperparam save file: " + str(save_hyper_params))
+        print("dataset state dict: " + str(dataset_state_dict_filename))
+        print("model dir " + str(model_path))
+        print("classifier " + str(classifier))
+        print("batch size: " + str(batch_size))
         print("epochs: {:1d}".format(epochs))
+        print("lr: {:7f}".format(lr))
+        print("weight decay: {:.3f}".format(weight_decay))
+        print("early_stop: " + str(early_stop))
+        print("scheduler: " + str(scheduler))
+        print("transfer_epochs: " + str(transfer_epochs))
+        print("transfer: " + str(transfer))
+        print("loss: " + str(loss))
+        print("categories: " + str(categories))
+
+
         print("embedding size: {:1d}".format(embedding_size))
         print("fc layers: {:1d}".format(fc_layers))
         print("fc hidden layer: " + str(fc_hidden_size))
         print("gated layers: {:1d}".format(gated_num_layers))
         print("gated hidden layers: " + str(gated_hidden_size))
-        print("gated fc layers: " + str(gated_num_fc_layers))
+        
         print("num lstm iters: " + str(num_lstm_iters))
         print("num lstm layer: " + str(num_lstm_layers))
-
-        print("num gpu: " + str(num_gpu))
-        print("hyperparam save file: " + str(save_hyper_params))
-        print("dataset state dict: " + str(dataset_state_dict_filename))
-        print("model dir" + str(model_path))
-
-        print("Small Dataset?: " + str(test))
-        print("lr: {:7f}".format(lr))
-        print("weight decay: {:.3f}".format(weight_decay))
-
+        print("gated fc layers: " + str(gated_num_fc_layers))
         print("fc activation: " + str(fc_activation))
         print("fc batch norm: " + str(fc_batch_norm))
         print("fc dropout: {:.2f}".format(fc_dropout))
-
         print("gated activation: " + str(gated_activation))
         print("gated dropout: {:.2f}".format(gated_dropout))
         print("gated batch norm: " + str(gated_batch_norm))
         print("gated graph norm: " + str(gated_graph_norm))
         print("gated resid: " + str(gated_residual))
 
-        print("early_stop: " + str(early_stop))
-        print("scheduler: " + str(scheduler))
-        print("transfer_epochs: " + str(transfer_epochs))
-        print("transfer: " + str(transfer))
-        print("loss: " + str(loss))
-
 
         print("--" * 20)
 
         dict_ret = {}
-        dict_ret["test"] = test
+        dict_ret["classifier"] = classifier
+        dict_ret["categories"] = categories
+
+        dict_ret["debug"] = test
         dict_ret["on_gpu"] = on_gpu
         dict_ret["num_gpu"] = num_gpu
         dict_ret["epochs"] = epochs
@@ -1167,9 +1184,7 @@ def xyz2AC_vdW(atoms, xyz):
     for i in range(mol.GetNumAtoms()):
         conf.SetAtomPosition(i, (xyz[i][0], xyz[i][1], xyz[i][2]))
     mol.AddConformer(conf)
-
     AC = get_AC(mol)
-
     return AC, mol
 
 
@@ -1187,7 +1202,7 @@ def get_AC(mol, covalent_factor=1.3):
     """
 
     # Calculate distance matrix
-    dMat = Chem.Get3DDistanceMatrix(mol)
+    dMat = Get3DDistanceMatrix(mol)
 
     pt = Chem.GetPeriodicTable()
     num_atoms = mol.GetNumAtoms()
@@ -1301,7 +1316,6 @@ def xyz2mol(
         use_graph=use_graph,
         use_atom_maps=use_atom_maps,
     )
-
     # Check for stereocenters and chiral centers
     if embed_chiral:
         for new_mol in new_mols:

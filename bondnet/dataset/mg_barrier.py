@@ -201,6 +201,18 @@ def process_species_graph(row, classifier=False, target = 'ts'):
         else:
             value = row[product_key+'_energy'] - row[reactant_key+'_energy']
 
+        if classifier:
+            if value <= 0.04:
+                value = 0
+            elif value < 0.3 and value > 0.04:
+                value = 1
+            elif value < 0.7 and value > 0.3:
+                value = 2
+            elif value < 1.5 and value > 0.7:
+                value = 3
+            else:
+                value = 4
+
         rxn = Reaction(
             reactants=reactant_list,
             products=product_list,
@@ -566,7 +578,7 @@ def create_reaction_network_files(filename, out_file, classifier=False):
     return all_mols, all_labels, features
 
 
-def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_filter = True, target = 'ts'):
+def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_filter = True, target = 'ts', classifier = False, debug = False):
     """
     Processes json file from emmet to use in training bondnet
 
@@ -575,19 +587,24 @@ def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_fi
         out_file: name of folder where to store the three files for trianing
         bond_map_filter: true uses filter with sdf
         target (str): target for regression either 'ts' or 'diff'
+        classifier(bool): whether to create a classification or reg. task 
+        debug(bool): use smaller dataset or not
     """
-    path_mg_data = "../../../dataset/mg_dataset/"
-    path_json = path_mg_data + "20220613_reaction_data.json"
 
+    path_mg_data = "../../../dataset/mg_dataset/20220613_reaction_data.json"
+    path_json = filename
+    
+    print("reading file from: {}".format(path_json))
     mg_df = pd.read_json(path_json) 
 
     start_time = time.perf_counter()
     reactions, ind_val, rxn_raw, ind_final = [], [], [], []
+    if(debug): mg_df = mg_df.head(250)
     with ProcessPool(max_workers=12, max_tasks=10) as pool:
         #for ind, row in mg_df.head(250).iterrows():
         for ind, row in mg_df.iterrows(): 
             # process_species = process_species_rdkit
-            future = pool.schedule(process_species_graph, args=[row, True, target], timeout=30)
+            future = pool.schedule(process_species_graph, args=[row, classifier, target], timeout=30)
             future.add_done_callback(task_done)
             try:
                 rxn_raw.append(future.result())
@@ -663,7 +680,7 @@ def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_fi
         label_file=path_mg_data + "mg_label_bond_rgrn_classify.yaml",
         feature_file=path_mg_data + "mg_feature_bond_rgrn_classify.yaml",
         group_mode="charge_0",
-        sdf_mapping=False
+        sdf_mapping=False,
     )
 
     return all_mols, all_labels, features, mg_df.iloc[ind_final]
