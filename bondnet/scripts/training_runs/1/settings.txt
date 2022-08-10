@@ -29,8 +29,8 @@ early_stop True
 scheduler False
 transfer_epochs 250
 loss weighted_mse
-classifier False
-test False
+classifier True
+test True
 
 batch_size 128
 epochs 500

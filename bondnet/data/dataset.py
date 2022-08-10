@@ -666,7 +666,8 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         target = 'ts', 
         classifier = False,
         debug = False,
-        classif_categories = None
+        classif_categories = None,
+        device = None
     ):
 
         if dtype not in ["float32", "float64"]:
@@ -703,6 +704,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         self._failed = None
         self.classifier = classifier
         self.classif_categories = classif_categories
+        self.device = device
         self._load()
 
     def _load(self):
@@ -772,6 +774,12 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
             # update graphs
             for i, g in zip(graphs_not_none_indices, graphs_not_none):
                 graphs[i] = g
+                
+            if(self.device != None):
+                graph_temp = []
+                for g in graphs:
+                    graph_temp.append(g.to(self.device))
+                graphs = graph_temp
 
             if self.state_dict_filename is None:
                 self._feature_scaler_mean = feature_scaler.mean
@@ -914,6 +922,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                 g = grapher.build_graph_and_featurize(
                     mol, extra_feats_info=feats, dataset_species=species
                 )
+         
                 # add this for check purpose; some entries in the sdf file may fail
                 g.graph_id = ind
             else:
