@@ -1,9 +1,9 @@
-classifier True
+classifier False
 batch_size 256
 dataset_state_dict_filename home/santiagovargas/Documents/Dataset/mg/dataset_state_dict.pkl
 model_path /home/santiagovargas/Documents/Dataset/mg/
 test False
-on_gpu 1
+on_gpu True
 fc_activation ReLU
 gated_activation ReLU
 output_file results.pkl
@@ -36,4 +36,4 @@ fc_dropout 0.0
 fc_hidden_size 394 128
 fc_num_layers 2
 fc_batch_norm 0
-lr 0.0001
+lr 0.001

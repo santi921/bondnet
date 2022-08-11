@@ -117,15 +117,14 @@ def evaluate(model, nodes, data_loader, device=None):
             pred = pred.view(-1)
             target = target.view(-1)
 
-            try:
-                mae += metric_fn(pred, target, stdev, weight=None).detach().item()
-            except: 
-                mae += metric_fn(pred, target, stdev).detach().item() 
+            #try:
+            mae += metric_fn(pred, target, stdev).detach().item() 
+            #except: 
+            #    mae += metric_fn(pred, target, stdev, weight=None).detach().item()
 
             count += len(target)
 
     return mae / count
-
 
 def train_classifier(model, nodes, data_loader, optimizer, device = None, categories = 3):
     """

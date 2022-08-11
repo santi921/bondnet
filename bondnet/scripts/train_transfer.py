@@ -88,7 +88,7 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset_transf
         classif_categories = None
         wandb.init(project="project_regression_test")
 
-    if(device != None):
+    if(device == None):
         if dict_train["on_gpu"]:
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             dict_train["gpu"] = device
