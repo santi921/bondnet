@@ -3,10 +3,12 @@ import torch, wandb
 from torch.optim import Adam
 from torch.nn import CrossEntropyLoss
 from torchmetrics import F1Score
+from sklearn.metrics import f1_score
 
 from bondnet.model.metric import WeightedL1Loss, WeightedMSELoss
 from bondnet.model.gated_reaction_network import GatedGCNReactionNetwork
 from bondnet.model.gated_reaction_network_classifier import GatedGCNReactionNetworkClassifier
+
 
 def evaluate_classifier(model, nodes, data_loader, device = None, categories = 3):
     """
@@ -64,11 +66,17 @@ def evaluate_classifier(model, nodes, data_loader, device = None, categories = 3
             targets = torch.cat([targets, target_filtered])
             count += len(target_filtered)
 
-    f1 = F1Score(num_classes=5, average='micro')
-    f1_score = f1(outputs.long(), targets.long())
-    wandb.log({"F1 test": f1_score})
+    try:
+        outputs_numpy = outputs.long().detach().cpu().numpy()
+        target_numpy = targets.long().detach().cpu().numpy()
+    except:
+        outputs_numpy = outputs.long().numpy()
+        target_numpy = targets.long().copy().numpy()
+    
+    f1_val = f1_score(outputs_numpy, target_numpy)
+    wandb.log({"F1 test": f1_val})
             
-    return accuracy / count, f1_score
+    return accuracy / count, f1_val
 
 def evaluate(model, nodes, data_loader, device=None):
     """
@@ -199,7 +207,7 @@ def train(model, nodes, data_loader, optimizer, device=None):
         loss (float): MSE
     """
 
-    loss_fn = WeightedMSELoss(reduction="sum")
+    loss_fn = WeightedMSELoss(reduction="mean")
     metric_fn = WeightedL1Loss(reduction="mean")
 
     model.train()

@@ -1,7 +1,8 @@
-import time, wandb, torch
+import torch
+import time, wandb
 import numpy as np 
 from tqdm import tqdm
-
+from sklearn.metrics import r2_score
 from torchmetrics import R2Score
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
@@ -44,14 +45,20 @@ def evaluate_r2(model, nodes, data_loader, device = None):
                 target = target.to(device)
                 norm_atom = norm_atom.to(device)
                 norm_bond = norm_bond.to(device)
-                stdev = stdev.to(device)
 
             pred = model(batched_graph, feats, label["reaction"], norm_atom, norm_bond)
             pred = pred.view(-1)
             target = target.view(-1)
 
-    r2_call = R2Score()
-    r2 = r2_call(pred, target)
+
+    try:
+        pred_numpy = pred.detach().cpu().numpy()
+        target_numpy = target.detach().cpu().numpy()
+    except:
+        pred_numpy = pred.copy().numpy()
+        target_numpy = target.copt().numpy()
+    r2 = r2_score(pred_numpy, target_numpy)
+
     return r2
 
 
@@ -66,11 +73,12 @@ def get_grapher():
     return grapher
 
 
-def main():
+def train_transfer(settings_file = "settings.txt", device = None, dataset_transfer = None, dataset = None):
+    
     best = 1e10
     feature_names = ["atom", "bond", "global"]
-    path_mg_data = "../dataset/mg_dataset/"
-    dict_train = parse_settings()
+    #path_mg_data = "../dataset/mg_dataset/"
+    dict_train = parse_settings(settings_file)
     path_mg_data = "../../../dataset/mg_dataset/20220613_reaction_data.json"
         
     if(dict_train["classifier"]):
@@ -79,18 +87,20 @@ def main():
     else:
         classif_categories = None
         wandb.init(project="project_regression_test")
+
+    if(device != None):
+        if dict_train["on_gpu"]:
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            dict_train["gpu"] = device
+        else:
+            device = torch.device("cpu")
+            dict_train["gpu"] = "cpu"
+    else: dict_train["gpu"] = device
     wandb.config.update(dict_train)
 
-    if dict_train["on_gpu"]:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        dict_train["gpu"] = device
-    else:
-        device = torch.device("cpu")
-        dict_train["gpu"] = "cpu"
-
     print("train on device: {}".format(dict_train["gpu"]))
-
-    dataset = ReactionNetworkDatasetGraphs(
+    if(dataset == None):
+       dataset = ReactionNetworkDatasetGraphs(
         grapher=get_grapher(), 
         file=path_mg_data, 
         out_file="./", 
@@ -99,7 +109,7 @@ def main():
         classif_categories=classif_categories, 
         debug = dict_train["debug"],
         device = device 
-    )
+        )
     
     dict_train['in_feats'] = dataset.feature_size
     model, optimizer = load_model(dict_train)
@@ -124,14 +134,15 @@ def main():
     stopper_transfer = EarlyStopping(patience=150)
 
     if(dict_train['transfer']):
-        dataset_transfer = ReactionNetworkDatasetGraphs(
-        grapher=get_grapher(), file=path_mg_data, out_file="./", 
-        target = 'diff', 
-        classifier = dict_train["classifier"], 
-        classif_categories=classif_categories, 
-        debug = dict_train["debug"],
-        device = device 
-        )
+        if(dataset_transfer == None):
+            dataset_transfer = ReactionNetworkDatasetGraphs(
+            grapher=get_grapher(), file=path_mg_data, out_file="./", 
+            target = 'diff', 
+            classifier = dict_train["classifier"], 
+            classif_categories=classif_categories, 
+            debug = dict_train["debug"],
+            device = dict_train["gpu"]
+            )
 
         trainset_transfer, valset_tranfer, _ = train_validation_test_split(
         dataset_transfer, validation=0.15, test=0.01
@@ -166,8 +177,13 @@ def main():
                     device = dict_train["gpu"],
                     categories = classif_categories
                 )
+                wandb.log({"transfer_val_acc": val_acc_transfer})
+                wandb.log({"transfer_val_f1": f1_score})
+                wandb.log({"transfer_val_acc": val_acc_transfer})
+                wandb.log({"transfer_val_f1": f1_score})
+            
             else:
-                _, _ = train(
+                loss_transfer, train_acc_transfer = train(
                     model, 
                     feature_names, 
                     dataset_transfer_loader, 
@@ -180,6 +196,9 @@ def main():
                     dataset_transfer_loader_val, 
                     device = dict_train["gpu"]
                 )
+                wandb.log({"loss_transfer": loss_transfer})
+                wandb.log({"train_acc_transfer": train_acc_transfer})
+                wandb.log({"val_acc_transfer": val_acc_transfer})
 
             if stopper_transfer.step(val_acc_transfer):
                 break
@@ -234,14 +253,20 @@ def main():
                 train_loader, 
                 optimizer, 
                 device = dict_train["gpu"]
-            )
+                )
             # evaluate on validation set
             val_acc = evaluate(
                 model, 
                 feature_names, 
                 val_loader, 
-                device = dict_train["gpu"])
-            val_r2 = evaluate_r2(model, feature_names, val_loader)
+                device = dict_train["gpu"]
+                )
+            val_r2 = evaluate_r2(
+                model, 
+                feature_names, 
+                val_loader, 
+                device = dict_train["gpu"]
+                )
         
             wandb.log({"loss": loss})
             wandb.log({"mae_val": val_acc})
@@ -286,14 +311,15 @@ def main():
 
 
     else: 
-        test_acc = evaluate(model, feature_names, test_loader)
-        wandb.log({"loss_test": test_acc})
-        print("TestAcc: {:12.6e}".format(test_acc))
+        test_acc = evaluate(model, feature_names, test_loader, device = dict_train["gpu"])
+        wandb.log({"mae_test": test_acc})
+        print("TestMAE: {:12.6e}".format(test_acc))
     
     t2 = time.time()
     print("Time to Training: {:5.1f} seconds".format(float(t2 - t1)))
 
-main()
+
+train_transfer()
 
 """dict_train = {
     "learning_rate": 0.0001,
