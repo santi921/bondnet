@@ -112,7 +112,7 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset_transf
         )
     
     dict_train['in_feats'] = dataset.feature_size
-    model, optimizer = load_model(dict_train)
+    model, optimizer, optimizer_transfer = load_model(dict_train)
     model.to(device)
 
     trainset, valset, testset = train_validation_test_split(
@@ -129,7 +129,9 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset_transf
     )
 
     scheduler = ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.4, patience=25, verbose=True)
+        optimizer, mode="min", factor=0.4, patience=30, verbose=True)
+    scheduler_transfer = ReduceLROnPlateau(
+        optimizer_transfer, mode="min", factor=0.4, patience=30, verbose=True)
     stopper = EarlyStopping(patience=150)
     stopper_transfer = EarlyStopping(patience=150)
 
@@ -166,7 +168,7 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset_transf
                     model, 
                     feature_names, 
                     dataset_transfer_loader,
-                    optimizer, 
+                    optimizer_transfer, 
                     device = dict_train["gpu"], 
                     categories = classif_categories
                 )
@@ -187,7 +189,7 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset_transf
                     model, 
                     feature_names, 
                     dataset_transfer_loader, 
-                    optimizer, 
+                    optimizer_transfer, 
                     device = dict_train["gpu"]
                 )
                 val_acc_transfer = evaluate(
@@ -199,7 +201,8 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset_transf
                 wandb.log({"loss_transfer": loss_transfer})
                 wandb.log({"train_acc_transfer": train_acc_transfer})
                 wandb.log({"val_acc_transfer": val_acc_transfer})
-
+                scheduler_transfer.step(val_acc)
+            
             if stopper_transfer.step(val_acc_transfer):
                 break
 

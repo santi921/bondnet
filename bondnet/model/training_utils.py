@@ -73,7 +73,7 @@ def evaluate_classifier(model, nodes, data_loader, device = None, categories = 3
         outputs_numpy = outputs.long().numpy()
         target_numpy = targets.long().copy().numpy()
     
-    f1_val = f1_score(outputs_numpy, target_numpy)
+    f1_val = f1_score(outputs_numpy, target_numpy, weight = 'macro')
     wandb.log({"F1 test": f1_val})
             
     return accuracy / count, f1_val
@@ -125,6 +125,8 @@ def evaluate(model, nodes, data_loader, device=None):
             count += len(target)
 
     return mae / count
+
+
 
 def train_classifier(model, nodes, data_loader, optimizer, device = None, categories = 3):
     """
@@ -297,5 +299,6 @@ def load_model(dict_train):
         )
     
     optimizer = Adam(model.parameters(), lr=dict_train['learning_rate'])
+    optimizer_transfer = Adam(model.parameters(), lr=dict_train['learning_rate'])
 
-    return model, optimizer
+    return model, optimizer, optimizer_transfer
