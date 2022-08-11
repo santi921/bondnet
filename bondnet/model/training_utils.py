@@ -117,10 +117,7 @@ def evaluate(model, nodes, data_loader, device=None):
             pred = pred.view(-1)
             target = target.view(-1)
 
-            #try:
             mae += metric_fn(pred, target, stdev).detach().item() 
-            #except: 
-            #    mae += metric_fn(pred, target, stdev, weight=None).detach().item()
 
             count += len(target)
 
@@ -193,6 +190,7 @@ def train_classifier(model, nodes, data_loader, optimizer, device = None, catego
 
     return epoch_loss, accuracy
 
+
 def train(model, nodes, data_loader, optimizer, device=None):
     """
     basic loop for training a classifier. Gets loss and accuracy
@@ -241,7 +239,6 @@ def train(model, nodes, data_loader, optimizer, device=None):
         pred_new_shape = (len(pred), 1)
         pred = pred.view(pred_new_shape)
 
-
         try:
             loss = loss_fn(pred, target, stdev)
         except:
@@ -259,6 +256,7 @@ def train(model, nodes, data_loader, optimizer, device=None):
     accuracy /= count
 
     return epoch_loss, accuracy
+
 
 def load_model(dict_train): 
     """
