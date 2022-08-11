@@ -244,7 +244,7 @@ def main():
             val_r2 = evaluate_r2(model, feature_names, val_loader)
         
             wandb.log({"loss": loss})
-            wandb.log({"acc_val": val_acc})
+            wandb.log({"mae_val": val_acc})
             wandb.log({"r2_val": val_r2})
 
             print(
