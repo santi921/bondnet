@@ -25,7 +25,9 @@ def evaluate_classifier(model, nodes, data_loader, device = None, categories = 3
 
     model.eval()
     
-    targets, outputs = [], []
+    targets, outputs = torch.tensor([]), torch.tensor([])
+    if device is not None:
+        targets, outputs = torch.tensor([]).to(device), torch.tensor([]).to(device)
 
     with torch.no_grad():
         accuracy = 0.0
@@ -58,13 +60,12 @@ def evaluate_classifier(model, nodes, data_loader, device = None, categories = 3
             target_filtered = torch.argmax(target_filtered,axis=1)
             accuracy += (torch.argmax(pred, axis = 1) == target_filtered).sum().item()
             
-            outputs = torch.cat((torch.argmax(pred, axis = 1)))
-            targets = torch.cat((targets, target_filtered))
+            outputs = torch.cat([outputs, torch.argmax(pred, axis = 1)])
+            targets = torch.cat([targets, target_filtered])
             count += len(target_filtered)
 
-    f1 = F1Score(num_classes=5, average='samples')
-    f1_score = f1(outputs, targets)
-
+    f1 = F1Score(num_classes=5, average='micro')
+    f1_score = f1(outputs.long(), targets.long())
     wandb.log({"F1 test": f1_score})
             
     return accuracy / count, f1_score
@@ -109,9 +110,10 @@ def evaluate(model, nodes, data_loader, device=None):
             target = target.view(-1)
 
             try:
-                mae += metric_fn(pred, target, weight=None).detach().item()
+                mae += metric_fn(pred, target, stdev, weight=None).detach().item()
             except: 
-                mae += metric_fn(pred, target).detach().item()     
+                mae += metric_fn(pred, target, stdev).detach().item() 
+
             count += len(target)
 
     return mae / count
@@ -142,7 +144,7 @@ def train_classifier(model, nodes, data_loader, optimizer, device = None, catego
         stdev = label["scaler_stdev"]
         norm_atom = label["norm_atom"]
         norm_bond = label["norm_bond"]
-        weight = torch.tensor([5., 1., 2. , 1.5, 1.2])
+        weight = torch.tensor([2., 1., 1.2 , 1.1, 1.1])
 
         if device is not None:
             feats = {k: v.to(device) for k, v in feats.items()}

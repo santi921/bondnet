@@ -29,14 +29,24 @@ from bondnet.model.training_utils import (
 )
 seed_torch()
 
-def evaluate_r2(model, nodes, data_loader):
+
+def evaluate_r2(model, nodes, data_loader, device = None):
     model.eval()
     with torch.no_grad():
         for batched_graph, label in data_loader:
             feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
             target = label["value"]
-            
-            pred = model(batched_graph, feats, label["reaction"])
+            norm_atom = label["norm_atom"]
+            norm_bond = label["norm_bond"]
+
+            if device is not None:
+                feats = {k: v.to(device) for k, v in feats.items()}
+                target = target.to(device)
+                norm_atom = norm_atom.to(device)
+                norm_bond = norm_bond.to(device)
+                stdev = stdev.to(device)
+
+            pred = model(batched_graph, feats, label["reaction"], norm_atom, norm_bond)
             pred = pred.view(-1)
             target = target.view(-1)
 
@@ -74,9 +84,10 @@ def main():
     if dict_train["on_gpu"]:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         dict_train["gpu"] = device
-        model.to(device)
     else:
+        device = torch.device("cpu")
         dict_train["gpu"] = "cpu"
+
     print("train on device: {}".format(dict_train["gpu"]))
 
     dataset = ReactionNetworkDatasetGraphs(
@@ -86,11 +97,13 @@ def main():
         target = 'ts', 
         classifier = dict_train["classifier"], 
         classif_categories=classif_categories, 
-        debug = dict_train["debug"]
+        debug = dict_train["debug"],
+        device = device 
     )
     
     dict_train['in_feats'] = dataset.feature_size
     model, optimizer = load_model(dict_train)
+    model.to(device)
 
     trainset, valset, testset = train_validation_test_split(
         dataset, validation=0.15, test=0.15
@@ -116,7 +129,8 @@ def main():
         target = 'diff', 
         classifier = dict_train["classifier"], 
         classif_categories=classif_categories, 
-        debug = dict_train["debug"]
+        debug = dict_train["debug"],
+        device = device 
         )
 
         trainset_transfer, valset_tranfer, _ = train_validation_test_split(
@@ -178,8 +192,7 @@ def main():
         print("Number of Trainable Model Params: {}".format(params))
 
     t1 = time.time()
-    # optimizer, loss function and metric function
-    # main training loop
+
     if(dict_train["classifier"]):
         print("# Epoch     Loss         TrainAcc        ValAcc        ValF1")
     else: 
@@ -216,14 +229,18 @@ def main():
             
         else: 
             loss, train_acc = train(
-            model, 
-            feature_names, 
-            train_loader, 
-            optimizer, 
-            dict_train["gpu"]
+                model, 
+                feature_names, 
+                train_loader, 
+                optimizer, 
+                device = dict_train["gpu"]
             )
             # evaluate on validation set
-            val_acc = evaluate(model, feature_names, val_loader, dict_train["gpu"])
+            val_acc = evaluate(
+                model, 
+                feature_names, 
+                val_loader, 
+                device = dict_train["gpu"])
             val_r2 = evaluate_r2(model, feature_names, val_loader)
         
             wandb.log({"loss": loss})
