@@ -127,7 +127,6 @@ def evaluate(model, nodes, data_loader, device=None):
     return mae / count
 
 
-
 def train_classifier(model, nodes, data_loader, optimizer, device = None, categories = 3):
     """
     basic loop for training a classifier. Gets loss and accuracy

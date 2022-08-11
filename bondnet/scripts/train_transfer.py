@@ -164,7 +164,7 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset_transf
         
         for epoch in tqdm(range(dict_train['transfer_epochs'])):
             if(dict_train["classifier"]):
-                _, _ = train_classifier(
+                loss_transfer, train_acc_transfer = train_classifier(
                     model, 
                     feature_names, 
                     dataset_transfer_loader,
@@ -181,8 +181,8 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset_transf
                 )
                 wandb.log({"transfer_val_acc": val_acc_transfer})
                 wandb.log({"transfer_val_f1": f1_score})
-                wandb.log({"transfer_val_acc": val_acc_transfer})
-                wandb.log({"transfer_val_f1": f1_score})
+                wandb.log({"loss_transfer": loss_transfer})
+                wandb.log({"train_acc_transfer": train_acc_transfer})
             
             else:
                 loss_transfer, train_acc_transfer = train(
@@ -201,8 +201,8 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset_transf
                 wandb.log({"loss_transfer": loss_transfer})
                 wandb.log({"train_acc_transfer": train_acc_transfer})
                 wandb.log({"val_acc_transfer": val_acc_transfer})
-                scheduler_transfer.step(val_acc)
-            
+                
+            scheduler_transfer.step(val_acc_transfer)
             if stopper_transfer.step(val_acc_transfer):
                 break
 
