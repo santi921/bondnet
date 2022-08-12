@@ -30,7 +30,7 @@ from bondnet.model.training_utils import (
 )
 seed_torch()
 
-def evaluate_r2(model, nodes, data_loader):
+def evaluate_r2(model, nodes, data_loader, device = None):
 
     model.eval()
     
