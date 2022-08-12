@@ -30,7 +30,23 @@ from bondnet.model.training_utils import (
 )
 seed_torch()
 
+def evaluate_r2(model, nodes, data_loader):
 
+    model.eval()
+    
+    with torch.no_grad():
+        for batched_graph, label in data_loader:
+            feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
+            target = label["value"]
+            
+            pred = model(batched_graph, feats, label["reaction"])
+            pred = pred.view(-1)
+            target = target.view(-1)
+
+    r2_call = R2Score()
+    r2 = r2_call(pred, target)
+    return r2
+"""
 def evaluate_r2(model, nodes, data_loader, device = None):
     model.eval()
     with torch.no_grad():
@@ -45,11 +61,10 @@ def evaluate_r2(model, nodes, data_loader, device = None):
                 target = target.to(device)
                 norm_atom = norm_atom.to(device)
                 norm_bond = norm_bond.to(device)
-
-            pred = model(batched_graph, feats, label["reaction"], norm_atom, norm_bond)
+            pred = model(batched_graph, feats, label["reaction"])
+            #pred = model(batched_graph, feats, label["reaction"], norm_atom, norm_bond)
             pred = pred.view(-1)
-            target = target.view(-1)
-
+            #target = target.view(-1)
 
     try:
         pred_numpy = pred.detach().cpu().numpy()
@@ -57,10 +72,10 @@ def evaluate_r2(model, nodes, data_loader, device = None):
     except:
         pred_numpy = pred.copy().numpy()
         target_numpy = target.copt().numpy()
+    
     r2 = r2_score(pred_numpy, target_numpy)
-
     return r2
-
+"""
 
 def get_grapher():
 
@@ -105,10 +120,10 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset_transf
         file=path_mg_data, 
         out_file="./", 
         target = 'ts', 
-        classifier = dict_train["classifier"], 
-        classif_categories=classif_categories, 
-        debug = dict_train["debug"],
-        device = device 
+        #classifier = dict_train["classifier"], 
+        #classif_categories=classif_categories, 
+        #debug = dict_train["debug"],
+        #device = device 
         )
     
     dict_train['in_feats'] = dataset.feature_size
@@ -140,10 +155,10 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset_transf
             dataset_transfer = ReactionNetworkDatasetGraphs(
             grapher=get_grapher(), file=path_mg_data, out_file="./", 
             target = 'diff', 
-            classifier = dict_train["classifier"], 
-            classif_categories=classif_categories, 
-            debug = dict_train["debug"],
-            device = dict_train["gpu"]
+            #classifier = dict_train["classifier"], 
+            #classif_categories=classif_categories, 
+            #debug = dict_train["debug"],
+            #device = dict_train["gpu"]
             )
 
         trainset_transfer, valset_tranfer, _ = train_validation_test_split(

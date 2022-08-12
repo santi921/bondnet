@@ -179,7 +179,7 @@ def evaluate(model, nodes, data_loader, device=None):
             pred = model(batched_graph, feats, label["reaction"])
 
             pred = pred.view(-1)
-            target = target.view(-1)
+            #target = target.view(-1)
 
             mae += metric_fn(pred, target, stdev).detach().item() 
             count += len(target)
@@ -254,7 +254,6 @@ def train(model, nodes, data_loader, optimizer, device=None):
     accuracy /= count
 
     return epoch_loss, accuracy
-
 
 def load_model(dict_train): 
     """
