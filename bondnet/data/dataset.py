@@ -1020,7 +1020,9 @@ class ReactionDataset(BaseDataset):
 
         logger.info("Finish loading {} reactions...".format(len(self.labels)))
 
+
 """
+
 class ReactionNetworkDatasetGraphs(BaseDataset):
     def __init__(
         self,
@@ -1218,7 +1220,6 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
 
     @staticmethod
     def build_graphs(grapher, molecules, features, species):
-        """
         Build DGL graphs using grapher for the molecules.
 
         Args:
@@ -1229,7 +1230,6 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
 
         Returns:
             list: DGL graphs
-        """
 
         graphs = []
         # for i, (m, feats) in enumerate(zip(molecules, features)):
@@ -1268,6 +1268,8 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
 
     def __len__(self):
         return len(self.reaction_ids)
+
+
 
 
 """
