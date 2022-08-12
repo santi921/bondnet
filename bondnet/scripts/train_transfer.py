@@ -203,8 +203,7 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset_transf
                 wandb.log({"val_acc_transfer": val_acc_transfer})
                 
             scheduler_transfer.step(val_acc_transfer)
-            if stopper_transfer.step(val_acc_transfer):
-                break
+            if stopper_transfer.step(val_acc_transfer): break
 
         # freeze model layers but fc
         model.gated_layers.requires_grad_(False)

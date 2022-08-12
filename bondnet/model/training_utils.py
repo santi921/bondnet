@@ -9,6 +9,69 @@ from bondnet.model.metric import WeightedL1Loss, WeightedMSELoss
 from bondnet.model.gated_reaction_network import GatedGCNReactionNetwork
 from bondnet.model.gated_reaction_network_classifier import GatedGCNReactionNetworkClassifier
 
+def train_classifier(model, nodes, data_loader, optimizer, device = None, categories = 3):
+    """
+    basic loop for training a classifier. Gets loss and accuracy
+        
+    Args:
+        model(pytorch model): pytorch model
+        nodes(dict): node feature dictionary
+        data_loader(loader obj): loader object with data to eval
+        device(str): cpu/gpu
+        categories(int): number of categories
+    Returns: 
+        accuracy (float): accuracy
+        loss (float): cross entropy loss
+    """
+    model.train()
+
+    targets, outputs = [], []
+    epoch_loss, accuracy, count = 0.0, 0.0, 0.0
+
+    for it, (batched_graph, label) in enumerate(data_loader):
+
+        feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
+        target = label["value"]
+        stdev = label["scaler_stdev"]
+        norm_atom = label["norm_atom"]
+        norm_bond = label["norm_bond"]
+        weight = torch.tensor([2., 1., 1.2 , 1.1, 1.1])
+
+        if device is not None:
+            feats = {k: v.to(device) for k, v in feats.items()}
+            target = target.to(device)
+            norm_atom = norm_atom.to(device)
+            norm_bond = norm_bond.to(device)
+            stdev = stdev.to(device)
+            weight = weight.to(device)
+        pred, target_filtered, stdev_filtered = model(
+            batched_graph, 
+            feats, 
+            label["reaction"], 
+            target,
+            stdev,
+
+        )
+        #norm_atom=norm_atom, 
+        #norm_bond=norm_bond
+
+        target_filtered = torch.reshape(target_filtered, (int(target_filtered.shape[0]/categories), categories))
+        target_filtered = torch.argmax(target_filtered, axis=1)
+        outputs.append(torch.argmax(pred, axis = 1))
+        targets.append(target_filtered)
+        loss_fn = CrossEntropyLoss(weight = weight)
+        loss = loss_fn(pred, torch.flatten(target_filtered))
+        optimizer.zero_grad()
+        loss.backward() 
+        optimizer.step() # here is the actual optimizer step
+
+        accuracy += (torch.argmax(pred, axis = 1) == target_filtered).sum().item()
+        epoch_loss += loss.detach().item()
+        count += len(target_filtered)
+
+    epoch_loss /= it + 1
+    accuracy /= count
+    return epoch_loss, accuracy
 
 def evaluate_classifier(model, nodes, data_loader, device = None, categories = 3):
     """
@@ -54,9 +117,10 @@ def evaluate_classifier(model, nodes, data_loader, device = None, categories = 3
                 label["reaction"], 
                 target,
                 stdev,
-                norm_atom=norm_atom, 
-                norm_bond=norm_bond
+                
             )
+            #norm_atom=norm_atom, 
+            #norm_bond=norm_bond
 
             target_filtered = torch.reshape(target_filtered, (int(target_filtered.shape[0]/categories), categories))
             target_filtered = torch.argmax(target_filtered,axis=1)
@@ -109,86 +173,19 @@ def evaluate(model, nodes, data_loader, device=None):
                 norm_bond = norm_bond.to(device)
                 stdev = stdev.to(device)
                 
-            try:
-                pred = model(batched_graph, feats, label["reaction"], norm_atom, norm_bond)
-            except:
-                pred = model(batched_graph, feats, label["reaction"])
+            #try:
+            #    pred = model(batched_graph, feats, label["reaction"], norm_atom, norm_bond)
+            #except:
+            pred = model(batched_graph, feats, label["reaction"])
 
             pred = pred.view(-1)
             target = target.view(-1)
 
             mae += metric_fn(pred, target, stdev).detach().item() 
-
             count += len(target)
 
-    return mae / count
-
-def train_classifier(model, nodes, data_loader, optimizer, device = None, categories = 3):
-    """
-    basic loop for training a classifier. Gets loss and accuracy
-        
-    Args:
-        model(pytorch model): pytorch model
-        nodes(dict): node feature dictionary
-        data_loader(loader obj): loader object with data to eval
-        device(str): cpu/gpu
-        categories(int): number of categories
-    Returns: 
-        accuracy (float): accuracy
-        loss (float): cross entropy loss
-    """
-    model.train()
-
-    targets, outputs = [], []
-    epoch_loss, accuracy, count = 0.0, 0.0, 0.0
-
-    for it, (batched_graph, label) in enumerate(data_loader):
-
-        feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
-        target = label["value"]
-        stdev = label["scaler_stdev"]
-        norm_atom = label["norm_atom"]
-        norm_bond = label["norm_bond"]
-        weight = torch.tensor([2., 1., 1.2 , 1.1, 1.1])
-
-        if device is not None:
-            feats = {k: v.to(device) for k, v in feats.items()}
-            target = target.to(device)
-            norm_atom = norm_atom.to(device)
-            norm_bond = norm_bond.to(device)
-            stdev = stdev.to(device)
-            weight = weight.to(device)
-        pred, target_filtered, stdev_filtered = model(
-            batched_graph, 
-            feats, 
-            label["reaction"], 
-            target,
-            stdev,
-            norm_atom=norm_atom, 
-            norm_bond=norm_bond
-        )
-
-        target_filtered = torch.reshape(target_filtered, (int(target_filtered.shape[0]/categories), categories))
-        target_filtered = torch.argmax(target_filtered, axis=1)
-        outputs.append(torch.argmax(pred, axis = 1))
-        targets.append(target_filtered)
-        loss_fn = CrossEntropyLoss(weight = weight)
-        loss = loss_fn(pred, torch.flatten(target_filtered))
-        optimizer.zero_grad()
-        loss.backward() 
-        optimizer.step() # here is the actual optimizer step
-
-        accuracy += (torch.argmax(pred, axis = 1) == target_filtered).sum().item()
-        epoch_loss += loss.detach().item()
-        count += len(target_filtered)
-
-    epoch_loss /= it + 1
-    accuracy /= count
-    #f1 = F1Score(num_classes=5)
-    #f1_score = f1(outputs, targets, average='samples')
-    #wandb.log({"F1 test": f1_score})
-
-    return epoch_loss, accuracy
+    l1_acc = mae / count
+    return l1_acc
 
 
 def train(model, nodes, data_loader, optimizer, device=None):
@@ -228,10 +225,10 @@ def train(model, nodes, data_loader, optimizer, device=None):
             norm_bond = norm_bond.to(device)
             stdev = stdev.to(device)
 
-        try:
-            pred = model(batched_graph, feats, label["reaction"], norm_atom, norm_bond)
-        except:
-            pred = model(batched_graph, feats, label["reaction"])
+        #try:
+        #    pred = model(batched_graph, feats, label["reaction"], norm_atom, norm_bond)
+        #except:
+        pred = model(batched_graph, feats, label["reaction"])
 
         # pred = pred.view(-1)
         target_new_shape = (len(target), 1)
@@ -239,16 +236,17 @@ def train(model, nodes, data_loader, optimizer, device=None):
         pred_new_shape = (len(pred), 1)
         pred = pred.view(pred_new_shape)
 
-        try:
-            loss = loss_fn(pred, target, stdev)
-        except:
-            loss = loss_fn(pred, target)
+        #try:
+        #    loss = loss_fn(pred, target, stdev)
+        #except:
+        loss = loss_fn(pred, target, weight = None)
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()  # here is the actual optimizer step
 
         epoch_loss += loss.detach().item()
+
         accuracy += metric_fn(pred, target, stdev).detach().item()
         count += len(target)
 

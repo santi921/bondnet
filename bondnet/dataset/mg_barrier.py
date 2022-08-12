@@ -599,7 +599,7 @@ def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_fi
 
     start_time = time.perf_counter()
     reactions, ind_val, rxn_raw, ind_final = [], [], [], []
-    if(debug): mg_df = mg_df.head(250)
+    if(debug): mg_df = mg_df.head(500)
     with ProcessPool(max_workers=12, max_tasks=10) as pool:
         #for ind, row in mg_df.head(250).iterrows():
         for ind, row in mg_df.iterrows(): 
