@@ -9,14 +9,6 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from bondnet.model.metric import EarlyStopping
 from bondnet.data.dataset import ReactionNetworkDatasetGraphs
 from bondnet.data.dataloader import DataLoaderReactionNetwork
-from bondnet.data.featurizer import (
-    AtomFeaturizerGraph,
-    BondAsNodeGraphFeaturizer,
-    GlobalFeaturizerGraph,
-)
-from bondnet.data.grapher import (
-    HeteroCompleteGraphFromDGLAndPandas,
-)
 from bondnet.data.dataset import train_validation_test_split
 #from bondnet.scripts.create_label_file import read_input_files
 #from bondnet.model.metric import WeightedL1Loss, WeightedMSELoss
@@ -26,67 +18,11 @@ from bondnet.model.training_utils import (
     evaluate_classifier, 
     train, 
     train_classifier, 
-    load_model
+    load_model, 
+    evaluate_r2, 
+    get_grapher
 )
 seed_torch()
-
-def evaluate_r2(model, nodes, data_loader, device = None):
-
-    model.eval()
-    
-    with torch.no_grad():
-        for batched_graph, label in data_loader:
-            feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
-            target = label["value"]
-            
-            pred = model(batched_graph, feats, label["reaction"])
-            pred = pred.view(-1)
-            target = target.view(-1)
-
-    r2_call = R2Score()
-    r2 = r2_call(pred, target)
-    return r2
-"""
-def evaluate_r2(model, nodes, data_loader, device = None):
-    model.eval()
-    with torch.no_grad():
-        for batched_graph, label in data_loader:
-            feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
-            target = label["value"]
-            norm_atom = label["norm_atom"]
-            norm_bond = label["norm_bond"]
-
-            if device is not None:
-                feats = {k: v.to(device) for k, v in feats.items()}
-                target = target.to(device)
-                norm_atom = norm_atom.to(device)
-                norm_bond = norm_bond.to(device)
-            pred = model(batched_graph, feats, label["reaction"])
-            #pred = model(batched_graph, feats, label["reaction"], norm_atom, norm_bond)
-            pred = pred.view(-1)
-            #target = target.view(-1)
-
-    try:
-        pred_numpy = pred.detach().cpu().numpy()
-        target_numpy = target.detach().cpu().numpy()
-    except:
-        pred_numpy = pred.copy().numpy()
-        target_numpy = target.copt().numpy()
-    
-    r2 = r2_score(pred_numpy, target_numpy)
-    return r2
-"""
-
-def get_grapher():
-
-    atom_featurizer = AtomFeaturizerGraph()
-    bond_featurizer = BondAsNodeGraphFeaturizer()
-    global_featurizer = GlobalFeaturizerGraph(allowed_charges=[-2, -1, 0, 1])
-    grapher = HeteroCompleteGraphFromDGLAndPandas(
-        atom_featurizer, bond_featurizer, global_featurizer
-    )
-    return grapher
-
 
 def train_transfer(settings_file = "settings.txt", device = None, dataset_transfer = None, dataset = None):
     
@@ -111,6 +47,7 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset_transf
             device = torch.device("cpu")
             dict_train["gpu"] = "cpu"
     else: dict_train["gpu"] = device
+    
     wandb.config.update(dict_train)
 
     print("train on device: {}".format(dict_train["gpu"]))
@@ -123,7 +60,7 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset_transf
         #classifier = dict_train["classifier"], 
         #classif_categories=classif_categories, 
         #debug = dict_train["debug"],
-        #device = device 
+        device = device 
         )
     
     dict_train['in_feats'] = dataset.feature_size
@@ -158,7 +95,7 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset_transf
             #classifier = dict_train["classifier"], 
             #classif_categories=classif_categories, 
             #debug = dict_train["debug"],
-            #device = dict_train["gpu"]
+            device = dict_train["gpu"]
             )
 
         trainset_transfer, valset_tranfer, _ = train_validation_test_split(

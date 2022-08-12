@@ -15,7 +15,7 @@ weight_decay 0.0
 transfer True
 early_stop True
 scheduler True
-transfer True
+transfer False
 loss weighted_mse
 
 transfer_epochs 500
@@ -26,16 +26,16 @@ embedding_size 24
 num_lstm_iters 6
 num_lstm_layers 3
 
-gated_hidden_size 64 64 64 
+gated_hidden_size 128
 gated_num_fc_layers 2
-gated_num_layers 3
+gated_num_layers 1
 gated_graph_norm 0
-gated_dropout 0.1
+gated_dropout 0.2
 gated_residual True
 gated_batch_norm True
 
 fc_dropout 0.0
-fc_hidden_size 394 128
+fc_hidden_size 128 64
 fc_num_layers 2
 fc_batch_norm 0
 lr 0.0001
