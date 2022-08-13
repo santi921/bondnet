@@ -50,7 +50,7 @@ def main():
             train_transfer(file, 
                 dataset = dataset, 
                 dataset_transfer = dataset_transfer, 
-                device = device["gpu"]
+                device = dict_train["gpu"]
             )
         except:
             pass
