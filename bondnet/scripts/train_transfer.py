@@ -57,9 +57,9 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset_transf
         file=path_mg_data, 
         out_file="./", 
         target = 'ts', 
-        #classifier = dict_train["classifier"], 
-        #classif_categories=classif_categories, 
-        #debug = dict_train["debug"],
+        classifier = dict_train["classifier"], 
+        classif_categories=classif_categories, 
+        debug = dict_train["debug"],
         device = device 
         )
     
@@ -92,9 +92,9 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset_transf
             dataset_transfer = ReactionNetworkDatasetGraphs(
             grapher=get_grapher(), file=path_mg_data, out_file="./", 
             target = 'diff', 
-            #classifier = dict_train["classifier"], 
-            #classif_categories=classif_categories, 
-            #debug = dict_train["debug"],
+            classifier = dict_train["classifier"], 
+            classif_categories=classif_categories, 
+            debug = dict_train["debug"],
             device = dict_train["gpu"]
             )
 
