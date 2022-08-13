@@ -1,0 +1,39 @@
+classifier False
+batch_size 256
+dataset_state_dict_filename home/santiagovargas/Documents/Dataset/mg/dataset_state_dict.pkl
+model_path /home/santiagovargas/Documents/Dataset/mg/
+test False
+on_gpu True
+fc_activation ReLU
+gated_activation ReLU
+output_file results.pkl
+restore True
+start_epoch 0
+weight_decay 0.0
+transfer True
+early_stop True
+scheduler True
+transfer True
+loss weighted_mse
+
+transfer_epochs 500
+epochs 500
+
+embedding_size 48
+
+num_lstm_iters 6
+num_lstm_layers 3
+
+gated_hidden_size 64 64 64 
+gated_num_fc_layers 2
+gated_num_layers 3
+gated_graph_norm 0
+gated_dropout 0.1
+gated_residual True
+gated_batch_norm True
+
+fc_dropout 0.0
+fc_hidden_size 394 128
+fc_num_layers 2
+fc_batch_norm 0
+lr 0.0001
