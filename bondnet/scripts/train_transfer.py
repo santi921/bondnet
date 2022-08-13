@@ -81,11 +81,11 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset_transf
     )
 
     scheduler = ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.4, patience=30, verbose=True)
+        optimizer, mode="min", factor=0.6, patience=50, verbose=True)
     scheduler_transfer = ReduceLROnPlateau(
         optimizer_transfer, mode="min", factor=0.4, patience=30, verbose=True)
-    stopper = EarlyStopping(patience=150)
-    stopper_transfer = EarlyStopping(patience=150)
+    stopper = EarlyStopping(patience=200)
+    stopper_transfer = EarlyStopping(patience=200)
 
     if(dict_train['transfer']):
         if(dataset_transfer == None):
@@ -273,7 +273,7 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset_transf
     print("Time to Training: {:5.1f} seconds".format(float(t2 - t1)))
 
 
-train_transfer()
+#train_transfer()
 
 """dict_train = {
     "learning_rate": 0.0001,
