@@ -14,15 +14,16 @@ def main():
     
     if(dict_train["classifier"]):classif_categories = 5 # update this later
     else:classif_categories = None
-    if(device == None):
-        if dict_train["on_gpu"]:
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            dict_train["gpu"] = device
-        else:
-            device = torch.device("cpu")
-            dict_train["gpu"] = "cpu"
-    else: 
+    
+    #if(device == None):
+    if dict_train["on_gpu"]:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         dict_train["gpu"] = device
+    else:
+        device = torch.device("cpu")
+        dict_train["gpu"] = "cpu"
+    #else: 
+    #    dict_train["gpu"] = device
 
     dataset = ReactionNetworkDatasetGraphs(
         grapher=get_grapher(), 
@@ -54,3 +55,7 @@ def main():
         except:
             pass
 main()
+
+
+# Todo implement a job for each device but more on that later
+#devices = [torch.device("cuda:" + str(i)) for i in range(torch.cuda.device_count())]
