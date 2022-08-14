@@ -24,11 +24,10 @@ from bondnet.model.training_utils import (
 )
 seed_torch()
 
-def train_transfer(settings_file = "settings.txt", device = None, dataset_transfer = None, dataset = None):
+def train_transfer(settings_file = "settings.txt", device = None, dataset = None, dataset_transfer = None):
     
     best = 1e10
     feature_names = ["atom", "bond", "global"]
-    #path_mg_data = "../dataset/mg_dataset/"
     dict_train = parse_settings(settings_file)
     path_mg_data = "../../../dataset/mg_dataset/20220613_reaction_data.json"
         

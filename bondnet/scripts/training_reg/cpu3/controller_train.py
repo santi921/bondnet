@@ -45,15 +45,14 @@ def main():
     )
 
     for file in files:
-        try:
-        #print(file)
-            train_transfer(file, 
+        print(file)
+        train_transfer(file, 
                 dataset = dataset, 
                 dataset_transfer = dataset_transfer, 
                 device = dict_train["gpu"]
             )
-        except:
-            pass
+        #except:
+        #    pass
 main()
 
 
