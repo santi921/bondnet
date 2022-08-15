@@ -728,10 +728,15 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         # get species
         # species = get_dataset_species_from_json(self.pandas_df)
         system_species = set()
+        '''
         for _, row in self.pandas_df.iterrows():
             if row is None:
-                continue
-            species = list(row["composition"].keys())
+                species = 
+                species = list(row["composition"].keys())                
+            system_species.update(species)
+        '''
+        for mol in self.molecules: 
+            species = list(set(mol.species))
             system_species.update(species)
         self._species = sorted(system_species)
 

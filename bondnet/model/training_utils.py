@@ -11,6 +11,7 @@ from bondnet.model.gated_reaction_network_classifier import GatedGCNReactionNetw
 from bondnet.data.featurizer import (
     AtomFeaturizerGraph,
     BondAsNodeGraphFeaturizer,
+    BondAsNodeGraphFeaturizerBondLen,
     GlobalFeaturizerGraph,
 )
 from bondnet.data.grapher import (
@@ -358,7 +359,7 @@ def evaluate_r2(model, nodes, data_loader, device = None):
 def get_grapher():
 
     atom_featurizer = AtomFeaturizerGraph()
-    bond_featurizer = BondAsNodeGraphFeaturizer()
+    bond_featurizer = BondAsNodeGraphFeaturizerBondLen()
     global_featurizer = GlobalFeaturizerGraph(allowed_charges=[-2, -1, 0, 1])
     grapher = HeteroCompleteGraphFromDGLAndPandas(
         atom_featurizer, bond_featurizer, global_featurizer

@@ -32,7 +32,7 @@ class MoleculeWrapper:
         self.nonmetal_bonds = non_metal_bonds
         self.free_energy = free_energy
         self.id = id
-
+        
         # set when corresponding method is called
         self._rdkit_mol = None
         self._fragments = None
