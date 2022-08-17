@@ -16,8 +16,8 @@ scheduler True
 transfer True
 loss weighted_mse
 
-transfer_epochs 500
-epochs 500
+transfer_epochs 250
+epochs 1000
 
 embedding_size 24
 

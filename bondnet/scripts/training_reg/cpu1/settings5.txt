@@ -17,7 +17,7 @@ transfer True
 loss weighted_mse
 
 transfer_epochs 500
-epochs 500
+epochs 1000
 
 embedding_size 18
 
