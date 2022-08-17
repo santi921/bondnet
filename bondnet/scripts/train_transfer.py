@@ -33,10 +33,10 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset = None
         
     if(dict_train["classifier"]):
         classif_categories = 5 # update this later
-        wandb.init(project="project_classification_test")
+        run = wandb.init(project="project_classification_test", reinit=True)
     else:
         classif_categories = None
-        wandb.init(project="project_regression_test")
+        run = wandb.init(project="project_regression_test", reinit=True)
 
     if(device == None):
         if dict_train["on_gpu"]:
@@ -270,7 +270,7 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset = None
     
     t2 = time.time()
     print("Time to Training: {:5.1f} seconds".format(float(t2 - t1)))
-
+    run.finish()
 
 #train_transfer()
 
