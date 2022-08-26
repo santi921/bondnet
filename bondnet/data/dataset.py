@@ -6,13 +6,25 @@ from collections import defaultdict, OrderedDict
 from bondnet.dataset.mg_barrier import create_reaction_network_files_and_valid_rows
 from bondnet.data.reaction_network import ReactionInNetwork, ReactionNetwork
 from bondnet.data.transformers import HeteroGraphFeatureStandardScaler, StandardScaler
-from bondnet.data.utils import get_dataset_species, get_dataset_species_from_json
+from bondnet.data.utils import get_dataset_species
 from bondnet.utils import to_path, yaml_load, list_split_by_size
 from concurrent.futures import TimeoutError
-
+from pebble import ProcessPool
+from tqdm import tqdm
 from rdkit import Chem, RDLogger
 logger = RDLogger.logger()
 logger.setLevel(RDLogger.CRITICAL)
+
+
+def task_done(future):
+    try:
+        result = future.result()  # blocks until results are ready
+    except TimeoutError as error:
+        print("Function took longer than %d seconds" % error.args[1])
+    except Exception as error:
+        print("Function raised %s" % error)
+        print(error.traceback)  # traceback of the function
+
 
 class BaseDataset:
     """
@@ -191,20 +203,38 @@ class BaseDataset:
         Returns:
             list: DGL graphs
         """
-
         graphs = []
-        for i, (m, feats) in enumerate(zip(molecules, features)):
+        '''
+        with ProcessPool(max_workers=12, max_tasks=10) as pool:
+            for i, (m, feats) in enumerate(zip(molecules, features)):
+                if m is not None:
+                    future = pool.schedule(grapher.build_graph_and_featurize, 
+                                            args=[m], timeout=30,
+                                            kwargs={"extra_feats_info":feats, 
+                                                    "dataset_species":species}
+                                            )
+                    future.add_done_callback(task_done)
+                    try:
+                        g = future.result()
+                        g.graph_id = i
+                        graphs.append(g)
+                    except:
+                        pass
+                else: graphs.append(None)
+
+        '''
+        for i, (m, feats) in tqdm(enumerate(zip(molecules, features))):
             if m is not None:
                 g = grapher.build_graph_and_featurize(
                     m, extra_feats_info=feats, dataset_species=species
                 )
                 # add this for check purpose; some entries in the sdf file may fail
                 g.graph_id = i
+
             else:
                 g = None
-
             graphs.append(g)
-
+        
         return graphs
 
     def __getitem__(self, item):
@@ -676,9 +706,9 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
             all_mols,
             all_labels,
             features,
-            df,
         ) = create_reaction_network_files_and_valid_rows(
-            file, out_file, bond_map_filter=False, target=target, classifier=classifier, debug=debug
+            file, out_file, bond_map_filter=False, target=target, 
+            classifier=classifier, debug=debug
         )
 
         self.molecules = all_mols
@@ -688,7 +718,6 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         self.label_transformer = label_transformer
         self.dtype = dtype
         self.state_dict_filename = state_dict_filename
-        self.pandas_df = df
         self.graphs = None
         self.labels = None
         self.target = target
@@ -727,13 +756,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         # get species
         # species = get_dataset_species_from_json(self.pandas_df)
         system_species = set()
-        '''
-        for _, row in self.pandas_df.iterrows():
-            if row is None:
-                species = 
-                species = list(row["composition"].keys())                
-            system_species.update(species)
-        '''
+
         for mol in self.molecules: 
             species = list(set(mol.species))
             system_species.update(species)
@@ -773,14 +796,17 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
 
             graphs_not_none = [graphs[i] for i in graphs_not_none_indices]
             graphs_not_none = feature_scaler(graphs_not_none)
-
+            molecules_ordered = [self.molecules[i] for i in graphs_not_none_indices]
+            molecules_final = [0 for i in graphs_not_none_indices]
             # update graphs
             for i, g in zip(graphs_not_none_indices, graphs_not_none):
+                molecules_final[i] = molecules_ordered[i]
                 graphs[i] = g
-                
+            self.molecules_ordered = molecules_final
+
             if(self.device != None):
                 graph_temp = []
-                for g in graphs:
+                for g in graphs: 
                     graph_temp.append(g.to(self.device))
                 graphs = graph_temp
 
@@ -803,13 +829,18 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                     self._failed.append(True)
                     break
             else:
+                #print(lb["total_atoms"])
+                #print(lb["total_atoms"])
                 rxn = ReactionInNetwork(
                     reactants=lb["reactants"],
                     products=lb["products"],
                     atom_mapping=lb["atom_mapping"],
                     bond_mapping=lb["bond_mapping"],
+                    total_bonds=lb["total_bonds"],
+                    total_atoms=lb['total_atoms'],
                     id=lb["id"],
                 )
+
                 reactions.append(rxn)
                 if "environment" in lb:
                     environemnt = lb["environment"]
@@ -823,6 +854,11 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                         "value": lab_temp,
                         "id": lb["id"],
                         "environment": environemnt,
+                        "atom_map":lb["atom_mapping"],
+                        "bond_map":lb["bond_mapping"],
+                        "total_bonds":lb["total_bonds"],
+                        "total_atoms":lb["total_atoms"]
+
                     }
                     self.labels.append(label)
                 else:
@@ -832,6 +868,10 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                         ),
                         "id": lb["id"],
                         "environment": environemnt,
+                        "atom_map":lb["atom_mapping"],
+                        "bond_map":lb["bond_mapping"], 
+                        "total_bonds":lb["total_bonds"],
+                        "total_atoms":lb["total_atoms"]
                     }
                     self.labels.append(label)
 
@@ -840,7 +880,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         self.reaction_ids = list(range(len(reactions)))
 
         # create reaction network
-        self.reaction_network = ReactionNetwork(graphs, reactions)
+        self.reaction_network = ReactionNetwork(graphs, reactions, molecules_final)
 
         # feature transformers
         if self.label_transformer:
@@ -893,8 +933,28 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
 
         count = 0
         graphs = []
+        '''
+        with ProcessPool(max_workers=6, max_tasks=6) as pool:
+            print("yeet")
+            for i, (m, feats) in enumerate(zip(molecules, features)):
+                feats = features[count]
+                if m is not None:
+                    future = pool.schedule(grapher.build_graph_and_featurize, 
+                                            args=[m],
+                                            kwargs={"extra_feats_info":feats, 
+                                                    "dataset_species":species}
+                                            )
+                    future.add_done_callback(task_done)
+                    try:
+                        g = future.result()
+                        g.graph_id = i
+                        graphs.append(g)
+                        count += 1
+                    except:
+                        pass
+                else: graphs.append(None)
 
-
+        '''
         for ind, mol in enumerate(molecules):
             feats = features[count]
             if mol is not None:
@@ -908,6 +968,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                 g = None
             graphs.append(g)
             count += 1   
+        
 
         return graphs
         
@@ -930,8 +991,6 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
 
     def __len__(self):
         return len(self.reaction_ids)
-
-
 class ReactionDataset(BaseDataset):
     def _load(self):
 

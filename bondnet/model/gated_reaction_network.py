@@ -109,7 +109,7 @@ def _split_batched_output(graph, value):
     return torch.split(value, nbonds)
 
 
-def mol_graph_to_rxn_graph(graph, feats, reactions):
+def mol_graph_to_rxn_graph(graph, feats, reactions): 
     """
     Convert a batched molecule graph to a batched reaction graph.
 

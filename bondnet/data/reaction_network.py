@@ -5,7 +5,12 @@ import dgl
 
 class ReactionInNetwork:
     def __init__(
-        self, reactants, products, atom_mapping=None, bond_mapping=None, id=None
+        self, reactants, products, 
+        atom_mapping=None, 
+        bond_mapping=None,
+        total_bonds=None, 
+        total_atoms=None,
+        id=None
     ):
         """
         A class to represent a chemical reaction in reaction network.
@@ -30,12 +35,32 @@ class ReactionInNetwork:
                 Could be changed.
         """
 
+        # atom mapping to overall reaction network 
+        # bond mapping of bond in species to overall reaction
         self._init_reactants = self._reactants = reactants
         self._init_products = self._products = products
+        self.len_products = len(products)
+        self.len_reactants = len(reactants)
+
         self.atom_mapping = atom_mapping
         self.bond_mapping = bond_mapping
-        self.id = id
 
+        if(total_atoms != None):
+            self.total_atoms = total_atoms
+            self.num_atoms_total = len(self.total_atoms)
+            self.num_bonds_total = len(total_bonds)
+        else:
+            if(total_bonds!=None): 
+                self.total_atoms = list(set(list(np.concatenate(total_bonds).flat)))
+                self.num_atoms_total = len(self.total_atoms)
+                self.num_bonds_total = len(total_bonds)
+            else: 
+                self.total_atoms = None
+                self.num_atoms_total = None
+                self.num_bonds_total = None
+        self.id = id
+        
+        self.total_bonds = total_bonds    
         self._atom_mapping_list = None
         self._bond_mapping_list = None
 
@@ -129,22 +154,25 @@ class ReactionInNetwork:
         combined_mapping = {}
         for i, mp in enumerate(mappings):
             for p, r in mp.items():
-                assert p < len(mp), "product item not smaller than size"
+                #assert p < len(mp), "product item not smaller than size"
                 combined_mapping[p + accumulate[i]] = r
 
         # determine the missing item (in reactant) for empty mapping
         if mode == "bond":
             existing = np.concatenate([list(mp.values()) for mp in mappings])
             N = len(existing)
+            #expected = range(N)
             expected = range(N + 1)
-
+            missing_item_list = []
             for i in expected:
                 if i not in existing:
-                    missing_item = i
-                    break
-
+                    missing_item_list.append(i)
+                    #break # this only finds first item 
+                    
             # add the missing item as the last element (of products)
-            combined_mapping[N] = missing_item
+            for ind, missing in enumerate(missing_item_list): 
+                combined_mapping[N + ind] = missing
+            #combined_mapping[N] = missing_item[]
 
         # r2p mapping as a list, where the reactant item is indexed by the list index
         mp_list = sorted(combined_mapping, key=lambda k: combined_mapping[k])
@@ -159,10 +187,11 @@ class ReactionNetwork:
         reactions (list): a sequence of Reaction.
     """
 
-    def __init__(self, molecules, reactions):
+    def __init__(self, molecules, reactions, wrappers):
         self.molecules = molecules
         self.reactions = reactions
-
+        self.molecule_wrapper = wrappers
+        '''
         m2r = []
         r2m = []
         mols_in_rxns = set()
@@ -189,17 +218,7 @@ class ReactionNetwork:
                 ("molecule", "m2r", "reaction"): m2r,
                 ("reaction", "r2m", "molecule"): r2m,
             }
-
-        # NOTE they are not used currently, so disable them. In fact, assign
-        # self.molecules to graph nodes would cause problem, because it does not have
-        # the shape method. Making it a numpy array is impossible, because DGL graph
-        # does not allow it. We may want to create a new class with a shape methods in
-        # the future.
-        # # create graph
-        # self.g = dgl.heterograph(edges_dict)
-        #
-        # # attach molecules to graph
-        # self.g.nodes["molecule"].data.update({"mol": self.molecules})
+        '''
 
     @staticmethod
     def _get_mol_ids_from_reactions(reactions):

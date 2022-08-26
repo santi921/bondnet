@@ -51,7 +51,7 @@ class Reaction:
             self.num_atoms_total = len(self.total_atoms)
             self.num_bonds_total = len(total_bonds)
         else:
-            if(total_bonds!=None): # fix bug here
+            if(total_bonds!=None): 
                 self.total_atoms = list(set(list(np.concatenate(total_bonds).flat)))
                 self.num_atoms_total = len(self.total_atoms)
                 self.num_bonds_total = len(total_bonds)

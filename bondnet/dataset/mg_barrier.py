@@ -20,7 +20,135 @@ from rdkit import Chem
 Chem.WrapLogs()
 
 
-def process_species_graph(row, classifier=False, target = 'ts'):
+def split_and_map(
+    species, bonds, coords, atom_count, reaction_scaffold, id, 
+    bonds_nonmetal=None, charge=0):
+    """
+    takes a list of nodes+bonds+reaction bonds and computes subgraphs/species
+    also returns mappings
+
+    takes: 
+        species(list of strs): list of elements 
+        bonds(list of list/tuples): bond list 
+        coords(list of list): atomic position
+        atom_count(int): number of nodes/atoms in the total reaction
+        reaction_scaffold(list of list/tuples): total bonds in rxn
+        id(str): unique id 
+        bonds_nonmetal(list of tuples/lists): list nonmetal bonds
+        charge(int): charge for molecule
+
+    returns: 
+        species(list of molwrappers)
+        atom_map(dict): maps atomic positions to reaction scaffold 
+        bond_mapp(dict): maps bonds in subgraphs to reaction template ind
+    """    
+
+    ret_list, bond_map = [], []
+    id = str(id)
+    
+    G = nx.Graph()
+    G.add_nodes_from([int(i) for i in range(atom_count)])
+    for i in bonds: G.add_edge(i[0], i[1])  
+    sub_graphs = [G.subgraph(c) for c in nx.connected_components(G)]
+    
+    if len(sub_graphs) >= 2:
+        mapping = []
+        for ind_sg, sg in enumerate(sub_graphs):
+            dict_bonds = {}
+            bond_reindex_list, species_sg, coords_sg = [], [], [] 
+            nodes = list(sg.nodes())
+            # finds bonds mapped to subgraphs
+            for origin_bond_ind in bonds:
+                # check if root to edge is in node list for subgraph
+                check = any(item in origin_bond_ind for item in nodes)
+                if check: # if it is then map these to lowest values in nodes
+                    bond_orig = nodes.index(origin_bond_ind[0]) # double check this!
+                    bond_targ = nodes.index(origin_bond_ind[1])
+                    bond_reindex_list.append([bond_orig, bond_targ])
+                    # finds the index of these nodes in the reactant bonds
+                    original_bond_index = reaction_scaffold.index(
+                        [np.min([origin_bond_ind[0], origin_bond_ind[1]]), 
+                        np.max([origin_bond_ind[0], origin_bond_ind[1]])]
+                    )
+                    dict_bonds[len(bond_reindex_list) - 1] = original_bond_index
+
+            bond_map.append(dict_bonds)
+
+            for site in nodes:
+                species_sg.append(species[site])
+                coords_sg.append(coords[site])
+                
+            mapping_temp = {i: ind for i, ind in enumerate(nodes)}
+            mapping.append(mapping_temp)
+
+            species_molwrapper = create_wrapper_mol_from_atoms_and_bonds(
+                species_sg, 
+                coords_sg, 
+                bond_reindex_list, 
+                charge=charge,
+                identifier=id+"_" + str(ind_sg)
+            )
+
+            if(bonds_nonmetal ==None): 
+                species_molwrapper.nonmetal_bonds = bond_reindex_list
+            else: 
+                non_metal_filter = []
+                for bond_non_metal in bonds_nonmetal:
+                    if(bond_non_metal[0] in nodes or bond_non_metal[1] in nodes):
+                        non_metal_filter.append(bond_non_metal)
+                species_molwrapper.nonmetal_bonds = bonds_nonmetal
+                
+            ret_list.append(species_molwrapper)
+
+    else:
+        bond_reindex_list = []
+        dict_temp, dict_bonds = {}, {}
+        
+        species_molwrapper = create_wrapper_mol_from_atoms_and_bonds(
+            species,
+            coords,
+            bonds,
+            charge=charge,
+            identifier=id
+        )
+
+        if(bonds_nonmetal==None): species_molwrapper.nonmetal_bonds = bonds
+        else: species_molwrapper.nonmetal_bonds = bonds_nonmetal
+        
+        for origin_bond_ind in bonds:
+            # check if root to edge is in node list for subgraph
+            
+            nodes = list(G.nodes())
+            #print(nodes)
+            check = any(item in origin_bond_ind for item in nodes)
+            
+            if check: # if it is then map these to lowest values in nodes
+                bond_orig = nodes.index(origin_bond_ind[0]) 
+                bond_targ = nodes.index(origin_bond_ind[1])
+                bond_reindex_list.append([bond_orig, bond_targ])
+                # finds the index of these nodes in the reactant bonds
+                try:
+                    original_bond_index = reaction_scaffold.index(
+                        [np.min([origin_bond_ind[0], origin_bond_ind[1]]), 
+                        np.max([origin_bond_ind[0], origin_bond_ind[1]])]
+                    )
+
+                    dict_bonds[len(bond_reindex_list) - 1] = original_bond_index
+                except:  
+                    print("detected bond in prod. not in reaction scaffold")
+        bond_map = [dict_bonds]
+        
+        # atom map
+        for i in range(len(species)):
+            dict_temp[i] = i
+        mapping = [dict_temp]
+        ret_list.append(species_molwrapper)
+
+    if(len(ret_list) != len(mapping)):print("ret list not equal to atom mapping list")
+    if(len(ret_list) != len(bond_map)):print("ret list not equal to bond mapping list")
+    return ret_list, mapping, bond_map
+
+def process_species_graph(row, classifier=False, target='ts', reverse_rxn=False, verbose=False):
     """
     Takes a row and processes the products/reactants - entirely defined by graphs from row
 
@@ -30,170 +158,95 @@ def process_species_graph(row, classifier=False, target = 'ts'):
     Returns:
         mol_list: a list of MolecularWrapper object(s) for product(s) or reactant
     """
-    fail = 0
+    
     rxn, reactant_list, product_list, bond_map = [], [], [], []
     reactant_key = 'reactant'
     product_key = 'product'
+    #reverse_rxn = False # generalize to augment with reverse
     
-    reverse_rxn = False
-    check_list = row['bonds_formed'] + row['bonds_broken']
-    if(len(check_list) == 0 or len(check_list) > 1): 
-        return rxn # this would need to change to handle more bonds changes
-    else:
-        if(row['bonds_broken'] == [] and row['bonds_formed'] != []):
-            if(len(row['bonds_formed']) > 1 or len(row['bonds_formed']) == 0): 
-                return rxn
-            else:
-                reverse_rxn = True
-                reactant_key = 'product'
-                product_key = 'reactant'
-    
-
-    species_reactant = [
-        int_atom(i["name"]) for i in row[reactant_key+"_molecule_graph"]["molecule"]["sites"]
-    ]
-    species_products_full = [
-        int_atom(i["name"]) for i in row[product_key+"_molecule_graph"]["molecule"]["sites"]
-    ]
-    coords_reactant = [
-        i["xyz"] for i in row[reactant_key+"_molecule_graph"]["molecule"]["sites"]
-    ]
-    coords_products_full = [
-        i["xyz"] for i in row[product_key+"_molecule_graph"]["molecule"]["sites"]
-    ]
-
     charge = row["charge"]
-    id = str(row[reactant_key+"_id"])
-    free_energy = row[product_key+"_free_energy"]
+    formed_len = len(row['bonds_formed'])
+    broken_len = len(row['bonds_broken'])
+    broken_bonds = [tuple(i) for i in row['bonds_broken']]
+    formed_bonds = [tuple(i) for i in row['bonds_formed']]
+    check_list_len = broken_len + formed_len
+    
+    if(check_list_len==0): 
+        if(verbose):
+            print("no bond changes detected")
+        return 0
+
+    else: 
+        if(reverse_rxn):
+            reactant_key = 'product'
+            product_key = 'reactant'          
+            formed_len = len(row['bonds_broken'])
+            broken_len = len(row['bonds_formed'])
+            formed_bonds = row['bonds_broken'] 
+            broken_bonds = row['bonds_formed']
+
+    if(broken_len == 0):
+        temp_key = copy.deepcopy(reactant_key)
+        reactant_key = product_key
+        product_key = temp_key
+        reverse_rxn = not reverse_rxn
+        temp_broken = copy.deepcopy(broken_bonds)
+        broken_bonds = formed_bonds
+        formed_bonds = temp_broken
+
+    id_reactant = str(row[reactant_key+"_id"])   
+    id_product =  str(row[product_key+"_id"])  
     bonds_reactant = row[reactant_key+"_bonds"]
     bonds_products = row[product_key+"_bonds"]
+    pymat_graph_reactants = row[reactant_key+"_molecule_graph"]["molecule"]["sites"]
+    pymat_graph_products = row[product_key+"_molecule_graph"]["molecule"]["sites"]
+    species_reactant = [int_atom(i["name"]) for i in pymat_graph_reactants]
+    species_products_full = [int_atom(i["name"]) for i in pymat_graph_products]
+    coords_reactant = [i["xyz"] for i in pymat_graph_reactants]
+    coords_products_full = [i["xyz"] for i in pymat_graph_products]
 
-    reactant = create_wrapper_mol_from_atoms_and_bonds(
-        species_reactant,
-        coords_reactant,
-        bonds_reactant,
-        charge=charge,
-        free_energy=free_energy,
-        identifier=id,
-    )
-    reactant.nonmetal_bonds = row[reactant_key+'_bonds_nometal']
-    reactant_list.append(reactant)
-
-    # handle products
-    # check subgraphs first
+    # new 
+    total_bonds =  [tuple(bond) for bond in bonds_reactant]
+    [total_bonds.append((np.min(i), np.max(i))) for i in bonds_products]
+    total_bonds = list(set(total_bonds))
+    total_bonds = [list(bond) for bond in total_bonds]
+    
     num_nodes = 0
     for i in row["composition"].items():
         num_nodes += int(i[-1])
-    G = nx.Graph()
-    G.add_nodes_from([int(i) for i in range(num_nodes)])
-    for i in row[product_key+"_bonds"]:
-        G.add_edge(i[0], i[1])  # rdkit bonds are a subset of user-defined bonds
-    sub_graphs = [G.subgraph(c) for c in nx.connected_components(G)]
-    id = str(row[product_key+"_id"])
 
-    # still no handling for rxns A --> B + C +....
-    if len(sub_graphs) > 2:
-        pass #print("cannot handle three or more products")
-    # handle A --> B + C
-    elif len(sub_graphs) == 2:
-        mapping = []
-        for ind_sg, sg in enumerate(sub_graphs):
-            dict_prod = {}
-            coords_products, species_products, bond_reindex_list = [], [], []
-            nodes = list(sg.nodes())
-            #bonds = list(sg.edges())
-            # finds bonds mapped to subgraphs
-            for origin_bond_ind in row[product_key+"_bonds"]:
-                # check if root to edge is in node list for subgraph
-                check = any(item in origin_bond_ind for item in nodes)
-                if check:
-                    bond_orig = nodes.index(origin_bond_ind[0])
-                    bond_targ = nodes.index(origin_bond_ind[1])
-                    bond_reindex_list.append([bond_orig, bond_targ])
-                    # finds the index of these nodes in the reactant bonds
-                    try:
-                        original_bond_index = row[reactant_key+"_bonds"].index(
-                            [origin_bond_ind[0], origin_bond_ind[1]]
-                        )
-                        dict_prod[len(bond_reindex_list) - 1] = original_bond_index
-                    except:
-                        print("detected bond in prod. not in react.")
-            bond_map.append(dict_prod)
+    bonds_nonmetal_product=row[product_key+'_bonds_nometal']
+    bonds_nonmetal_reactant=row[reactant_key+'_bonds_nometal']
 
-            for site in nodes:
-                species_products.append(
-                    int_atom(
-                        row[product_key+"_molecule_graph"]["molecule"]["sites"][site]["name"]
-                    )
-                )
-                coords_products.append(
-                    row[product_key+"_molecule_graph"]["molecule"]["sites"][site]["xyz"]
-                )
-
-            mapping_temp = {i: ind for i, ind in enumerate(nodes)}
-            mapping.append(mapping_temp)
-
-            product = create_wrapper_mol_from_atoms_and_bonds(
-                species_products,
-                coords_products,
-                bond_reindex_list,
-                charge=0,
-                free_energy=free_energy,
-                identifier=id+"_" + str(ind_sg),
-            )
-            
-            non_metal_products = row[product_key+'_bonds_nometal']
-            non_metal_filter = []
-            for bond_non_metal in non_metal_products:
-                if(bond_non_metal[0] in nodes or bond_non_metal[1] in nodes):
-                    non_metal_filter.append(bond_non_metal)
-            product.nonmetal_bonds = non_metal_filter
-            product_list.append(product)
-
-    else:
-        dict_prod = {}
-
-        product = create_wrapper_mol_from_atoms_and_bonds(
-            species_products_full,
-            coords_products_full,
-            bonds_products,
-            charge=charge,
-            free_energy=free_energy,
-            identifier=id,
-        )
-
-        product.nonmetal_bonds = row[product_key+'_bonds_nometal']
-            
-        # set bond mapping for one product w/only one product
-        for ind, i in enumerate(list(product.bonds.keys())):
-            try:
-                key_index = list(reactant_list[0].bonds.keys()).index(i)
-                dict_prod[ind] = key_index
-            except:
-                pass
-        bond_map = [dict_prod]
-
-        # atom mapping - order is preserved
-        dict_temp = {}
-        for i in range(len(species_products_full)):
-            dict_temp[i] = i
-        mapping = [dict_temp]
-        product_list.append(product)
-
-    if fail == 0 and product_list != [] and reactant_list != 0:
+    products, atoms_products, mapping_products = split_and_map(
+        species=species_products_full,
+        coords=coords_products_full,
+        bonds=row[product_key+"_bonds"], 
+        atom_count=num_nodes, 
+        reaction_scaffold=total_bonds,
+        id=str(row[product_key+"_id"]), 
+        bonds_nonmetal=bonds_nonmetal_product,
+        charge=charge)
+    
+    reactants, atoms_reactants, mapping_reactants = split_and_map(
+        species=species_reactant,
+        coords=coords_reactant,
+        bonds = row[reactant_key+"_bonds"], 
+        atom_count = num_nodes, 
+        reaction_scaffold=total_bonds,
+        id = str(row[reactant_key+"_id"]), 
+        bonds_nonmetal=bonds_nonmetal_reactant,
+        charge=charge)
+    
+    total_atoms=list(set(list(np.concatenate([list(i.values()) for i in atoms_reactants]).flat)))
+    check=False
+    if(check):
+        total_atoms_check=list(set(list(np.concatenate([list(i.values()) for i in atoms_products]).flat)))
+        assert (total_atoms==total_atoms_check), 'atoms in reactant and products are not equal'
+    
+    if products != [] and reactants != []:
         id = [i for i in row["reaction_id"].split("-")]
         id = int(id[0] + id[1] + id[2])
-        broken_bond = None
-
-        if(reverse_rxn):
-            if row["bonds_formed"] != []:
-                broken_bond = row["bonds_formed"][0]
-        else:
-            if row["bonds_broken"] != []:
-                broken_bond = row["bonds_broken"][0]
-        
-        reactant_key + "_energy"
-        product_key + "_energy"
 
         if(target == 'ts'):
             value = row['transition_state_energy'] - row[reactant_key+'_energy']
@@ -211,20 +264,28 @@ def process_species_graph(row, classifier=False, target = 'ts'):
                 value = 3
             else:
                 value = 4
-
+            
         rxn = Reaction(
-            reactants=reactant_list,
-            products=product_list,
+            reactants=reactants,
+            products=products,
             free_energy=value,
-            broken_bond=[tuple(broken_bond) for i in broken_bond],
+            broken_bond=broken_bonds,
+            formed_bond=formed_bonds,
+            total_bonds=total_bonds,
+            total_atoms=total_atoms,
             identifier=id,
         )
-
-        rxn.set_atom_mapping(mapping)
-        rxn._bond_mapping_by_int_index = bond_map
-
+        atom_mapping_check = []
+        for i in atoms_reactants: 
+            for key in i.keys(): 
+                atom_mapping_check.append(i[key])
+        atom_mapping_check = list(set(atom_mapping_check))
+        if(atom_mapping_check!=total_atoms): print(atom_mapping_check, total_atoms)
+        
+        rxn.set_atom_mapping([atoms_reactants, atoms_products])
+        rxn._bond_mapping_by_int_index = [mapping_reactants, mapping_products]
+        
     return rxn
-
 
 def process_species_rdkit(row, classifier=False):
     """
@@ -416,7 +477,7 @@ def create_struct_label_dataset_bond_based_regression(filename, out_file):
     rxn_raw = []
     with ProcessPool(max_workers=12, max_tasks=10) as pool:
         for _, row in mg_df.head(50).iterrows():
-            future = pool.schedule(process_species, args=[row], timeout=30)
+            future = pool.schedule(process_species_graph, args=[row], timeout=30)
             rxn_raw.append(future.result())
     print(rxn_raw)
     finish_time = time.perf_counter()
@@ -577,7 +638,7 @@ def create_reaction_network_files(filename, out_file, classifier=False):
     return all_mols, all_labels, features
 
 
-def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_filter = True, target = 'ts', classifier = False, debug = False):
+def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_filter=False, target='ts', classifier=False, debug=False, augment=False):
     """
     Processes json file from emmet to use in training bondnet
 
@@ -598,18 +659,26 @@ def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_fi
 
     start_time = time.perf_counter()
     reactions, ind_val, rxn_raw, ind_final = [], [], [], []
-    if(debug): mg_df = mg_df.head(500)
+    if(debug): mg_df = mg_df.head(100)
     with ProcessPool(max_workers=12, max_tasks=10) as pool:
         #for ind, row in mg_df.head(250).iterrows():
         for ind, row in mg_df.iterrows(): 
             # process_species = process_species_rdkit
-            future = pool.schedule(process_species_graph, args=[row, classifier, target], timeout=30)
+            future = pool.schedule(process_species_graph, args=[row, classifier, target, False], timeout=30)
             future.add_done_callback(task_done)
             try:
                 rxn_raw.append(future.result())
                 ind_val.append(ind)
             except:
                 pass
+            if(augment):
+                future = pool.schedule(process_species_graph, args=[row, classifier, target, True], timeout=30)
+                future.add_done_callback(task_done)
+                try:
+                    rxn_raw.append(future.result())
+                    ind_val.append(ind)
+                except:
+                    pass               
     finish_time = time.perf_counter()
     print("rxn raw len: {}".format(int(len(rxn_raw))))
     print(f"Program finished in {finish_time-start_time} seconds")
@@ -622,9 +691,7 @@ def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_fi
                 if(bond_map_filter):
                     try:
                         bond_map = rxn_temp.bond_mapping_by_int_index()
-
                         rxn_temp._bond_mapping_by_int_index = bond_map
-
                         reactant_bond_count = int(
                             len(rxn_temp.reactants[0].rdkit_mol.GetBonds())
                         ) # here we're using rdkit still
@@ -638,21 +705,17 @@ def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_fi
                             ind_final.append(ind_val[ind])
                     except:
                         fail_sdf_map += 1
-                else: 
-                        
-                        bond_map = rxn_temp.bond_mapping_by_int_index()
+                else:         
+                    bond_map = rxn_temp.bond_mapping_by_int_index()
+                    
+                    if(len(rxn_temp.reactants) != len(bond_map[0]) or
+                    len(rxn_temp.products) != len(bond_map[1])):
+                        print("mappings invalid")
+                        fail_count += 1
+                    else:                        
                         rxn_temp._bond_mapping_by_int_index = bond_map
-                        reactant_bond_count = int(
-                            len(rxn_temp.reactants[0].bonds)
-                        ) # here we're using rdkit still
-                        prod_bond_count = 0
-                        for i in rxn_temp.products:
-                            prod_bond_count += int(len(i.bonds))
-                        if reactant_bond_count < prod_bond_count:
-                            fail_prod_len += 1
-                        else:
-                            reactions.append(rxn_temp)
-                            ind_final.append(ind_val[ind])
+                        reactions.append(rxn_temp)
+                        ind_final.append(ind_val[ind])
             except:
                 fail_count += 1
         else:
@@ -665,8 +728,8 @@ def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_fi
     print("default fail count: \t\t{}".format(fail_default))
     print("sdf map fail count: \t\t{}".format(fail_sdf_map))
     print("product bond fail count: \t{}".format(fail_prod_len))
-
     print("about to group and organize")
+    
 
     extractor = ReactionCollection(reactions)
     (
@@ -674,7 +737,7 @@ def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_fi
         all_labels,
         features,
     
-    ) = extractor.create_struct_label_dataset_reaction_based_regression_alt(
+    ) = extractor.create_struct_label_dataset_reaction_based_regression_general(
         struct_file=path_mg_data + "mg_struct_bond_rgrn_classify.sdf",
         label_file=path_mg_data + "mg_label_bond_rgrn_classify.yaml",
         feature_file=path_mg_data + "mg_feature_bond_rgrn_classify.yaml",
@@ -682,8 +745,7 @@ def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_fi
         sdf_mapping=False,
     )
 
-    return all_mols, all_labels, features, mg_df.iloc[ind_final]
-
+    return all_mols, all_labels, features
 
 def process_data():
     # create_struct_label_dataset_reaction_network(filename='', out_file='./')
