@@ -3,15 +3,14 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from collections import defaultdict, OrderedDict
-from rdkit import Chem, RDLogger
 from bondnet.dataset.mg_barrier import create_reaction_network_files_and_valid_rows
 from bondnet.data.reaction_network import ReactionInNetwork, ReactionNetwork
 from bondnet.data.transformers import HeteroGraphFeatureStandardScaler, StandardScaler
 from bondnet.data.utils import get_dataset_species, get_dataset_species_from_json
 from bondnet.utils import to_path, yaml_load, list_split_by_size
-from pebble import ProcessPool
 from concurrent.futures import TimeoutError
 
+from rdkit import Chem, RDLogger
 logger = RDLogger.logger()
 logger.setLevel(RDLogger.CRITICAL)
 

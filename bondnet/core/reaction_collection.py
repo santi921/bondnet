@@ -442,8 +442,8 @@ class ReactionCollection:
             # find the lowest energy reaction for each bond
             lowest_energy_reaction = dict()
             for rxn in groups[reactant]:
+                
                 bond = rxn.get_broken_bond()
-                print(bond)
                 if bond not in lowest_energy_reaction:
                     lowest_energy_reaction[bond] = rxn
                 else:
@@ -1108,6 +1108,121 @@ class ReactionCollection:
         print("labels: {}".format(len(all_labels)))
         print("molecules: {}".format(len(all_mols)))
 
+    def create_struct_label_dataset_reaction_based_regression_general(
+        self,
+        struct_file="sturct.sdf",
+        label_file="label.txt",
+        feature_file=None,
+        group_mode="all",
+        one_per_iso_bond_group=True,
+        sdf_mapping=False,
+    ):
+        """
+        Write the reaction
+
+        This is based on reaction:
+
+        Each reaction uses molecule instances for its reactants and products. As a
+        result, a molecule is represented multiple times, which takes long time.
+
+        Args:
+            struct_file (str): filename of the sdf structure file
+            label_file (str): filename of the label
+            feature_file (str): filename for the feature file, if `None`, do not write it
+            group_mode (str): the method to group reactions, different mode result in
+                different reactions to be retained, e.g. `charge_0` keeps all charge 0
+                reactions.
+            one_per_iso_bond_group (bool): whether to keep just one reaction from each
+                iso bond group.
+            sdf_mapp(bool): use sdf mapping or just bond index
+        """
+
+        if group_mode == "all":
+            grouped_rxns = self.group_by_reactant_all()
+        elif group_mode == "charge_0":
+            grouped_rxns = self.group_by_reactant_charge_0()
+        elif group_mode == "energy_lowest":
+            grouped_rxns = self.group_by_reactant_lowest_energy()
+        else:
+            raise ValueError(
+                f"group_mode ({group_mode}) not supported. Options are: 'all', "
+                f"'charge_0', and 'energy_lowest'."
+            )
+
+        all_mols, all_mol_ids, all_labels = [], [], []
+        print("number of grouped reactions: {}".format(len(grouped_rxns)))
+
+        for grp in grouped_rxns:
+            reactions = grp.order_reactions(
+                one_per_iso_bond_group, complement_reactions=False
+            )
+            # rxn: a reaction for one bond and a specific combination of charges
+            for i, rxn in enumerate(reactions):
+                mols = rxn.reactants + rxn.products
+                mols_id = \
+                    [
+                        str(i.id) + "_" + str(ind) for ind, i in enumerate(rxn.reactants)
+                    ] + \
+                    [
+                    str(i.id) + "_" + str(ind) for ind, i in enumerate(rxn.products)
+                    ]
+                all_mols.extend(mols)
+                all_mol_ids.extend(mols_id)
+
+        for grp in grouped_rxns:
+            reactions = grp.order_reactions(
+                one_per_iso_bond_group, complement_reactions=False
+            )
+
+            # rxn: a reaction for one bond and a specific combination of charges
+            for i, rxn in enumerate(reactions):
+                reactant_id = [
+                        str(i.id) + "_" + str(ind) for ind, i in enumerate(rxn.reactants)
+                    ]
+                product_ids = [
+                    str(i.id) + "_" + str(ind) for ind, i in enumerate(rxn.products)
+                ]
+                energy = rxn.get_free_energy()
+                if sdf_mapping:
+                    mapping = rxn.bond_mapping_by_sdf_int_index()
+                else:
+                    mapping = rxn.bond_mapping_by_int_index()
+                data = {
+                    "value":[energy],
+                    "num_mols":len(reactant_id + product_ids),
+                    "products":[all_mol_ids.index(prod_id) for prod_id in product_ids],
+                    "reactants":[all_mol_ids.index(react_id) for react_id in reactant_id],
+                    "atom_mapping":rxn.atom_mapping(),
+                    "bond_mapping":mapping,
+                    "total_bonds":rxn.total_bonds,
+                    "total_atoms":rxn.total_atoms,
+                    "num_atoms_total":rxn.num_atoms_total,
+                    "num_bonds_total":rxn.num_bonds_total,
+                    "broken_bonds":rxn.get_broken_bond(),
+                    "formed_bonds":rxn.get_formed_bond(),
+                    "id": [rxn.get_id()],
+                }
+                all_labels.append(data)
+
+        # write sdf - should be the same but we might need to get indeces again
+        self.write_sdf_custom(all_mols, struct_file)
+        # label file
+        yaml_dump(all_labels, label_file)
+        # write feature - done
+        if feature_file is not None:
+            features = self.get_feature(all_mols, bond_indices=None)
+            # extra features (global) that could be included
+            features = [{"charge": i["charge"]} for i in features]
+            yaml_dump(features, feature_file)
+
+        features = self.get_feature(all_mols, bond_indices=None)
+        features = [{"charge": i["charge"]} for i in features]
+        print("features: {}".format(len(features)))
+        print("labels: {}".format(len(all_labels)))
+        print("molecules: {}".format(len(all_mols)))
+
+        return all_mols, all_labels, features
+
     def create_struct_label_dataset_reaction_based_regression_alt(
         self,
         struct_file="sturct.sdf",
@@ -1213,6 +1328,7 @@ class ReactionCollection:
         print("molecules: {}".format(len(all_mols)))
 
         return all_mols, all_labels, features
+
 
     def create_struct_label_dataset_bond_based_classification(
         self,

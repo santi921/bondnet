@@ -965,11 +965,12 @@ class AtomFeaturizerGraph(BaseFeaturizer):
                 )
             )
 
-        feats = []
+        feats, bond_list = [], []
         num_atoms = 0
         allowed_ring_size = [3, 4, 5, 6, 7]
 
         atom_types = list(mol.composition_dict.keys())
+
         for atom in atom_types:
             num_atoms += int(mol.composition_dict[atom])
 
@@ -978,7 +979,6 @@ class AtomFeaturizerGraph(BaseFeaturizer):
         atom_num = len(species_sites)
 
         bond_list_tuple = list(mol.bonds.keys())
-        bond_list = []
         [bond_list.append(list(bond)) for bond in bond_list_tuple]
 
         cycles = find_rings(atom_num, bond_list, edges=False)
@@ -1003,8 +1003,6 @@ class AtomFeaturizerGraph(BaseFeaturizer):
             + ["chemical symbol"] * len(species)
             + ["ring size"] * len(allowed_ring_size)
         )
-        #print(species)
-        #print(feats)
 
         return {"feat": feats}
 
@@ -1109,8 +1107,6 @@ class BondAsNodeGraphFeaturizer(BondFeaturizer):
             self._feature_name += self.length_featurizer.feature_name
 
         return {"feat": feats}
-
-
 
 class BondAsNodeGraphFeaturizerBondLen(BondFeaturizer):
     """BaseFeaturizer

@@ -26,12 +26,14 @@ class MoleculeWrapper:
         id (str): (unique) identification of the molecule
     """
 
-    def __init__(self, mol_graph, free_energy=None, id=None, non_metal_bonds=None):
+    def __init__(self, mol_graph, free_energy=None, id=None, non_metal_bonds=None, original_atom_ind = None, original_bond_mapping = None):
         self.mol_graph = mol_graph
         self.pymatgen_mol = mol_graph.molecule
         self.nonmetal_bonds = non_metal_bonds
         self.free_energy = free_energy
         self.id = id
+        self.original_atom_ind = original_atom_ind
+        self.original_bond_mapping = original_bond_mapping
         
         # set when corresponding method is called
         self._rdkit_mol = None
@@ -509,7 +511,8 @@ class MoleculeWrapper:
 
 
 def create_wrapper_mol_from_atoms_and_bonds(
-    species, coords, bonds, charge=0, free_energy=None, identifier=None
+    species, coords, bonds, charge=0, free_energy=None, identifier=None, 
+    original_atom_ind = None, original_bond_ind = None
 ):
     """
     Create a :class:`MoleculeWrapper` from atoms and bonds.
@@ -518,9 +521,10 @@ def create_wrapper_mol_from_atoms_and_bonds(
         species (list of str): atom species str
         coords (2D array): positions of atoms
         bonds (list of tuple): each tuple is a bond (atom indices)
-        charge (int): chare of the molecule
+        charge (int): charge of the molecule
         free_energy (float): free energy of the molecule
         identifier (str): (unique) identifier of the molecule
+        original_atom_ind(list of indices):  atoms, in order
 
     Returns:
         MoleculeWrapper instance
@@ -529,8 +533,14 @@ def create_wrapper_mol_from_atoms_and_bonds(
     pymatgen_mol = pymatgen.Molecule(species, coords, charge)
     bonds = {tuple(sorted(b)): None for b in bonds}
     mol_graph = MoleculeGraph.with_edges(pymatgen_mol, bonds)
+    mol_wrapper = MoleculeWrapper(
+                mol_graph, 
+                free_energy, 
+                identifier, 
+                original_atom_ind=original_atom_ind, 
+                original_bond_mapping=original_bond_ind)
 
-    return MoleculeWrapper(mol_graph, free_energy, identifier)
+    return mol_wrapper
 
 
 def rdkit_mol_to_wrapper_mol(m, charge=None, free_energy=None, identifier=None):

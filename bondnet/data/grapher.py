@@ -416,7 +416,7 @@ class HeteroCompleteGraphFromPandas(BaseGraph):
         return g
 
 
-class HeteroCompleteGraphFromDGLAndPandas(BaseGraph):
+class HeteroCompleteGraphFromMolWrapper(BaseGraph):
     """
 
     """
@@ -428,7 +428,7 @@ class HeteroCompleteGraphFromDGLAndPandas(BaseGraph):
         global_featurizer=None,
         self_loop=True,
     ):
-        super(HeteroCompleteGraphFromDGLAndPandas, self).__init__(
+        super(HeteroCompleteGraphFromMolWrapper, self).__init__(
             atom_featurizer, bond_featurizer, self_loop
         )
         self.global_featurizer = global_featurizer
@@ -478,11 +478,14 @@ class HeteroCompleteGraphFromDGLAndPandas(BaseGraph):
                     ("global", "g2g", "global"): g2g,
                 }
             )
+            
         g = dgl.heterograph(edges_dict)
-
         # add name
         g.mol_name = mol.id
-
+        if(mol.original_atom_ind!=None):
+            g.atom_ind = mol.original_atom_ind
+        if(mol.original_bond_mapping != None):
+            g.bond_ind = mol.original_bond_mapping
         return g
 
     def featurize(self, g, row, **kwargs):

@@ -15,7 +15,7 @@ from bondnet.data.featurizer import (
     GlobalFeaturizerGraph,
 )
 from bondnet.data.grapher import (
-    HeteroCompleteGraphFromDGLAndPandas,
+    HeteroCompleteGraphFromMolWrapper,
 )
 
 def train_classifier(model, nodes, data_loader, optimizer, device = None, categories = 3):
@@ -361,7 +361,7 @@ def get_grapher():
     atom_featurizer = AtomFeaturizerGraph()
     bond_featurizer = BondAsNodeGraphFeaturizerBondLen()
     global_featurizer = GlobalFeaturizerGraph(allowed_charges=[-2, -1, 0, 1])
-    grapher = HeteroCompleteGraphFromDGLAndPandas(
+    grapher = HeteroCompleteGraphFromMolWrapper(
         atom_featurizer, bond_featurizer, global_featurizer
     )
     return grapher

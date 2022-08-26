@@ -96,13 +96,12 @@ def process_species_graph(row, classifier=False, target = 'ts'):
         pass #print("cannot handle three or more products")
     # handle A --> B + C
     elif len(sub_graphs) == 2:
-        mapping, mol_prod = [], []
+        mapping = []
         for ind_sg, sg in enumerate(sub_graphs):
             dict_prod = {}
             coords_products, species_products, bond_reindex_list = [], [], []
             nodes = list(sg.nodes())
-            bonds = list(sg.edges())
-
+            #bonds = list(sg.edges())
             # finds bonds mapped to subgraphs
             for origin_bond_ind in row[product_key+"_bonds"]:
                 # check if root to edge is in node list for subgraph
@@ -217,7 +216,7 @@ def process_species_graph(row, classifier=False, target = 'ts'):
             reactants=reactant_list,
             products=product_list,
             free_energy=value,
-            broken_bond=broken_bond,
+            broken_bond=[tuple(broken_bond) for i in broken_bond],
             identifier=id,
         )
 
@@ -695,5 +694,5 @@ def process_data():
     return all_mols, all_labels, features
 
 
-if __name__ == "__main__":
-    process_data()
+#if __name__ == "__main__":
+#    process_data()

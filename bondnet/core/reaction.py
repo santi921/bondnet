@@ -34,18 +34,36 @@ class Reaction:
     """
 
     def __init__(
-        self, reactants, products, broken_bond=None, free_energy=None, identifier=None
+        self, reactants, products, 
+        broken_bond=None, formed_bond=None, 
+        free_energy=None, identifier=None, 
+        total_bonds=None, total_atoms=None
     ):
-
-        assert len(reactants) == 1, "incorrect number of reactants, should be 1"
-        assert 1 <= len(products) <= 2, "incorrect number of products, should be 1 or 2"
 
         self.reactants = reactants
         self.products = products
+        self.len_products = len(products)
+        self.len_reactants = len(reactants)
+        self.total_bonds = total_bonds
+        
+        if(total_atoms != None):
+            self.total_atoms = total_atoms
+            self.num_atoms_total = len(self.total_atoms)
+            self.num_bonds_total = len(total_bonds)
+        else:
+            if(total_bonds!=None): # fix bug here
+                self.total_atoms = list(set(list(np.concatenate(total_bonds).flat)))
+                self.num_atoms_total = len(self.total_atoms)
+                self.num_bonds_total = len(total_bonds)
+            else:
+                self.total_atoms = None
+                self.num_atoms_total = None
+                self.num_bonds_total = None
+        
         self._broken_bond = broken_bond
+        self._formed_bond = formed_bond
         self._free_energy = free_energy
         self._id = identifier
-
         self._atom_mapping = None
         self._bond_mapping_by_int_index = None
         self._bond_mapping_by_tuple_index = None
@@ -87,7 +105,6 @@ class Reaction:
         Returns:
             tuple: sorted index of broken bond (a 2-tuple of atom index)
         """
-
         if self._broken_bond is None:
             if len(self.products) == 1:
                 bonds = is_valid_A_to_B_reaction(
@@ -116,7 +133,6 @@ class Reaction:
                 )
             # only one element in `bonds` because of `first_only = True`
             self._broken_bond = bonds[0]
-
         return tuple(sorted(self._broken_bond))
 
     def get_broken_bond_attr(self):
@@ -126,6 +142,25 @@ class Reaction:
         """
         reactant = self.reactants[0]
         u, v = self.get_broken_bond()
+        species = (reactant.species[u], reactant.species[v])
+
+        return {"species": species}
+
+    def get_formed_bond(self):
+        """
+        Returns:
+            tuple: sorted index of form bond (a 2-tuple of atom index)
+        """
+
+        return tuple(sorted(self._formed_bond))
+
+    def get_formed_bond_attr(self):
+        """
+        Returns:
+             dict: {bond_idx:attr} attributes of the broken bond.
+        """
+        reactant = self.reactants[0]
+        u, v = self.get_formed_bond()
         species = (reactant.species[u], reactant.species[v])
 
         return {"species": species}
@@ -658,21 +693,24 @@ class ReactionsMultiplePerBond(ReactionsGroup):
         # assign rxn to bond group
         for rxn in self.reactions:
             # i'm going to assume that if this index isn't here but
-            # is in evan's db's that it's a mismatch in bond labelling
-            # between rdkit and us
-            if rxn.get_broken_bond() in bond_rxns_dict:
-                bond_rxns_dict[rxn.get_broken_bond()].append(rxn)
+            #[tuple(i) for i in bond_rxns_dict]
+            broken = rxn.get_broken_bond()
+            if tuple(broken) in [tuple(i) for i in bond_rxns_dict]:
+                broken_first = tuple(rxn.get_broken_bond()[0])
+                bond_rxns_dict[broken_first].append(rxn)
+                    
             else:
-                bond_rxns_dict[rxn.get_broken_bond()] = []
-                bond_rxns_dict[rxn.get_broken_bond()].append(rxn)
+                broken_first = tuple(broken)
+                if(len(rxn.get_broken_bond())>1):
+                    bond_rxns_dict[broken_first] = []
+                    bond_rxns_dict[broken_first].append(rxn)
+                else:
+                    bond_rxns_dict[broken_first] = []
+                    bond_rxns_dict[broken_first].append(rxn)
 
         # remove duplicate isomorphic bonds
         if find_one:
             for group in self.reactant.isomorphic_bonds:
-
-                # keep the first bond in each group and remove others
-                # for i in range(1, len(group)):
-                #     bond_rxns_dict.pop(group[i])
 
                 # keep the bond having the most reactions and remove others in the group
                 num_reactions = {bond: len(bond_rxns_dict[bond]) for bond in group}

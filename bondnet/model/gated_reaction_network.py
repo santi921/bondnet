@@ -23,14 +23,13 @@ class GatedGCNReactionNetwork(GatedGCNMol):
 
         # embedding
         feats = self.embedding(feats)
-
         # gated layer
         for layer in self.gated_layers:
             feats = layer(graph, feats, norm_atom, norm_bond)
 
         # convert mol graphs to reaction graphs by subtracting reactant feats from
         # products feats
-        # graph is actually batch graphs, not just a graph
+        # graph is actually batch graphs, not just a graph        
         graph, feats = mol_graph_to_rxn_graph(graph, feats, reactions)
 
         # readout layer
@@ -136,6 +135,7 @@ def mol_graph_to_rxn_graph(graph, feats, reactions):
     # If you really want to, use copy.deepcopy() to make a local copy
 
     # assign feats
+
     for nt, ft in feats.items():
         graph.nodes[nt].data.update({"ft": ft})
 
@@ -156,9 +156,9 @@ def mol_graph_to_rxn_graph(graph, feats, reactions):
         mappings = {"atom": rxn.atom_mapping_as_list, "bond": rxn.bond_mapping_as_list}
 
         ##################################################
-        graph = reactants[0]
-        ft_name = "ft"
-        nt = "bond"
+        graph = reactants[0] # constuct molecules together
+
+        ft_name, nt = "ft", "bond"
         reactants_ft = [p.nodes[nt].data[ft_name] for p in reactants]
         products_ft = [p.nodes[nt].data[ft_name] for p in products]
         products_ft = list(itertools.compress(products_ft, has_bonds["products"]))
@@ -169,13 +169,14 @@ def mol_graph_to_rxn_graph(graph, feats, reactions):
         # reorder products_ft such that atoms/bonds have the same order as reactants
         products_ft = products_ft[mappings[nt]]
         # adds padding if bond isn't mapped/doesn't exist
+        # also just subtracts each from one another
         g, fts = create_rxn_graph(
             reactants, products, mappings, has_bonds, tuple(feats.keys())
         )
         if len(products_ft) == len(reactants_ft):
             reaction_graphs.append(g)
             reaction_feats.append(fts)
- 
+        
         ##################################################
 
     # batched reaction graph and data
@@ -219,6 +220,7 @@ def create_rxn_graph(
 
     # note, this assumes we have one reactant
     graph = reactants[0]
+    
     feats = dict()
     for nt in ntypes:
         reactants_ft = [p.nodes[nt].data[ft_name] for p in reactants]
@@ -242,6 +244,8 @@ def create_rxn_graph(
             products_ft = torch.sum(products_ft, dim=0, keepdim=True)
         else:
             # reorder products_ft such that atoms/bonds have the same order as reactants
+            #print("print mappings")
+            #print(mappings[nt])
             assert len(products_ft) == len(mappings[nt]), (
                 f"products_ft ({len(products_ft)}) and mappings[{nt}] "
                 f"({len(mappings[nt])}) have different length"
