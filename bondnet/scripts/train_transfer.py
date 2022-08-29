@@ -30,7 +30,7 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset = None
     best = 1e10
     feature_names = ["atom", "bond", "global"]
     dict_train = parse_settings(settings_file)
-    path_mg_data = "../../../dataset/mg_dataset/20220613_reaction_data.json"
+    path_mg_data = "../../../dataset/mg_dataset/20220826_mpreact_reactions.json"
         
     if(dict_train["classifier"]):
         classif_categories = 5 # update this later
