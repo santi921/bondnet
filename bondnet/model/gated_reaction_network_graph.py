@@ -129,7 +129,6 @@ def mol_graph_to_rxn_graph(graph, feats, reactions, device=None):
         #feats = {k: v.to(device) for k, v in feats.items()}
     # unbatch molecule graph
     graphs = dgl.unbatch(graph)
-    master_graph, master_feats = [], []
     reaction_graphs, reaction_feats = [], []
     batched_feats = {}
 
@@ -157,7 +156,7 @@ def mol_graph_to_rxn_graph(graph, feats, reactions, device=None):
         
         
         g, fts = create_rxn_graph(
-            reactants, products, mappings, has_bonds, tuple(feats.keys()), device
+            reactants, products, mappings, has_bonds, device
         )
         reaction_graphs.append(g)
         #if(device !=None):
@@ -243,7 +242,6 @@ def create_rxn_graph(
     products,
     mappings,
     has_bonds,
-    spectator_atom,
     device=None, 
     ntypes=("global", "atom", "bond"),
     ft_name="ft",
