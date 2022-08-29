@@ -1,8 +1,9 @@
 import torch
-import time, wandb
+import time, wandb, itertools, copy
+
 import numpy as np 
 from tqdm import tqdm
-from sklearn.metrics import r2_score
+#from sklearn.metrics import r2_score
 from torchmetrics import R2Score
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
@@ -272,7 +273,6 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset = None
     print("Time to Training: {:5.1f} seconds".format(float(t2 - t1)))
     run.finish()
 
-#train_transfer()
 
 """dict_train = {
     "learning_rate": 0.0001,

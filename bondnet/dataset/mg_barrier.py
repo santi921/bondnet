@@ -1,7 +1,8 @@
 from re import L
-import time
+import time, copy
 import pandas as pd
 import networkx as nx
+import numpy as np 
 from tqdm import tqdm
 from pebble import ProcessPool
 from concurrent.futures import TimeoutError

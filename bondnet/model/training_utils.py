@@ -6,12 +6,11 @@ from torchmetrics import F1Score
 from sklearn.metrics import f1_score
 
 from bondnet.model.metric import WeightedL1Loss, WeightedMSELoss
-from bondnet.model.gated_reaction_network import GatedGCNReactionNetwork
+from bondnet.model.gated_reaction_network_graph import GatedGCNReactionNetwork
 from bondnet.model.gated_reaction_network_classifier import GatedGCNReactionNetworkClassifier
 from bondnet.data.featurizer import (
     AtomFeaturizerGraph,
-    BondAsNodeGraphFeaturizer,
-    BondAsNodeGraphFeaturizerBondLen,
+    BondAsNodeGraphFeaturizerBondLen, # might want to switch
     GlobalFeaturizerGraph,
 )
 from bondnet.data.grapher import (
@@ -187,7 +186,7 @@ def evaluate(model, nodes, data_loader, device=None):
             #try:
             #    pred = model(batched_graph, feats, label["reaction"], norm_atom, norm_bond)
             #except:
-            pred = model(batched_graph, feats, label["reaction"])
+            pred = model(batched_graph, feats, label["reaction"], device=device)
             mae += metric_fn(pred, target, stdev).detach().item() 
             count += len(target)
 
@@ -195,30 +194,6 @@ def evaluate(model, nodes, data_loader, device=None):
     
     return l1_acc
 
-"""
-def evaluate(model, nodes, data_loader, device = None):
-    model.eval()
-    metric_fn = WeightedL1Loss(reduction="mean")
-
-    with torch.no_grad():
-        accuracy = 0.0
-        count = 0.0
-
-        for batched_graph, label in data_loader:
-            feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
-            target = label["value"]
-            stdev = label["scaler_stdev"]
-
-            pred = model(batched_graph, feats, label["reaction"])
-            #pred = pred.view(-1)
-
-            accuracy += metric_fn(pred, target, stdev).detach().item()
-            #accuracy += metric_fn(pred, target).detach().item() * stdev
-            
-            count += len(target)
-
-    return accuracy / count
-"""
 
 def train(model, nodes, data_loader, optimizer, device=None):
     """
@@ -237,11 +212,9 @@ def train(model, nodes, data_loader, optimizer, device=None):
     loss_fn = WeightedMSELoss(reduction="mean")
     metric_fn = WeightedL1Loss(reduction="mean")
 
-    model.train()
 
-    epoch_loss = 0.0
-    accuracy = 0.0
-    count = 0.0
+    count, accuracy, epoch_loss = 0.0, 0.0, 0.0
+    model.train()
 
     for it, (batched_graph, label) in enumerate(data_loader):
         feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
@@ -254,17 +227,14 @@ def train(model, nodes, data_loader, optimizer, device=None):
             feats = {k: v.to(device) for k, v in feats.items()}
             target = target.to(device)
             norm_atom = norm_atom.to(device)
-            norm_bond = norm_bond.to(device)
+            norm_bond = norm_bond.to(device)   
             stdev = stdev.to(device)
-
-        #try:
-        #    pred = model(batched_graph, feats, label["reaction"], norm_atom, norm_bond)
-        #except:
-        pred = model(batched_graph, feats, label["reaction"])
-
-        # pred = pred.view(-1)
+        
         target_new_shape = (len(target), 1)
-        target = target.view(target_new_shape)
+        target = target.view(target_new_shape) 
+
+        pred = model(batched_graph, feats, label["reaction"], device=device)
+        
         pred_new_shape = (len(pred), 1)
         pred = pred.view(pred_new_shape)
 
@@ -276,12 +246,10 @@ def train(model, nodes, data_loader, optimizer, device=None):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()  # here is the actual optimizer step
-
         epoch_loss += loss.detach().item()
-
+        
         accuracy += metric_fn(pred, target, stdev).detach().item()
         count += len(target)
-
     epoch_loss /= it + 1
     accuracy /= count
 
@@ -344,10 +312,7 @@ def evaluate_r2(model, nodes, data_loader, device = None):
                 target = target.to(device)
                 norm_atom = norm_atom.to(device)
                 norm_bond = norm_bond.to(device)
-            pred = model(batched_graph, feats, label["reaction"])
-            #pred = model(batched_graph, feats, label["reaction"], norm_atom, norm_bond)
-            #pred = pred.view(-1)
-            #target = target.view(-1)
+            pred = model(batched_graph, feats, label["reaction"], device=device)
 
     target_mean = torch.mean(target)
     ss_tot = torch.sum((target - target_mean) ** 2)

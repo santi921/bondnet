@@ -1,12 +1,11 @@
 import torch
-import itertools
+import itertools, copy, dgl
 import numpy as np
-import dgl
 from bondnet.model.gated_mol import GatedGCNMol
 
 
 class GatedGCNReactionNetwork(GatedGCNMol):
-    def forward(self, graph, feats, reactions, norm_atom=None, norm_bond=None):
+    def forward(self, graph, feats, reactions, norm_atom=None, norm_bond=None, device=None):
         """
         Args:
             graph (DGLHeteroGraph or BatchedDGLHeteroGraph): (batched) molecule graphs
@@ -23,20 +22,18 @@ class GatedGCNReactionNetwork(GatedGCNMol):
         # embedding
         feats = self.embedding(feats)
         # gated layer
+        
         for layer in self.gated_layers:
             feats = layer(graph, feats, norm_atom, norm_bond)
-
+        
         # convert mol graphs to reaction graphs by subtracting reactant feats from
         # products feats
         # graph is actually batch graphs, not just a graph
-        graph, feats = mol_graph_to_rxn_graph(graph, feats, reactions)
-        #[print(i, feats[i].shape)for i in feats.keys()]
+        graph, feats = mol_graph_to_rxn_graph(graph, feats, reactions, device)
         
         # readout layer
-        #print("failed here")
         feats = self.readout_layer(graph, feats)
-        #print("or nah")
-        # fc
+        
         for layer in self.fc_layers:
             feats = layer(feats)
 
@@ -50,7 +47,6 @@ class GatedGCNReactionNetwork(GatedGCNMol):
         """
         # embedding
         feats = self.embedding(feats)
-
         # gated layer
         for layer in self.gated_layers:
             feats = layer(graph, feats, norm_atom, norm_bond)
@@ -58,10 +54,8 @@ class GatedGCNReactionNetwork(GatedGCNMol):
         # convert mol graphs to reaction graphs by subtracting reactant feats from
         # products feats
         graph, feats = mol_graph_to_rxn_graph(graph, feats, reactions)
-
         # readout layer
         feats = self.readout_layer(graph, feats)
-
         return feats
 
     def feature_at_each_layer(self, graph, feats, reactions, norm_atom, norm_bond):
@@ -110,7 +104,7 @@ def _split_batched_output(graph, value):
     return torch.split(value, nbonds)
 
 
-def mol_graph_to_rxn_graph(graph, feats, reactions):
+def mol_graph_to_rxn_graph(graph, feats, reactions, device=None):
     """
     Convert a batched molecule graph to a batched reaction graph.
 
@@ -132,6 +126,7 @@ def mol_graph_to_rxn_graph(graph, feats, reactions):
     #updates node features on batches
     for nt, ft in feats.items():
         graph.nodes[nt].data.update({"ft": ft}) 
+        #feats = {k: v.to(device) for k, v in feats.items()}
     # unbatch molecule graph
     graphs = dgl.unbatch(graph)
     master_graph, master_feats = [], []
@@ -162,9 +157,11 @@ def mol_graph_to_rxn_graph(graph, feats, reactions):
         
         
         g, fts = create_rxn_graph(
-            reactants, products, mappings, has_bonds, tuple(feats.keys())
+            reactants, products, mappings, has_bonds, tuple(feats.keys()), device
         )
         reaction_graphs.append(g)
+        #if(device !=None):
+        #    fts = {k: v.to(device) for k, v in fts.items()}
         reaction_feats.append(fts)
         ##################################################
     for i, g, ind in zip(reaction_feats, reaction_graphs, range(len(reaction_feats))): 
@@ -174,7 +171,8 @@ def mol_graph_to_rxn_graph(graph, feats, reactions):
         for nt in i.keys():
             total_feats+=i[nt].shape[0]
             feat_len_dict[nt] = i[nt].shape[0]
-        if(total_feats!=g.number_of_nodes()):
+
+        if(total_feats!=g.number_of_nodes()): # error checking
             print(g)
             print(feat_len_dict)
             print(reactions[ind].atom_mapping)
@@ -182,13 +180,14 @@ def mol_graph_to_rxn_graph(graph, feats, reactions):
             print(reactions[ind].total_bonds)
             print(reactions[ind].total_atoms)
             print("--"*20)
+
     batched_graph = dgl.batch(reaction_graphs) # batch graphs
     for nt in feats: # batch features
         batched_feats[nt] = torch.cat([ft[nt] for ft in reaction_feats])
     return batched_graph, batched_feats
 
 
-def construct_rxn_graph_empty(mappings, self_loop = True):
+def construct_rxn_graph_empty(mappings, device=None, self_loop = True):
 
     bonds_compile = mappings["total_bonds"]
     atoms_compile = mappings["total_atoms"]
@@ -235,7 +234,7 @@ def construct_rxn_graph_empty(mappings, self_loop = True):
         )
         
     rxn_graph_zeroed = dgl.heterograph(edges_dict)
-
+    if(device is not None): rxn_graph_zeroed = rxn_graph_zeroed.to(device)
     return rxn_graph_zeroed
 
 
@@ -245,6 +244,7 @@ def create_rxn_graph(
     mappings,
     has_bonds,
     spectator_atom,
+    device=None, 
     ntypes=("global", "atom", "bond"),
     ft_name="ft",
 ):
@@ -275,14 +275,19 @@ def create_rxn_graph(
     # note, this assumes we have one reactant
     num_products = int(len(products))
     num_reactants = int(len(reactants))
-    graph = construct_rxn_graph_empty(mappings)
+    graph = construct_rxn_graph_empty(mappings, device)
     if(verbose):
         print("# reactions: {}, # products: {}".format(int(len(reactants)), int(len(products))))
 
     for nt in ntypes:
+        
         reactants_ft = [p.nodes[nt].data[ft_name] for p in reactants]
         products_ft = [p.nodes[nt].data[ft_name] for p in products]
         
+        if(device is not None):
+            reactants_ft = [r.to(device) for r in reactants_ft]
+            products_ft = [p.to(device) for p in products_ft]
+
         if(nt=='bond'):
             if(num_products>1):
                 products_ft = list(itertools.compress(products_ft, has_bonds["products"]))
@@ -297,9 +302,12 @@ def create_rxn_graph(
         if(nt=='global'):
             reactants_ft = [torch.sum(reactant_ft, dim=0, keepdim=True) for reactant_ft in reactants_ft]
             products_ft = [torch.sum(product_ft, dim=0, keepdim=True) for product_ft in products_ft]
+            if(device is not None):
+                reactants_ft = [r.to(device) for r in reactants_ft]
+                products_ft = [p.to(device) for p in products_ft]
         
         len_feature_nt = reactants_ft[0].shape[1]
-        if(len_feature_nt!=64): print(mappings)
+        #if(len_feature_nt!=64): print(mappings)
 
         if(nt == 'global'):
             net_ft_full = torch.zeros(1, len_feature_nt)
@@ -308,6 +316,9 @@ def create_rxn_graph(
         else: 
             net_ft_full = torch.zeros(mappings['num_atoms_total'], len_feature_nt) 
         
+        if(device is not None):
+            net_ft_full = net_ft_full.to(device)
+
         if(verbose):
             if(type(products_ft) == list):
                 for prod_ft in reactants_ft:
