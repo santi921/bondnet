@@ -51,5 +51,5 @@ def main():
                 dataset_transfer = dataset_transfer, 
                 device = dict_train["gpu"]
             )
-        os.rename(file, ind + "_done.txt")
+        os.rename(file, str(ind) + "_done.txt")
 main()
