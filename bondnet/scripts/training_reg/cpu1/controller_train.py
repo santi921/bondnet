@@ -7,7 +7,7 @@ from bondnet.data.dataset import ReactionNetworkDatasetGraphs
 from bondnet.utils import parse_settings
 
 def main():
-    path_mg_data = "../../dataset/mg_dataset/20220826_mpreact_reactions.json"
+    path_mg_data = "../../../dataset/mg_dataset/20220826_mpreact_reactions.json"
 
     #path_mg_data = "../dataset/mg_dataset/20220613_reaction_data.json"
     files = glob("settings*.txt")
