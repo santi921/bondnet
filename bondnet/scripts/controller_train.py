@@ -1,4 +1,5 @@
 import torch
+import os 
 from glob import glob
 from bondnet.scripts.train_transfer import train_transfer
 from bondnet.model.training_utils import get_grapher
@@ -44,12 +45,11 @@ def main():
         device = dict_train["gpu"]
     )
 
-    for file in files:
+    for ind, file in enumerate(files):
         train_transfer(file, 
                 dataset = dataset, 
                 dataset_transfer = dataset_transfer, 
                 device = dict_train["gpu"]
             )
-        #except:
-        #    pass
+        os.rename(file, ind + "_done.txt")
 main()
