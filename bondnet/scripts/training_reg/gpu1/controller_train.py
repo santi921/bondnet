@@ -8,7 +8,7 @@ from bondnet.utils import parse_settings
 
 def main():
 
-    path_mg_data = "../dataset/mg_dataset/20220613_reaction_data.json"
+    path_mg_data = "../../dataset/mg_dataset/20220826_mpreact_reactions.json"
     files = glob("settings*.txt")
     first_setting = files[0]
     dict_train = parse_settings(first_setting)
