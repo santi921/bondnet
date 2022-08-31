@@ -390,6 +390,7 @@ def parse_settings(file="settings.txt"):
     on_gpu = False
     distributed = False
     classifier = False
+    featurizer_xyz = True
     save_hyper_params = "./hyper.pkl"
     dataset_state_dict_filename = "./dataset_state_dict.pkl"
     model_path = "./"
@@ -447,7 +448,8 @@ def parse_settings(file="settings.txt"):
                     model_path = i.split()[1]
                 if i.split()[0] == "num_gpu":
                     num_gpu = int(i.split()[1])
-
+                if i.split()[0] == 'xyz_featurizer':
+                    featurizer_xyz = "True" == i.split()[1]
                 if i.split()[0] == "early_stop":
                     early_stop = "True" == i.split()[1]
                 if i.split()[0] == "scheduler":
@@ -522,6 +524,7 @@ def parse_settings(file="settings.txt"):
         print("distributed: " + str(distributed))
         print("on gpu: " + str(on_gpu))
         print("num gpu: " + str(num_gpu))
+        print("xyz feeaturizer: " + str(featurizer_xyz))
         print("hyperparam save file: " + str(save_hyper_params))
         print("dataset state dict: " + str(dataset_state_dict_filename))
         print("model dir " + str(model_path))
@@ -571,7 +574,7 @@ def parse_settings(file="settings.txt"):
         dict_ret["save_hyper_params"] = save_hyper_params
         dict_ret["dataset_state_dict_filename"] = Path(dataset_state_dict_filename)
         dict_ret["model_path"] = Path(model_path)
-
+        dict_ret["featurizer_xyz"] = featurizer_xyz
         dict_ret['early_stop'] = early_stop 
         dict_ret['scheduler'] = scheduler 
         dict_ret['transfer_epochs'] = transfer_epochs 

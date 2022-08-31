@@ -23,11 +23,14 @@ def main():
     else:
         device = torch.device("cpu")
         dict_train["gpu"] = "cpu"
-    #else: 
-    #    dict_train["gpu"] = device
+    
+    # NOTE YOU WANT TO USE SAME FEATURIZER/DEVICE ON ALL RUNS
+    # IN THIS FOLDER B/C THIS MAKES IT SO YOU ONLY HAVE TO GEN 
+    # DATASET ONCE
+    featurizer_xyz = dict_train["featurizer_xyz"] 
 
     dataset = ReactionNetworkDatasetGraphs(
-        grapher=get_grapher(), 
+        grapher=get_grapher(featurizer_xyz), 
         file=path_mg_data, 
         out_file="./", 
         target = 'ts', 
@@ -37,7 +40,9 @@ def main():
         device = dict_train["gpu"] 
     )
     dataset_transfer = ReactionNetworkDatasetGraphs(
-        grapher=get_grapher(), file=path_mg_data, out_file="./", 
+        grapher=get_grapher(featurizer_xyz), 
+        file=path_mg_data, 
+        out_file="./", 
         target = 'diff', 
         classifier = dict_train["classifier"], 
         classif_categories=classif_categories, 

@@ -15,7 +15,7 @@ early_stop True
 scheduler True
 transfer True
 loss weighted_mse
-
+xyz_featurizer False
 transfer_epochs 500
 epochs 1500
 
