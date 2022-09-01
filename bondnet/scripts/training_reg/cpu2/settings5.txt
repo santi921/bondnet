@@ -4,6 +4,8 @@ dataset_state_dict_filename home/santiagovargas/Documents/Dataset/mg/dataset_sta
 model_path /home/santiagovargas/Documents/Dataset/mg/
 test False
 on_gpu False
+filter_species 2 3 
+
 fc_activation ReLU
 gated_activation ReLU
 output_file results.pkl

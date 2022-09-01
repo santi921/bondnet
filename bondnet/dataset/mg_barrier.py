@@ -162,12 +162,11 @@ def process_species_graph(row, classifier=False, target='ts', reverse_rxn=False,
     """
     
     rxn = []
-    
+
     if(filter_species == None): 
         filter_prod = -99
         filter_reactant = -99
     else: 
-        print("filtering at level {}".format(filter_species))
         filter_prod = filter_species[1]
         filter_reactant = filter_species[0]
         
@@ -680,7 +679,14 @@ def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_fi
         #for ind, row in mg_df.head(250).iterrows():
         for ind, row in mg_df.iterrows(): 
             # process_species = process_species_rdkit
-            future = pool.schedule(process_species_graph, args=[row, classifier, target, False, filter_species], timeout=30)
+            future = pool.schedule(process_species_graph, 
+                        args=[row], 
+                        kwargs={"classifier":classifier,
+                                "target":target,
+                                "reverse_rxn":False,
+                                "verbose": False,
+                                "filter_species": filter_species},
+                        timeout=30)
             future.add_done_callback(task_done)
             try:
                 rxn_raw.append(future.result())

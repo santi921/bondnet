@@ -25,9 +25,10 @@ def main():
         dict_train["gpu"] = "cpu"
     #else: 
     #    dict_train["gpu"] = device
+    featurizer_xyz = dict_train["featurizer_xyz"] 
 
     dataset = ReactionNetworkDatasetGraphs(
-        grapher=get_grapher(), 
+        grapher=get_grapher(featurizer_xyz), 
         file=path_mg_data, 
         out_file="./", 
         target = 'ts', 
@@ -38,7 +39,9 @@ def main():
         device = dict_train["gpu"] 
     )
     dataset_transfer = ReactionNetworkDatasetGraphs(
-        grapher=get_grapher(), file=path_mg_data, out_file="./", 
+        grapher=get_grapher(featurizer_xyz), 
+        file=path_mg_data, 
+        out_file="./", 
         target = 'diff', 
         classifier = dict_train["classifier"], 
         classif_categories=classif_categories, 
@@ -46,6 +49,7 @@ def main():
         debug = dict_train["debug"],
         device = dict_train["gpu"]
     )
+
 
     for ind, file in enumerate(files):
         train_transfer(file, 

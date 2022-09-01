@@ -23,10 +23,8 @@ def main():
     else:
         device = torch.device("cpu")
         dict_train["gpu"] = "cpu"
-    
-    # NOTE YOU WANT TO USE SAME FEATURIZER/DEVICE ON ALL RUNS
-    # IN THIS FOLDER B/C THIS MAKES IT SO YOU ONLY HAVE TO GEN 
-    # DATASET ONCE
+    #else: 
+    #    dict_train["gpu"] = device
     featurizer_xyz = dict_train["featurizer_xyz"] 
 
     dataset = ReactionNetworkDatasetGraphs(
@@ -35,8 +33,8 @@ def main():
         out_file="./", 
         target = 'ts', 
         classifier = dict_train["classifier"], 
-        filter_species = dict_train["filter_species"],
         classif_categories=classif_categories, 
+        filter_species = dict_train["filter_species"],
         debug = dict_train["debug"],
         device = dict_train["gpu"] 
     )
@@ -51,6 +49,7 @@ def main():
         debug = dict_train["debug"],
         device = dict_train["gpu"]
     )
+
 
     for ind, file in enumerate(files):
         train_transfer(file, 

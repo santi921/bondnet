@@ -18,6 +18,7 @@ loss weighted_mse
 xyz_featurizer True
 transfer_epochs 500
 epochs 1000
+filter_species 2 3 
 
 embedding_size 16
 

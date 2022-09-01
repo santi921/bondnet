@@ -8,6 +8,7 @@ xyz_featurizer True
 fc_activation ReLU
 gated_activation ReLU
 output_file results.pkl
+filter_species 2 3 
 restore True
 start_epoch 0
 weight_decay 0.0
