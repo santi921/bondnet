@@ -326,8 +326,10 @@ def get_grapher(bond_len_in_featurizer=True):
 
     atom_featurizer = AtomFeaturizerGraph()
     if(bond_len_in_featurizer):
+        print("using bond featurizer w/xyz coords")
         bond_featurizer = BondAsNodeGraphFeaturizerBondLen()
     else: 
+        print("using simple bond featurizer")
         bond_featurizer = BondAsNodeGraphFeaturizer()
         
     global_featurizer = GlobalFeaturizerGraph(allowed_charges=[-2, -1, 0, 1])

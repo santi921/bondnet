@@ -386,7 +386,7 @@ def parse_settings(file="settings.txt"):
     """
     # some default values that get written over if in the file
     test = False
-    filter_species = False
+    filter_species = [2, 3]
     restore = False
     on_gpu = False
     distributed = False
