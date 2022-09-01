@@ -692,6 +692,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         dtype="float32",
         state_dict_filename=None,
         target = 'ts', 
+        filter_species = False, 
         classifier = False,
         debug = False,
         classif_categories = None,
@@ -707,7 +708,9 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
             all_labels,
             features,
         ) = create_reaction_network_files_and_valid_rows(
-            file, out_file, bond_map_filter=False, target=target, 
+            file, out_file, bond_map_filter=False, 
+            target=target, 
+            filter_species = filter_species,
             classifier=classifier, debug=debug
         )
 

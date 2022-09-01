@@ -147,9 +147,10 @@ def split_and_map(
 
     if(len(ret_list) != len(mapping)):print("ret list not equal to atom mapping list")
     if(len(ret_list) != len(bond_map)):print("ret list not equal to bond mapping list")
+    
     return ret_list, mapping, bond_map
 
-def process_species_graph(row, classifier=False, target='ts', reverse_rxn=False, verbose=False):
+def process_species_graph(row, classifier=False, target='ts', reverse_rxn=False, verbose=False, filter_species = None):
     """
     Takes a row and processes the products/reactants - entirely defined by graphs from row
 
@@ -160,7 +161,16 @@ def process_species_graph(row, classifier=False, target='ts', reverse_rxn=False,
         mol_list: a list of MolecularWrapper object(s) for product(s) or reactant
     """
     
-    rxn, reactant_list, product_list, bond_map = [], [], [], []
+    rxn = []
+    
+    if(filter_species == None): 
+        filter_prod = -99
+        filter_reactant = -99
+    else: 
+        print("filtering at level {}".format(filter_species))
+        filter_prod = filter_species[1]
+        filter_reactant = filter_species[0]
+        
     reactant_key = 'reactant'
     product_key = 'product'
     #reverse_rxn = False # generalize to augment with reverse
@@ -194,9 +204,7 @@ def process_species_graph(row, classifier=False, target='ts', reverse_rxn=False,
         temp_broken = copy.deepcopy(broken_bonds)
         broken_bonds = formed_bonds
         formed_bonds = temp_broken
-
-    id_reactant = str(row[reactant_key+"_id"])   
-    id_product =  str(row[product_key+"_id"])  
+ 
     bonds_reactant = row[reactant_key+"_bonds"]
     bonds_products = row[product_key+"_bonds"]
     pymat_graph_reactants = row[reactant_key+"_molecule_graph"]["molecule"]["sites"]
@@ -246,6 +254,13 @@ def process_species_graph(row, classifier=False, target='ts', reverse_rxn=False,
         assert (total_atoms==total_atoms_check), 'atoms in reactant and products are not equal'
     
     if products != [] and reactants != []:
+        if(filter_prod != -99 or filter_reactant != -99):
+            if(len(products) > filter_prod):
+                return rxn  
+        if(filter_reactant != -99):
+            if(len(reactants) > filter_reactant):
+                return rxn  
+
         id = [i for i in row["reaction_id"].split("-")]
         id = int(id[0] + id[1] + id[2])
 
@@ -639,7 +654,7 @@ def create_reaction_network_files(filename, out_file, classifier=False):
     return all_mols, all_labels, features
 
 
-def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_filter=False, target='ts', classifier=False, debug=False, augment=False):
+def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_filter=False, target='ts', classifier=False, debug=False, augment=False, filter_species = False):
     """
     Processes json file from emmet to use in training bondnet
 
@@ -665,7 +680,7 @@ def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_fi
         #for ind, row in mg_df.head(250).iterrows():
         for ind, row in mg_df.iterrows(): 
             # process_species = process_species_rdkit
-            future = pool.schedule(process_species_graph, args=[row, classifier, target, False], timeout=30)
+            future = pool.schedule(process_species_graph, args=[row, classifier, target, False, filter_species], timeout=30)
             future.add_done_callback(task_done)
             try:
                 rxn_raw.append(future.result())

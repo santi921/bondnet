@@ -57,6 +57,7 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset = None
         file=path_mg_data, 
         out_file="./", 
         target = 'ts', 
+        filter_species = dict_train["filter_species"],
         classifier = dict_train["classifier"], 
         classif_categories=classif_categories, 
         debug = dict_train["debug"],
@@ -94,6 +95,7 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset = None
             target = 'diff', 
             classifier = dict_train["classifier"], 
             classif_categories=classif_categories, 
+            filter_species = dict_train["filter_species"],
             debug = dict_train["debug"],
             device = dict_train["gpu"]
             )
@@ -262,7 +264,6 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset = None
         wandb.log({"f1 validation": test_f1})
         print("Test Acc: {:12.6e}".format(test_acc))
         print("Test F1: {:12.6e}".format(test_f1))
-
 
     else: 
         test_acc = evaluate(model, feature_names, test_loader, device = dict_train["gpu"])

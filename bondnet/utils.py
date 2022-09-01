@@ -386,6 +386,7 @@ def parse_settings(file="settings.txt"):
     """
     # some default values that get written over if in the file
     test = False
+    filter_species = False
     restore = False
     on_gpu = False
     distributed = False
@@ -438,6 +439,9 @@ def parse_settings(file="settings.txt"):
                     on_gpu = "True" == i.split()[1]
                 if i.split()[0] == "test":
                     test = "True" == i.split()[1]
+                if i.split()[0] == 'filter_species':
+                    filter_species = [int(j) for j in i.split()[1:]]
+                    
                 if i.split()[0] == "distributed":
                     distributed = "True" == i.split()[1]
                 if i.split()[0] == "save_hyper_params":
@@ -523,6 +527,7 @@ def parse_settings(file="settings.txt"):
         print("restore: " + str(restore))
         print("distributed: " + str(distributed))
         print("on gpu: " + str(on_gpu))
+        print("filter species? {}".format(filter_species))
         print("num gpu: " + str(num_gpu))
         print("xyz feeaturizer: " + str(featurizer_xyz))
         print("hyperparam save file: " + str(save_hyper_params))
@@ -568,6 +573,7 @@ def parse_settings(file="settings.txt"):
 
         dict_ret["debug"] = test
         dict_ret["on_gpu"] = on_gpu
+        dict_ret["filter_species"] = filter_species
         dict_ret["num_gpu"] = num_gpu
         dict_ret["epochs"] = epochs
         dict_ret["distributed"] = distributed

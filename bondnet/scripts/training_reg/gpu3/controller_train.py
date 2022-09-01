@@ -33,6 +33,7 @@ def main():
         target = 'ts', 
         classifier = dict_train["classifier"], 
         classif_categories=classif_categories, 
+        filter_species = dict_train["filter_species"],
         debug = dict_train["debug"],
         device = dict_train["gpu"] 
     )
@@ -41,6 +42,7 @@ def main():
         target = 'diff', 
         classifier = dict_train["classifier"], 
         classif_categories=classif_categories, 
+        filter_species = dict_train["filter_species"],
         debug = dict_train["debug"],
         device = dict_train["gpu"]
     )
