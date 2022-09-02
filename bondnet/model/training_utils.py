@@ -1,5 +1,5 @@
 import numpy as np 
-import torch, wandb
+import torch
 from torch.optim import Adam
 from torch.nn import CrossEntropyLoss
 from torchmetrics import F1Score
@@ -7,7 +7,8 @@ from sklearn.metrics import f1_score
 
 from bondnet.model.metric import WeightedL1Loss, WeightedMSELoss
 from bondnet.model.gated_reaction_network_graph import GatedGCNReactionNetwork
-from bondnet.model.gated_reaction_network_classifier import GatedGCNReactionNetworkClassifier
+from bondnet.model.gated_reaction_classifier_graph import GatedGCNReactionNetworkClassifier
+
 from bondnet.data.featurizer import (
     AtomFeaturizerGraph,
     BondAsNodeGraphFeaturizerBondLen, # might want to switch
@@ -53,22 +54,23 @@ def train_classifier(model, nodes, data_loader, optimizer, device = None, catego
             norm_bond = norm_bond.to(device)
             stdev = stdev.to(device)
             weight = weight.to(device)
+
         pred, target_filtered, stdev_filtered = model(
             batched_graph, 
             feats, 
             label["reaction"], 
             target,
             stdev,
-
+            device = device
         )
-        #norm_atom=norm_atom, 
-        #norm_bond=norm_bond
 
-        target_filtered = torch.reshape(target_filtered, (int(target_filtered.shape[0]/categories), categories))
+        #target_filtered = torch.reshape(target_filtered, 
+        #    (int(target_filtered.shape[0]/categories), categories))
         target_filtered = torch.argmax(target_filtered, axis=1)
         outputs.append(torch.argmax(pred, axis = 1))
         targets.append(target_filtered)
         loss_fn = CrossEntropyLoss(weight = weight)
+        #print(pred)
         loss = loss_fn(pred, torch.flatten(target_filtered))
         optimizer.zero_grad()
         loss.backward() 
@@ -127,12 +129,11 @@ def evaluate_classifier(model, nodes, data_loader, device = None, categories = 3
                 label["reaction"], 
                 target,
                 stdev,
-                
+                device = device
             )
-            #norm_atom=norm_atom, 
-            #norm_bond=norm_bond
+  
 
-            target_filtered = torch.reshape(target_filtered, (int(target_filtered.shape[0]/categories), categories))
+            #target_filtered = torch.reshape(target_filtered, (int(target_filtered.shape[0]/categories), categories))
             target_filtered = torch.argmax(target_filtered,axis=1)
             accuracy += (torch.argmax(pred, axis = 1) == target_filtered).sum().item()
             
@@ -147,8 +148,8 @@ def evaluate_classifier(model, nodes, data_loader, device = None, categories = 3
         outputs_numpy = outputs.long().numpy()
         target_numpy = targets.long().copy().numpy()
     
-    f1_val = f1_score(outputs_numpy, target_numpy, weight = 'macro')
-    wandb.log({"F1 test": f1_val})
+    f1_val = f1_score(outputs_numpy, target_numpy, average = 'macro')
+    
             
     return accuracy / count, f1_val
 

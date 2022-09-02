@@ -401,7 +401,7 @@ def parse_settings(file="settings.txt"):
     batch_size = 256
     lr = 0.00001
     num_gpu = 1
-    categories = 3
+    categories = 5
 
     early_stop = True
     scheduler = False
