@@ -692,7 +692,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         dtype="float32",
         state_dict_filename=None,
         target = 'ts', 
-        filter_species = False, 
+        filter_species = [2, 3], 
         classifier = False,
         debug = False,
         classif_categories = None,

@@ -240,9 +240,9 @@ def train(model, nodes, data_loader, optimizer, device=None):
         pred = pred.view(pred_new_shape)
 
         #try:
-        #    loss = loss_fn(pred, target, stdev)
+        loss = loss_fn(pred, target, stdev)
         #except:
-        loss = loss_fn(pred, target, weight = None)
+        #loss = loss_fn(pred, target, weight = None)
 
         optimizer.zero_grad()
         loss.backward()

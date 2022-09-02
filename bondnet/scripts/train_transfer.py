@@ -223,10 +223,17 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset = None
                 val_loader, 
                 device = dict_train["gpu"]
                 )
+            train_r2 = evaluate_r2(
+                model, 
+                feature_names, 
+                train_loader, 
+                device = dict_train["gpu"]
+                )
         
             wandb.log({"loss": loss})
             wandb.log({"mae_val": val_acc})
             wandb.log({"r2_val": val_r2})
+            wandb.log({"r2_val": train_r2})
 
             print(
                 "{:5d}   {:12.6e}   {:12.2e}   {:12.6e}   {:.2f}".format(
@@ -268,7 +275,7 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset = None
     else: 
         test_acc = evaluate(model, feature_names, test_loader, device = dict_train["gpu"])
         wandb.log({"mae_test": test_acc})
-        print("TestMAE: {:12.6e}".format(test_acc))
+        print("Test MAE: {:12.6e}".format(test_acc))
     
     t2 = time.time()
     print("Time to Training: {:5.1f} seconds".format(float(t2 - t1)))
