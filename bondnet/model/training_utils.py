@@ -1,5 +1,6 @@
 import numpy as np 
 import torch
+from copy import deepcopy
 from torch.optim import Adam
 from torch.nn import CrossEntropyLoss
 from sklearn.metrics import f1_score
@@ -197,7 +198,7 @@ def evaluate(model, nodes, data_loader, device=None):
     return l1_acc
 
 
-def train(model, nodes, data_loader, optimizer,loss_fn ='mse', device=None):
+def train(model, nodes, data_loader, optimizer,loss_fn ='mse', device=None, augment=False):
     """
     basic loop for training a classifier. Gets loss and accuracy
         
@@ -227,6 +228,10 @@ def train(model, nodes, data_loader, optimizer,loss_fn ='mse', device=None):
     for it, (batched_graph, label) in enumerate(data_loader):
         feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
         target = label["value"]
+        
+        target_aug = label["value_rev"]        
+        empty_aug = torch.isnan(target_aug).tolist()
+        empty_aug = True in empty_aug
         norm_atom = label["norm_atom"]
         norm_bond = label["norm_bond"]
         stdev = label["scaler_stdev"]
@@ -237,19 +242,24 @@ def train(model, nodes, data_loader, optimizer,loss_fn ='mse', device=None):
             norm_atom = norm_atom.to(device)
             norm_bond = norm_bond.to(device)   
             stdev = stdev.to(device)
+            if(augment and not empty_aug): target_aug = target_aug.to(device)
         
         target_new_shape = (len(target), 1)
         target = target.view(target_new_shape) 
-
         pred = model(batched_graph, feats, label["reaction"], device=device)
-        
         pred_new_shape = (len(pred), 1)
         pred = pred.view(pred_new_shape)
 
-        #try:
-        loss = loss_fn(pred, target, stdev)
-        #except:
-        #loss = loss_fn(pred, target, weight = None)
+        if(augment and not empty_aug):
+            target_aug_new_shape = (len(target_aug), 1)
+            target_aug = target.view(target_aug_new_shape) 
+            pred_aug = model(batched_graph, feats, label["reaction"], device=device, reverse=True)
+            pred_aug_new_shape = (len(pred_aug), 1)
+            pred_aug = pred_aug.view(pred_aug_new_shape)
+            loss = loss_fn(torch.concat([pred, pred_aug]), torch.concat([target,target_aug]), stdev)
+        else:
+            loss = loss_fn(pred, target, stdev)
+
 
         optimizer.zero_grad()
         loss.backward()
@@ -262,8 +272,6 @@ def train(model, nodes, data_loader, optimizer,loss_fn ='mse', device=None):
     accuracy /= count
 
     return epoch_loss, accuracy
-
-
 def load_model(dict_train): 
     """
     returns model and optimizer from dict of parameters

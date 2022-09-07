@@ -853,8 +853,15 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                 if(self.classifier):
                     lab_temp = torch.zeros(self.classif_categories)
                     lab_temp[int(lb['value'][0])] = 1
+
+                    if(lb['rev_value']!= None):
+                        lab_temp_rev = torch.zeros(self.classif_categories)
+                        lab_temp[int(lb['rev_value'][0])] = 1
+                    else: lab_temp_rev = None
+                        
                     label = {
                         "value": lab_temp,
+                        "rev_value": lab_temp_rev,
                         "id": lb["id"],
                         "environment": environemnt,
                         "atom_map":lb["atom_mapping"],
@@ -868,6 +875,9 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                     label = {
                         "value": torch.tensor(
                             lb["value"], dtype=getattr(torch, self.dtype)
+                        ),
+                        "value_rev":  torch.tensor(
+                            lb["rev_value"], dtype=getattr(torch, self.dtype)
                         ),
                         "id": lb["id"],
                         "environment": environemnt,

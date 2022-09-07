@@ -37,7 +37,7 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset = None
         run = wandb.init(project="project_classification_test", reinit=True)
     else:
         classif_categories = None
-        run = wandb.init(project="project_regression_test", reinit=True)
+        run = wandb.init(project="project_regression", reinit=True)
 
     if(device == None):
         if dict_train["on_gpu"]:

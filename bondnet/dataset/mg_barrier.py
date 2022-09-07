@@ -265,9 +265,10 @@ def process_species_graph(row, classifier=False, target='ts', reverse_rxn=False,
 
         if(target == 'ts'):
             value = row['transition_state_energy'] - row[reactant_key+'_energy']
+            reverse_energy = row['transition_state_energy'] - row[product_key+'_energy']
         else:
             value = row[product_key+'_energy'] - row[reactant_key+'_energy']
-
+            reverse_energy = row[reactant_key+'_energy'] - row[product_key+'_energy']
         if classifier:
             if value <= 0.04:
                 value = 0
@@ -279,6 +280,18 @@ def process_species_graph(row, classifier=False, target='ts', reverse_rxn=False,
                 value = 3
             else:
                 value = 4
+
+            if reverse_energy <= 0.04:
+                reverse_energy = 0
+            elif reverse_energy < 0.3 and reverse_energy > 0.04:
+                reverse_energy = 1
+            elif reverse_energy < 0.7 and reverse_energy > 0.3:
+                reverse_energy = 2
+            elif reverse_energy < 1.5 and reverse_energy > 0.7:
+                reverse_energy = 3
+            else:
+                value = 4
+            
             
         rxn = Reaction(
             reactants=reactants,
@@ -288,6 +301,7 @@ def process_species_graph(row, classifier=False, target='ts', reverse_rxn=False,
             formed_bond=formed_bonds,
             total_bonds=total_bonds,
             total_atoms=total_atoms,
+            reverse_energy_target=reverse_energy,
             identifier=id,
         )
         atom_mapping_check = []

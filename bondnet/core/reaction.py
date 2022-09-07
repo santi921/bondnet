@@ -37,7 +37,8 @@ class Reaction:
         self, reactants, products, 
         broken_bond=None, formed_bond=None, 
         free_energy=None, identifier=None, 
-        total_bonds=None, total_atoms=None
+        total_bonds=None, total_atoms=None,
+        reverse_energy_target = None
     ):
 
         self.reactants = reactants
@@ -63,6 +64,7 @@ class Reaction:
         self._broken_bond = broken_bond
         self._formed_bond = formed_bond
         self._free_energy = free_energy
+        self._reverse_energy_target = reverse_energy_target
         self._id = identifier
         self._atom_mapping = None
         self._bond_mapping_by_int_index = None
@@ -99,6 +101,9 @@ class Reaction:
 
     def set_free_energy(self, value):
         self._free_energy = value
+
+    def get_rev_energy(self):
+        return self._reverse_energy_target
 
     def get_broken_bond(self):
         """
