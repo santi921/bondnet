@@ -2,10 +2,10 @@ import numpy as np
 import torch
 from torch.optim import Adam
 from torch.nn import CrossEntropyLoss
-from torchmetrics import F1Score
 from sklearn.metrics import f1_score
 
-from bondnet.model.metric import WeightedL1Loss, WeightedMSELoss
+
+from bondnet.model.metric import WeightedL1Loss, WeightedMSELoss, WeightedSmoothL1Loss
 from bondnet.model.gated_reaction_network_graph import GatedGCNReactionNetwork
 from bondnet.model.gated_reaction_classifier_graph import GatedGCNReactionNetworkClassifier
 
@@ -197,7 +197,7 @@ def evaluate(model, nodes, data_loader, device=None):
     return l1_acc
 
 
-def train(model, nodes, data_loader, optimizer, device=None):
+def train(model, nodes, data_loader, optimizer,loss_fn ='mse', device=None):
     """
     basic loop for training a classifier. Gets loss and accuracy
         
@@ -210,11 +210,17 @@ def train(model, nodes, data_loader, optimizer, device=None):
         accuracy (float): accuracy
         loss (float): MSE
     """
+    if(loss_fn == 'mse'):
+        loss_fn = WeightedMSELoss(reduction="mean")
+    elif(loss_fn == 'huber'):
+        loss_fn = WeightedSmoothL1Loss(reduction='mean')
+    elif(loss_fn == 'mae'):
+        loss_fn = WeightedL1Loss(reduction='mean')
+    else: 
+        loss_fn = WeightedMSELoss(reduction="mean")
 
-    loss_fn = WeightedMSELoss(reduction="mean")
     metric_fn = WeightedL1Loss(reduction="mean")
-
-
+    
     count, accuracy, epoch_loss = 0.0, 0.0, 0.0
     model.train()
 
@@ -271,31 +277,49 @@ def load_model(dict_train):
 
     if(dict_train["classifier"]):
         model = GatedGCNReactionNetworkClassifier(
-        in_feats=dict_train['in_feats'],
-        embedding_size=dict_train['embedding_size'],
-        gated_num_layers=dict_train['gated_num_layers'],
-        gated_hidden_size=dict_train['gated_hidden_size'],
-        gated_activation=dict_train['gated_activation'],
-        fc_num_layers=dict_train['fc_num_layers'],
-        fc_hidden_size=dict_train['fc_hidden_size'],
-        fc_activation=dict_train['fc_activation'],
-        outdim = dict_train["categories"]
+            in_feats=dict_train['in_feats'],
+            embedding_size=dict_train['embedding_size'],
+            gated_dropout=dict_train["gated_dropout"],
+            gated_num_layers=dict_train['gated_num_layers'],
+            gated_hidden_size=dict_train['gated_hidden_size'],
+            gated_activation=dict_train['gated_activation'],
+            gated_batch_norm=dict_train["gated_batch_norm"],
+            gated_graph_norm=dict_train["gated_graph_norm"],
+            gated_num_fc_layers=dict_train["gated_num_fc_layers"],
+            gated_residual=dict_train["gated_residual"],
+            num_lstm_iters=dict_train["num_lstm_iters"],
+            num_lstm_layers=dict_train["num_lstm_layers"],           
+            fc_num_layers=dict_train['fc_num_layers'],
+            fc_hidden_size=dict_train['fc_hidden_size'],
+            fc_batch_norm=dict_train['fc_batch_norm'],
+            fc_activation=dict_train['fc_activation'],
+            fc_dropout=dict_train["fc_dropout"],
+            outdim = dict_train["categories"]
         )
 
     else: 
         model = GatedGCNReactionNetwork(
-        in_feats=dict_train['in_feats'],
-        embedding_size=dict_train['embedding_size'],
-        gated_num_layers=dict_train['gated_num_layers'],
-        gated_hidden_size=dict_train['gated_hidden_size'],
-        gated_activation=dict_train['gated_activation'],
-        fc_num_layers=dict_train['fc_num_layers'],
-        fc_hidden_size=dict_train['fc_hidden_size'],
-        fc_activation=dict_train['fc_activation'],
+            in_feats=dict_train['in_feats'],
+            embedding_size=dict_train['embedding_size'],
+            gated_dropout=dict_train["gated_dropout"],
+            gated_num_layers=dict_train['gated_num_layers'],
+            gated_hidden_size=dict_train['gated_hidden_size'],
+            gated_activation=dict_train['gated_activation'],
+            gated_batch_norm=dict_train["gated_batch_norm"],
+            gated_graph_norm=dict_train["gated_graph_norm"],
+            gated_num_fc_layers=dict_train["gated_num_fc_layers"],
+            gated_residual=dict_train["gated_residual"],
+            num_lstm_iters=dict_train["num_lstm_iters"],
+            num_lstm_layers=dict_train["num_lstm_layers"],
+            fc_dropout=dict_train["fc_dropout"],
+            fc_batch_norm=dict_train['fc_batch_norm'],
+            fc_num_layers=dict_train['fc_num_layers'],
+            fc_hidden_size=dict_train['fc_hidden_size'],
+            fc_activation=dict_train['fc_activation'],
         )
     
-    optimizer = Adam(model.parameters(), lr=dict_train['learning_rate'])
-    optimizer_transfer = Adam(model.parameters(), lr=dict_train['learning_rate'])
+    optimizer = Adam(model.parameters(), lr=dict_train['learning_rate'], weight_decay=dict_train['weight_decay'])
+    optimizer_transfer = Adam(model.parameters(), lr=dict_train['learning_rate'], weight_decay=dict_train['weight_decay'])
 
     return model, optimizer, optimizer_transfer
 

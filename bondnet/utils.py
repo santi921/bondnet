@@ -402,12 +402,13 @@ def parse_settings(file="settings.txt"):
     lr = 0.00001
     num_gpu = 1
     categories = 5
-
+    weight_decay = 0.0001
+    
     early_stop = True
     scheduler = False
     transfer_epochs = 100
     transfer = True
-    loss = 'weighted_mse'
+    loss = 'mse'
 
     fc_hidden_size = [128, 64]
     fc_layers = -1
@@ -463,7 +464,7 @@ def parse_settings(file="settings.txt"):
                 if i.split()[0] == "transfer":
                     transfer = "True" == i.split()[1]
                 if i.split()[0] == "loss":
-                    loss = "True" == i.split()[1]
+                    loss = i.split()[1]
                 if i.split()[0] == 'classifier':
                     classifier = "True" == i.split()[1]
                 if i.split()[0] == "categories":
@@ -599,7 +600,6 @@ def parse_settings(file="settings.txt"):
         dict_ret["fc_dropout"] = fc_dropout
         dict_ret["fc_batch_norm"] = fc_batch_norm
         dict_ret["fc_activation"] = fc_activation
-
         dict_ret["gated_hidden_size"] = gated_hidden_size
         dict_ret["gated_activation"] = gated_activation
         dict_ret["gated_graph_norm"] = gated_graph_norm
@@ -608,7 +608,6 @@ def parse_settings(file="settings.txt"):
         dict_ret["gated_num_fc_layers"] = gated_num_fc_layers
         dict_ret["gated_num_layers"] = gated_num_layers
         dict_ret["gated_residual"] = gated_residual
-
         dict_ret["num_lstm_iters"] = num_lstm_iters
         dict_ret["num_lstm_layers"] = num_lstm_layers
 

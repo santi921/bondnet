@@ -85,8 +85,8 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset = None
         optimizer, mode="min", factor=0.6, patience=50, verbose=True)
     scheduler_transfer = ReduceLROnPlateau(
         optimizer_transfer, mode="min", factor=0.4, patience=30, verbose=True)
-    stopper = EarlyStopping(patience=200)
-    stopper_transfer = EarlyStopping(patience=200)
+    stopper = EarlyStopping(patience=100)
+    stopper_transfer = EarlyStopping(patience=100)
 
     if(dict_train['transfer']):
         if(dataset_transfer == None):

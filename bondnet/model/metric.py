@@ -4,6 +4,7 @@ import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
+from torch.nn import SmoothL1Loss
 
 
 class WeightedMSELoss(nn.Module):
@@ -97,6 +98,34 @@ class WeightedL1Loss(nn.Module):
 
             return rst
 
+
+class WeightedSmoothL1Loss(nn.Module):
+    def __init__(self, reduction="mean"):
+        self.reduction = reduction
+        super(WeightedSmoothL1Loss, self).__init__()
+
+    def forward(self, input, target, weight):
+
+        if weight is None:
+            return F.smooth_l1_loss(input, target, reduction=self.reduction)
+        else:
+            if input.size() != target.size() != weight.size():
+                warnings.warn(
+                    "Input size ({}) is different from the target size ({}) or weight "
+                    "size ({}). This will likely lead to incorrect results due "
+                    "to broadcasting. Please ensure they have the same size.".format(
+                        input.size(), target.size(), weight.size()
+                    )
+                )
+            
+            rst = F.smooth_l1_loss(input, target, reduction=self.reduction) * weight
+            if self.reduction != "none":
+                if self.reduction == "mean":
+                    rst = torch.sum(rst) / torch.sum(weight)
+                else:
+                    rst = torch.sum(rst)
+
+            return rst
 
 class OrderAccuracy:
     """
