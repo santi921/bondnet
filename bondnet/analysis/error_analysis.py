@@ -27,6 +27,7 @@ def evaluate(model, nodes, data_loader):
             stdev = label["scaler_stdev"]
 
             pred = model(bg, feats, label["reaction"], norm_atom, norm_bond)
+            
             pred = pred.view(-1) * stdev + mean
 
             tgt = tgt * stdev + mean

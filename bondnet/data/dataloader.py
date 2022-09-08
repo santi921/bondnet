@@ -42,22 +42,6 @@ class DataLoaderGraphNorm(torch.utils.data.DataLoader):
         def collate(samples):
             graphs, labels = map(list, zip(*samples))
 
-            # g = graphs[0]
-            # if isinstance(g, dgl.DGLGraph):
-            #     batched_graphs = dgl.batch(graphs)
-            #     sizes_atom = [g.number_of_nodes() for g in graphs]
-            #     sizes_bond = [g.number_of_edges() for g in graphs]
-            #
-            # elif isinstance(g, dgl.DGLHeteroGraph):
-            #     batched_graphs = dgl.batch_hetero(graphs)
-            #     sizes_atom = [g.number_of_nodes("atom") for g in graphs]
-            #     sizes_bond = [g.number_of_nodes("bond") for g in graphs]
-            # else:
-            # raise ValueError(
-            #     f"graph type {g.__class__.__name__} not supported. Should be either "
-            #     f"dgl.DGLGraph or dgl.DGLHeteroGraph."
-            # )
-
             batched_graphs = dgl.batch(graphs)
             sizes_atom = [g.number_of_nodes("atom") for g in graphs]
             sizes_bond = [g.number_of_nodes("bond") for g in graphs]

@@ -144,7 +144,8 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset = None
                     feature_names, 
                     dataset_transfer_loader, 
                     optimizer_transfer, 
-                    device = dict_train["gpu"]
+                    device = dict_train["gpu"],
+                    augment=dict_train["augment"]
                 )
                 val_acc_transfer = evaluate(
                     model, 
@@ -208,7 +209,8 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset = None
                 feature_names, 
                 train_loader, 
                 optimizer, 
-                device = dict_train["gpu"]
+                device = dict_train["gpu"],
+                augment=dict_train["augment"]
                 )
             # evaluate on validation set
             val_acc = evaluate(

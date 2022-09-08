@@ -389,6 +389,7 @@ def parse_settings(file="settings.txt"):
     filter_species = [2, 3]
     restore = False
     on_gpu = False
+    augment = False
     distributed = False
     classifier = False
     featurizer_xyz = True
@@ -451,6 +452,8 @@ def parse_settings(file="settings.txt"):
                     dataset_state_dict_filename = i.split()[1]
                 if i.split()[0] == "model_path":
                     model_path = i.split()[1]
+                if i.split()[0] == "augment":
+                    augment = bool(i.split()[1])
                 if i.split()[0] == "num_gpu":
                     num_gpu = int(i.split()[1])
                 if i.split()[0] == 'xyz_featurizer':
@@ -525,6 +528,7 @@ def parse_settings(file="settings.txt"):
         print("using the following settings:")
         print("--" * 20)
         print("Small Dataset?: " + str(test))
+        print("augment: {}".format(augment))
         print("restore: " + str(restore))
         print("distributed: " + str(distributed))
         print("on gpu: " + str(on_gpu))
@@ -571,7 +575,7 @@ def parse_settings(file="settings.txt"):
         dict_ret = {}
         dict_ret["classifier"] = classifier
         dict_ret["categories"] = categories
-
+        dict_ret["augment"] = augment
         dict_ret["debug"] = test
         dict_ret["on_gpu"] = on_gpu
         dict_ret["filter_species"] = filter_species

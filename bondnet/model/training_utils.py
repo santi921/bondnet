@@ -62,7 +62,9 @@ def train_classifier(model, nodes, data_loader, optimizer, device = None, catego
             label["reaction"], 
             target,
             stdev,
-            device = device
+            device = device,
+            norm_bond = norm_bond, 
+            norm_atom = norm_atom
         )
 
         #target_filtered = torch.reshape(target_filtered, 
@@ -130,6 +132,8 @@ def evaluate_classifier(model, nodes, data_loader, device = None, categories = 3
                 label["reaction"], 
                 target,
                 stdev,
+                norm_bond = norm_bond,
+                norm_atom = norm_atom, 
                 device = device
             )
   
@@ -189,7 +193,13 @@ def evaluate(model, nodes, data_loader, device=None):
             #try:
             #    pred = model(batched_graph, feats, label["reaction"], norm_atom, norm_bond)
             #except:
-            pred = model(batched_graph, feats, label["reaction"], device=device)
+            pred = model(
+                batched_graph, 
+                feats, 
+                label["reaction"], 
+                device=device, 
+                norm_atom = norm_atom, 
+                norm_bond = norm_bond)
             mae += metric_fn(pred, target, stdev).detach().item() 
             count += len(target)
 
@@ -234,6 +244,9 @@ def train(model, nodes, data_loader, optimizer,loss_fn ='mse', device=None, augm
         empty_aug = True in empty_aug
         norm_atom = label["norm_atom"]
         norm_bond = label["norm_bond"]
+
+        if(None in norm_bond.tolist()): print("nan value detected")
+
         stdev = label["scaler_stdev"]
 
         if device is not None:
@@ -246,17 +259,18 @@ def train(model, nodes, data_loader, optimizer,loss_fn ='mse', device=None, augm
         
         target_new_shape = (len(target), 1)
         target = target.view(target_new_shape) 
-        pred = model(batched_graph, feats, label["reaction"], device=device)
+        pred = model(batched_graph, feats, label["reaction"], device=device, norm_bond = norm_bond, norm_atom=norm_atom)
         pred_new_shape = (len(pred), 1)
         pred = pred.view(pred_new_shape)
 
         if(augment and not empty_aug):
             target_aug_new_shape = (len(target_aug), 1)
             target_aug = target.view(target_aug_new_shape) 
-            pred_aug = model(batched_graph, feats, label["reaction"], device=device, reverse=True)
+            pred_aug = model(batched_graph, feats, label["reaction"], device=device, reverse=True, norm_bond = norm_bond, norm_atom=norm_atom)
             pred_aug_new_shape = (len(pred_aug), 1)
             pred_aug = pred_aug.view(pred_aug_new_shape)
             loss = loss_fn(torch.concat([pred, pred_aug]), torch.concat([target,target_aug]), stdev)
+        
         else:
             loss = loss_fn(pred, target, stdev)
 
@@ -346,7 +360,9 @@ def evaluate_r2(model, nodes, data_loader, device = None):
                 target = target.to(device)
                 norm_atom = norm_atom.to(device)
                 norm_bond = norm_bond.to(device)
-            pred = model(batched_graph, feats, label["reaction"], device=device)
+            pred = model(batched_graph, feats, label["reaction"], device=device, 
+                norm_atom = norm_atom, 
+                norm_bond = norm_bond)
 
     target_mean = torch.mean(target)
     ss_tot = torch.sum((target - target_mean) ** 2)
