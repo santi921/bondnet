@@ -508,7 +508,7 @@ def parse_settings(file="settings.txt"):
                 if i.split()[0] == "fc_activation":
                     fc_activation = str(i.split()[1])
                 if i.split()[0] == "fc_batch_norm":
-                    fc_batch_norm = int(i.split()[1])
+                    fc_batch_norm = bool(i.split()[1])
                 if i.split()[0] == "fc_dropout":
                     fc_dropout = float(i.split()[1])
 
