@@ -110,10 +110,10 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset = None
             valset_tranfer, batch_size=dict_train['batch_size'], 
         shuffle=True)
 
-        print("Initiating Training w/ transfer...")
-        model_parameters = filter(lambda p: p.requires_grad, model.parameters())
-        params = sum([np.prod(p.size()) for p in model_parameters])
-        print("Number of Trainable Model Params: {}".format(params))
+        #print("Initiating Training w/ transfer...")
+        #model_parameters = filter(lambda p: p.requires_grad, model.parameters())
+        #params = sum([np.prod(p.size()) for p in model_parameters])
+        #print("Number of Trainable Model Params: {}".format(params))
         
         
         for epoch in tqdm(range(dict_train['transfer_epochs'])):
@@ -161,11 +161,11 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset = None
             if stopper_transfer.step(val_acc_transfer): break
 
         # freeze model layers but fc
-        model.gated_layers.requires_grad_(False)
-        model_parameters = filter(lambda p: p.requires_grad, model.parameters())
-        params = sum([np.prod(p.size()) for p in model_parameters])
-        print("Freezing Gated Layers....")
-        print("Number of Trainable Model Params: {}".format(params))
+        #model.gated_layers.requires_grad_(False)
+        #model_parameters = filter(lambda p: p.requires_grad, model.parameters())
+        #params = sum([np.prod(p.size()) for p in model_parameters])
+        #print("Freezing Gated Layers....")
+        #print("Number of Trainable Model Params: {}".format(params))
 
     t1 = time.time()
 
