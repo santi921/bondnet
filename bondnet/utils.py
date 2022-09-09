@@ -388,6 +388,7 @@ def parse_settings(file="settings.txt"):
     test = False
     filter_species = [2, 3]
     restore = False
+    freeze = True
     on_gpu = False
     augment = False
     distributed = False
@@ -443,7 +444,8 @@ def parse_settings(file="settings.txt"):
                     test = "True" == i.split()[1]
                 if i.split()[0] == 'filter_species':
                     filter_species = [int(j) for j in i.split()[1:]]
-                    
+                if i.split()[0] == 'freeze':
+                    freeze = "True" == i.split()[1]                  
                 if i.split()[0] == "distributed":
                     distributed = "True" == i.split()[1]
                 if i.split()[0] == "save_hyper_params":
@@ -530,6 +532,7 @@ def parse_settings(file="settings.txt"):
         print("Small Dataset?: " + str(test))
         print("augment: {}".format(augment))
         print("restore: " + str(restore))
+        print("freeze graph layers w/transfer: {}".format(freeze))
         print("distributed: " + str(distributed))
         print("on gpu: " + str(on_gpu))
         print("filter species? {}".format(filter_species))
@@ -591,6 +594,8 @@ def parse_settings(file="settings.txt"):
         dict_ret['transfer_epochs'] = transfer_epochs 
         dict_ret['transfer'] = transfer 
         dict_ret['loss'] = loss 
+
+        dict_ret["freeze"] = freeze  
 
         dict_ret["start_epoch"] = start_epoch
         dict_ret["embedding_size"] = embedding_size
