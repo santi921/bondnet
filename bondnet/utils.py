@@ -396,6 +396,7 @@ def parse_settings(file="settings.txt"):
     featurizer_xyz = True
     save_hyper_params = "./hyper.pkl"
     dataset_state_dict_filename = "./dataset_state_dict.pkl"
+    dataset_loc = "../../../dataset/mg_dataset/20220613_reaction_data.json"
     model_path = "./"
     epochs = 100
     start_epoch = 0
@@ -436,7 +437,8 @@ def parse_settings(file="settings.txt"):
 
         for i in lines:
             if len(i.split()) > 1:
-
+                if i.split()[0] == "dataset_loc": 
+                    dataset_loc = i.split()[1]
                 if i.split()[0] == "restore":
                     restore = "True" == i.split()[1]
                 if i.split()[0] == "on_gpu":
@@ -532,48 +534,47 @@ def parse_settings(file="settings.txt"):
 
         print("using the following settings:")
         print("--" * 20)
-        print("Small Dataset?: " + str(test))
-        print("augment: {}".format(augment))
-        print("restore: " + str(restore))
-        print("freeze graph layers w/transfer: {}".format(freeze))
-        print("distributed: " + str(distributed))
-        print("on gpu: " + str(on_gpu))
-        print("filter species? {}".format(filter_species))
-        print("filter outliers? {}".format(filter_outliers))
-        print("num gpu: " + str(num_gpu))
-        print("xyz feeaturizer: " + str(featurizer_xyz))
-        print("hyperparam save file: " + str(save_hyper_params))
-        print("dataset state dict: " + str(dataset_state_dict_filename))
-        print("model dir " + str(model_path))
-        print("classifier " + str(classifier))
-        print("batch size: " + str(batch_size))
-        print("epochs: {:1d}".format(epochs))
-        print("lr: {:7f}".format(lr))
-        print("weight decay: {:.3f}".format(weight_decay))
-        print("early_stop: " + str(early_stop))
-        print("scheduler: " + str(scheduler))
-        print("transfer_epochs: " + str(transfer_epochs))
-        print("transfer: " + str(transfer))
-        print("loss: " + str(loss))
-        print("categories: " + str(categories))
-        print("embedding size: {:1d}".format(embedding_size))
-        print("fc layers: {:1d}".format(fc_layers))
-        print("fc hidden layer: " + str(fc_hidden_size))
-        print("gated layers: {:1d}".format(gated_num_layers))
-        print("gated hidden layers: " + str(gated_hidden_size))
-        print("num lstm iters: " + str(num_lstm_iters))
-        print("num lstm layer: " + str(num_lstm_layers))
-        print("gated fc layers: " + str(gated_num_fc_layers))
-        print("fc activation: " + str(fc_activation))
-        print("fc batch norm: " + str(fc_batch_norm))
-        print("fc dropout: {:.2f}".format(fc_dropout))
-        print("gated activation: " + str(gated_activation))
-        print("gated dropout: {:.2f}".format(gated_dropout))
-        print("gated batch norm: " + str(gated_batch_norm))
-        print("gated graph norm: " + str(gated_graph_norm))
-        print("gated resid: " + str(gated_residual))
-
-
+        print("dataset loc:                     {}".format(dataset_loc))
+        print("Small Dataset?:                  {}".format(str(test)))
+        print("augment:                         {}".format(augment))
+        print("restore:                         {}".format(str(restore)))
+        print("freeze graph layers w/transfer:  {}".format(freeze))
+        print("distributed:                     {}".format(str(distributed)))
+        print("on gpu:                          {}".format(str(on_gpu)))
+        print("filter species?                  {}".format(filter_species))
+        print("filter outliers?                 {}".format(filter_outliers))
+        print("num gpu:                         {}".format(str(num_gpu)))
+        print("xyz feeaturizer:                 {}".format(featurizer_xyz))
+        print("hyperparam save file:            {}".format(save_hyper_params))
+        print("dataset state dict:              {}".format(dataset_state_dict_filename))
+        print("model dir                        {}".format(model_path))
+        print("classifier                       {}".format(classifier))
+        print("batch size:                      {}".format(batch_size))
+        print("epochs:                          {:1d}".format(epochs))
+        print("lr:                              {:7f}".format(lr))
+        print("weight decay:                    {:.3f}".format(weight_decay))
+        print("early_stop:                      {}".format(str(early_stop)))
+        print("scheduler:                       {}".format(str(scheduler)))
+        print("transfer_epochs:                 {}".format(str(transfer_epochs)))
+        print("transfer:                        {}".format(str(transfer)))
+        print("loss:                            {}".format(str(loss)))
+        print("categories:                      {}".format(str(categories)))
+        print("embedding size:                  {:1d}".format(embedding_size))
+        print("fc layers:                       {:1d}".format(fc_layers))
+        print("fc hidden layer:                 {}".format(str(fc_hidden_size)))
+        print("gated layers:                    {:1d}".format(gated_num_layers))
+        print("gated hidden layers:             {}".format(str(gated_hidden_size)))
+        print("num lstm iters:                  {}".format(str(num_lstm_iters)))
+        print("num lstm layer:                  {}".format(str(num_lstm_layers)))
+        print("gated fc layers:                 {}".format(str(gated_num_fc_layers)))
+        print("fc activation:                   {}".format(str(fc_activation)))
+        print("fc batch norm:                   {}".format(str(fc_batch_norm)))
+        print("fc dropout:                      {:.2f}".format(fc_dropout))
+        print("gated activation:                {}".format(str(gated_activation)))
+        print("gated dropout:                   {:.2f}".format(gated_dropout))
+        print("gated batch norm:                {}".format(str(gated_batch_norm)))
+        print("gated graph norm:                {}".format(str(gated_graph_norm)))
+        print("gated resid:                     {}".format(str(gated_residual)))
         print("--" * 20)
 
         dict_ret = {}
