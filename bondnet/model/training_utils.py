@@ -200,6 +200,7 @@ def evaluate(model, nodes, data_loader, device=None):
                 device=device, 
                 norm_atom = norm_atom, 
                 norm_bond = norm_bond)
+
             mae += metric_fn(pred, target, stdev).detach().item() 
             count += len(target)
 
@@ -286,6 +287,7 @@ def train(model, nodes, data_loader, optimizer,loss_fn ='mse', device=None, augm
     accuracy /= count
 
     return epoch_loss, accuracy
+    
 def load_model(dict_train): 
     """
     returns model and optimizer from dict of parameters
