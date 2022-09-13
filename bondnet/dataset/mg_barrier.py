@@ -150,7 +150,7 @@ def split_and_map(
     
     return ret_list, mapping, bond_map
 
-def process_species_graph(row, classifier=False, target='ts', reverse_rxn=False, verbose=False, filter_species = None):
+def process_species_graph(row, classifier=False, target='ts', reverse_rxn=False, verbose=False, filter_species = None, filter_outliers = False, lower_bound = -99, upper_bound = 100):
     """
     Takes a row and processes the products/reactants - entirely defined by graphs from row
 
@@ -316,8 +316,8 @@ def process_species_graph(row, classifier=False, target='ts', reverse_rxn=False,
         rxn.set_atom_mapping([atoms_reactants, atoms_products])
         rxn._bond_mapping_by_int_index = [mapping_reactants, mapping_products]
         
-        outlier_condition = False
-        if(outlier_condition): return []
+        outlier_condition = lower_bound > value or upper_bound < value
+        if(outlier_condition and filter_outliers): return []
     
     return rxn
 
@@ -672,7 +672,7 @@ def create_reaction_network_files(filename, out_file, classifier=False):
     return all_mols, all_labels, features
 
 
-def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_filter=False, target='ts', classifier=False, debug=False, augment=False, filter_species = False):
+def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_filter=False, target='ts', classifier=False, debug=False, augment=False, filter_species = False, filter_outliers = True):
     """
     Processes json file from emmet to use in training bondnet
 
@@ -693,9 +693,21 @@ def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_fi
 
     start_time = time.perf_counter()
     reactions, ind_val, rxn_raw, ind_final = [], [], [], []
+    lower_bound, upper_bound = 0, 0
+
     if(debug): mg_df = mg_df.head(100)
+
+    if(filter_outliers):
+        de_barr = mg_df["dE_barrier"] 
+        q1, q3, med = np.quantile(de_barr, 0.25), np.quantile(de_barr, 0.75), np.median(de_barr)
+        # finding the iqr region
+        iqr = q3-q1
+        # finding upper and lower whiskers
+        upper_bound = q3+(1.5*iqr)
+        lower_bound = q1-(1.5*iqr)
+
     with ProcessPool(max_workers=12, max_tasks=10) as pool:
-        #for ind, row in mg_df.head(250).iterrows():
+        #for ind, row in mg_df.head(250).iterrows()
         for ind, row in mg_df.iterrows(): 
             # process_species = process_species_rdkit
             future = pool.schedule(process_species_graph, 
@@ -704,7 +716,10 @@ def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_fi
                                 "target":target,
                                 "reverse_rxn":False,
                                 "verbose": False,
-                                "filter_species": filter_species},
+                                "filter_species": filter_species
+                                "filter_outliers":filter_outliers,
+                                "upper_bound":upper_bound,
+                                "lower_bound":lower_bound },
                         timeout=30)
             future.add_done_callback(task_done)
             try:

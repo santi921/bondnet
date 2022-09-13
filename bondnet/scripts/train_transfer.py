@@ -63,6 +63,7 @@ def train_transfer(settings_file = "settings.txt", device = None, dataset = None
         classifier = dict_train["classifier"], 
         classif_categories=classif_categories, 
         debug = dict_train["debug"],
+        filter_outliers=dict_train["filter_outliers"],
         device = device 
         )
     

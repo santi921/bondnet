@@ -408,6 +408,7 @@ def parse_settings(file="settings.txt"):
     
     early_stop = True
     scheduler = False
+    filter_outliers = True
     transfer_epochs = 100
     transfer = True
     loss = 'mse'
@@ -516,7 +517,9 @@ def parse_settings(file="settings.txt"):
                     fc_batch_norm = bool(i.split()[1])
                 if i.split()[0] == "fc_dropout":
                     fc_dropout = float(i.split()[1])
-
+                if i.split()[0] == 'filter_outliers':
+                    filter_outliers = "True" == i.split()[1]
+                
                 if i.split()[0] == "num_lstm_iters":
                     num_lstm_iters = int(i.split()[1])
                 if i.split()[0] == "num_lstm_layers":
@@ -536,6 +539,7 @@ def parse_settings(file="settings.txt"):
         print("distributed: " + str(distributed))
         print("on gpu: " + str(on_gpu))
         print("filter species? {}".format(filter_species))
+        print("filter outliers? {}".format(filter_outliers))
         print("num gpu: " + str(num_gpu))
         print("xyz feeaturizer: " + str(featurizer_xyz))
         print("hyperparam save file: " + str(save_hyper_params))
@@ -552,14 +556,11 @@ def parse_settings(file="settings.txt"):
         print("transfer: " + str(transfer))
         print("loss: " + str(loss))
         print("categories: " + str(categories))
-
-
         print("embedding size: {:1d}".format(embedding_size))
         print("fc layers: {:1d}".format(fc_layers))
         print("fc hidden layer: " + str(fc_hidden_size))
         print("gated layers: {:1d}".format(gated_num_layers))
         print("gated hidden layers: " + str(gated_hidden_size))
-        
         print("num lstm iters: " + str(num_lstm_iters))
         print("num lstm layer: " + str(num_lstm_layers))
         print("gated fc layers: " + str(gated_num_fc_layers))
@@ -594,7 +595,7 @@ def parse_settings(file="settings.txt"):
         dict_ret['transfer_epochs'] = transfer_epochs 
         dict_ret['transfer'] = transfer 
         dict_ret['loss'] = loss 
-
+        dict_ret['filter_outliers'] = filter_outliers
         dict_ret["freeze"] = freeze  
 
         dict_ret["start_epoch"] = start_epoch

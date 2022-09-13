@@ -696,7 +696,8 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         classifier = False,
         debug = False,
         classif_categories = None,
-        device = None
+        device = None,
+        filter_outliers = True
     ):
 
         if dtype not in ["float32", "float64"]:
@@ -711,7 +712,8 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
             file, out_file, bond_map_filter=False, 
             target=target, 
             filter_species = filter_species,
-            classifier=classifier, debug=debug
+            classifier=classifier, debug=debug,
+            filter_outliers=filter_outliers
         )
 
         self.molecules = all_mols
