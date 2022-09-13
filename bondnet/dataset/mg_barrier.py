@@ -716,7 +716,7 @@ def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_fi
                                 "target":target,
                                 "reverse_rxn":False,
                                 "verbose": False,
-                                "filter_species": filter_species
+                                "filter_species": filter_species,
                                 "filter_outliers":filter_outliers,
                                 "upper_bound":upper_bound,
                                 "lower_bound":lower_bound },
