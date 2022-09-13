@@ -25,14 +25,18 @@ from bondnet.model.training_utils import (
 )
 seed_torch()
 
-def train_transfer(settings_file = "settings.txt", device = None, dataset = None, dataset_transfer = None):
+def train_transfer(
+    settings_file = "settings.txt", 
+    device = None, 
+    dataset = None, 
+    dataset_transfer = None):
     
     best = 1e10
     feature_names = ["atom", "bond", "global"]
     dict_train = parse_settings(settings_file)
     #path_mg_data = "../../../dataset/mg_dataset/20220826_mpreact_reactions.json"
-    path_mg_data = "../../../dataset/mg_dataset/20220613_reaction_data.json"
-    dict_train["dataset"] = path_mg_data   
+    #path_mg_data = "../../../dataset/mg_dataset/20220613_reaction_data.json"
+    path_mg_data = dict_train["dataset_loc"]
 
     if(dict_train["classifier"]):
         classif_categories = 5 # update this later

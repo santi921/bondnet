@@ -580,6 +580,7 @@ def parse_settings(file="settings.txt"):
         dict_ret = {}
         dict_ret["classifier"] = classifier
         dict_ret["categories"] = categories
+        dict_ret["dataset_loc"] = dataset_loc
         dict_ret["augment"] = augment
         dict_ret["debug"] = test
         dict_ret["on_gpu"] = on_gpu
