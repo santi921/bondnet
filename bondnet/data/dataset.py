@@ -863,14 +863,14 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                         
                     label = {
                         "value": lab_temp,
-                        "rev_value": lab_temp_rev,
+                        "value_rev": lab_temp_rev,
                         "id": lb["id"],
                         "environment": environemnt,
                         "atom_map":lb["atom_mapping"],
                         "bond_map":lb["bond_mapping"],
                         "total_bonds":lb["total_bonds"],
-                        "total_atoms":lb["total_atoms"]
-
+                        "total_atoms":lb["total_atoms"],
+                        "reaction_type": lb["reaction_type"]
                     }
                     self.labels.append(label)
                 else:
@@ -1059,7 +1059,7 @@ class ReactionDataset(BaseDataset):
         for rxn, lb, gmp in zip(reactions, raw_labels, global_mapping):
             if None not in rxn:
                 lb["value"] = torch.tensor(
-                    lb["value"], dtype=getattr(torch, self.dtype)
+                    lb["value"], dztype=getattr(torch, self.dtype)
                 )
                 lb["global_mapping"] = gmp
                 self.graphs.append(rxn)

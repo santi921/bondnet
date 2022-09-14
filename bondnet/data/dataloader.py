@@ -189,6 +189,7 @@ class DataLoaderReactionNetwork(torch.utils.data.DataLoader):
             identifier = [la["id"] for la in labels]
             
             reaction_types = [la["reaction_type"] for la in labels]
+            
             batched_labels = {
                 "value": target,
                 "value_rev": value_rev,

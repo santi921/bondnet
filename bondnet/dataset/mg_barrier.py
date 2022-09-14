@@ -271,6 +271,7 @@ def process_species_graph(row, classifier=False, target='ts', reverse_rxn=False,
         else:
             value = row[product_key+'_energy'] - row[reactant_key+'_energy']
             reverse_energy = row[reactant_key+'_energy'] - row[product_key+'_energy']
+        
         if classifier:
             if value <= 0.04:
                 value = 0
@@ -292,7 +293,7 @@ def process_species_graph(row, classifier=False, target='ts', reverse_rxn=False,
             elif reverse_energy < 1.5 and reverse_energy > 0.7:
                 reverse_energy = 3
             else:
-                value = 4
+                reverse_energy = 4
             
         rxn_type = [] 
 
@@ -731,9 +732,8 @@ def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_fi
         lower_bound = q1-(1.5*iqr)
 
     with ProcessPool(max_workers=12, max_tasks=10) as pool:
-        #for ind, row in mg_df.head(250).iterrows()
+        
         for ind, row in mg_df.iterrows(): 
-            # process_species = process_species_rdkit
             future = pool.schedule(process_species_graph, 
                         args=[row], 
                         kwargs={"classifier":classifier,
