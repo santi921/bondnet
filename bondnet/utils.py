@@ -491,15 +491,14 @@ def parse_settings(file="settings.txt"):
                 if i.split()[0] == "weight_decay":
                     weight_decay = float(i.split()[1])
                 if i.split()[0] == "gated_hidden_size":
-                    gated_hidden_size = [int(j) for j in i.split()[1:]]
-                
+                    gated_hidden_size = [int(j) for j in i.split()[1:]]              
                 if i.split()[0] == "category_weights":
                     category_weights = [float(j) for j in i.split()[1:]]
 
                 if i.split()[0] == "gated_dropout":
                     gated_dropout = float(i.split()[1])
                 if i.split()[0] == "gated_graph_norm":
-                    gated_graph_norm = int(i.split()[1])
+                    gated_graph_norm = "True" == i.split()[1]
                 if i.split()[0] == "gated_batch_norm":
                     gated_batch_norm = "True" == i.split()[1]
                 if i.split()[0] == "gated_activation":
