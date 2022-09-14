@@ -886,7 +886,8 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                         "atom_map":lb["atom_mapping"],
                         "bond_map":lb["bond_mapping"], 
                         "total_bonds":lb["total_bonds"],
-                        "total_atoms":lb["total_atoms"]
+                        "total_atoms":lb["total_atoms"],
+                        "reaction_type": lb["reaction_type"]
                     }
                     self.labels.append(label)
 
@@ -1006,6 +1007,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
 
     def __len__(self):
         return len(self.reaction_ids)
+
 class ReactionDataset(BaseDataset):
     def _load(self):
 

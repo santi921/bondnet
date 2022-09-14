@@ -88,14 +88,15 @@ class WeightedL1Loss(nn.Module):
                         input.size(), target.size(), weight.size()
                     )
                 )
-
+            
             rst = torch.abs(input - target) * weight
+
             if self.reduction != "none":
                 if self.reduction == "mean":
                     rst = torch.sum(rst) / torch.sum(weight)
                 else:
                     rst = torch.sum(rst)
-
+            
             return rst
 
 

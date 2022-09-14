@@ -208,6 +208,64 @@ def evaluate(model, nodes, data_loader, device=None):
     
     return l1_acc
 
+def evaluate_breakdown(model, nodes, data_loader, device=None):
+    """
+    basic loop for training a classifier. Gets mae
+        
+    Args:
+        model(pytorch model): pytorch model
+        nodes(dict): node feature dictionary
+        data_loader(loader obj): loader object with data to eval
+        device(str): cpu/gpu
+    Returns: 
+        mae(float): mae
+    """
+    metric_fn = WeightedL1Loss(reduction='none')
+    model.eval()
+
+    dict_result_raw = {}
+
+    with torch.no_grad():
+        count, mae = 0.0, 0.0
+        for batched_graph, label in data_loader:
+            feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
+            target = label["value"]
+            norm_atom = label["norm_atom"]
+            norm_bond = label["norm_bond"]
+            stdev = label["scaler_stdev"]
+            reaction_types = label["reaction_types"]
+
+            if device is not None:
+                feats = {k: v.to(device) for k, v in feats.items()}
+                target = target.to(device)
+                norm_atom = norm_atom.to(device)
+                norm_bond = norm_bond.to(device)
+                stdev = stdev.to(device)
+                
+            pred = model(
+                batched_graph, 
+                feats, 
+                label["reaction"], 
+                device=device, 
+                norm_atom = norm_atom, 
+                norm_bond = norm_bond)
+
+            try:
+                res = metric_fn(pred, target, stdev).detach().item()
+            except:    
+                res = metric_fn(pred, target, stdev)#.detach().item()     
+
+            for ind, i in enumerate(reaction_types): 
+                for type in i:
+                    if type in list(dict_result_raw.keys()):
+                        dict_result_raw[type].append(res[ind][0].detach().item())
+                    else: 
+                        dict_result_raw[type] = [res[ind][0].detach().item()]
+
+    for k, v in dict_result_raw.items():
+        dict_result_raw[k] = np.mean(np.array(v))
+
+    return dict_result_raw 
 
 def train(model, nodes, data_loader, optimizer,loss_fn ='mse', device=None, augment=False):
     """

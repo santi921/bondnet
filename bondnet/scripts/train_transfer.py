@@ -21,7 +21,8 @@ from bondnet.model.training_utils import (
     train_classifier, 
     load_model, 
     evaluate_r2, 
-    get_grapher
+    get_grapher,
+    evaluate_breakdown
 )
 seed_torch()
 
@@ -240,9 +241,10 @@ def train_transfer(
                 )
         
             wandb.log({"loss": loss})
+            wandb.log({"mae_train": train_acc})
             wandb.log({"mae_val": val_acc})
             wandb.log({"r2_val": val_r2})
-            wandb.log({"r2_val": train_r2})
+            wandb.log({"r2_train": train_r2})
 
             print(
                 "{:5d}   {:12.6e}   {:12.2e}   {:12.6e}   {:.2f}".format(
@@ -283,6 +285,8 @@ def train_transfer(
 
     else: 
         test_acc = evaluate(model, feature_names, test_loader, device = dict_train["gpu"])
+        dict_res = evaluate_breakdown(model, feature_names, test_loader, device = dict_train["gpu"])
+        wandb.log({"mae_val_breakdown": dict_res})
         wandb.log({"mae_test": test_acc})
         print("Test MAE: {:12.6e}".format(test_acc))
     

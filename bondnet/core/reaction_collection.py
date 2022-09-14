@@ -1204,6 +1204,7 @@ class ReactionCollection:
                     "broken_bonds":rxn.get_broken_bond(),
                     "formed_bonds":rxn.get_formed_bond(),
                     "id": [rxn.get_id()],
+                    "reaction_type": rxn.get_type()
                 }
                 all_labels.append(data)
 

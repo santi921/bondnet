@@ -294,7 +294,30 @@ def process_species_graph(row, classifier=False, target='ts', reverse_rxn=False,
             else:
                 value = 4
             
-            
+        rxn_type = [] 
+
+        if(len(broken_bonds) > 0 ):
+            for i in broken_bonds:
+                key = 'broken_'
+                index = i 
+                atom_1 = row[reactant_key + "_molecule_graph"]["molecule"]["sites"][index[0]]["name"]
+                atom_2 = row[reactant_key + "_molecule_graph"]["molecule"]["sites"][index[1]]["name"]
+                atoms = [atom_1, atom_2]
+                atoms.sort()
+                key += atoms[0] + "_" + atoms[1]
+                rxn_type.append(key)
+
+        if(len(formed_bonds) > 0):
+            for i in formed_bonds:
+                key = 'formed_'
+                index = i 
+                atom_1 = row[reactant_key + "_molecule_graph"]["molecule"]["sites"][index[0]]["name"]
+                atom_2 = row[reactant_key + "_molecule_graph"]["molecule"]["sites"][index[1]]["name"]
+                atoms = [atom_1, atom_2]
+                atoms.sort()
+                key += atoms[0] + "_" + atoms[1]
+                rxn_type.append(key)
+
         rxn = Reaction(
             reactants=reactants,
             products=products,
@@ -305,6 +328,7 @@ def process_species_graph(row, classifier=False, target='ts', reverse_rxn=False,
             total_atoms=total_atoms,
             reverse_energy_target=reverse_energy,
             identifier=id,
+            reaction_type = rxn_type 
         )
         atom_mapping_check = []
         for i in atoms_reactants: 
@@ -685,7 +709,7 @@ def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_fi
         debug(bool): use smaller dataset or not
     """
 
-    path_mg_data = "../../../dataset/mg_dataset/20220613_reaction_data.json"
+    #path_mg_data = "../../../dataset/mg_dataset/20220613_reaction_data.json"
     path_json = filename
     
     print("reading file from: {}".format(path_json))
@@ -794,14 +818,15 @@ def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_fi
         features,
     
     ) = extractor.create_struct_label_dataset_reaction_based_regression_general(
-        struct_file=path_mg_data + "mg_struct_bond_rgrn_classify.sdf",
-        label_file=path_mg_data + "mg_label_bond_rgrn_classify.yaml",
-        feature_file=path_mg_data + "mg_feature_bond_rgrn_classify.yaml",
+        struct_file=path_json + "mg_struct_bond_rgrn_classify.sdf",
+        label_file=path_json + "mg_label_bond_rgrn_classify.yaml",
+        feature_file=path_json + "mg_feature_bond_rgrn_classify.yaml",
         group_mode="charge_0",
         sdf_mapping=False,
     )
 
     return all_mols, all_labels, features
+
 
 def process_data():
     # create_struct_label_dataset_reaction_network(filename='', out_file='./')

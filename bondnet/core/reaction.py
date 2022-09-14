@@ -38,7 +38,8 @@ class Reaction:
         broken_bond=None, formed_bond=None, 
         free_energy=None, identifier=None, 
         total_bonds=None, total_atoms=None,
-        reverse_energy_target = None
+        reverse_energy_target = None,
+        reaction_type = None
     ):
 
         self.reactants = reactants
@@ -46,7 +47,8 @@ class Reaction:
         self.len_products = len(products)
         self.len_reactants = len(reactants)
         self.total_bonds = total_bonds
-        
+        self.reaction_type = reaction_type
+
         if(total_atoms != None):
             self.total_atoms = total_atoms
             self.num_atoms_total = len(self.total_atoms)
@@ -81,6 +83,9 @@ class Reaction:
             self._id = str_id
 
         return self._id
+
+    def get_type(self):
+        return self.reaction_type
 
     def get_free_energy(self):
         if self._free_energy is not None:
