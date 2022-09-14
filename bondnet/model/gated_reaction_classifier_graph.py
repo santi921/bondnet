@@ -116,7 +116,7 @@ class GatedGCNReactionNetworkClassifier(GatedGCNMol):
         self.fc_layers.append(nn.Softmax(dim=1))
 
 
-    def forward(self, graph, feats, reactions, target, stdev, norm_atom=None, norm_bond=None, device=None):
+    def forward(self, graph, feats, reactions, target, stdev, norm_atom=None, norm_bond=None, device=None, reverse = False):
         """
         Args:
             graph (DGLHeteroGraph or BatchedDGLHeteroGraph): (batched) molecule graphs
@@ -130,9 +130,6 @@ class GatedGCNReactionNetworkClassifier(GatedGCNMol):
         Returns:
             2D tensor: of shape(N, M), where `M = outdim`.
         """
-        pred_filtered_index = []
-        pred_filtered = []
-        stdev_filtered = []
 
         # embedding
         feats = self.embedding(feats)
@@ -144,7 +141,7 @@ class GatedGCNReactionNetworkClassifier(GatedGCNMol):
         # convert mol graphs to reaction graphs by subtracting reactant feats from
         # products feats
         # graph is actually batch graphs, not just a graph
-        graph, feats = mol_graph_to_rxn_graph(graph, feats, reactions, device)
+        graph, feats = mol_graph_to_rxn_graph(graph, feats, reactions, device, reverse)
         
         # readout layer
         feats = self.readout_layer(graph, feats)
@@ -206,6 +203,7 @@ class GatedGCNReactionNetworkClassifier(GatedGCNMol):
         return all_feats
 
 
+
 def _split_batched_output(graph, value):
     """
     Split a tensor into `num_graphs` chunks, the size of each chunk equals the
@@ -219,7 +217,7 @@ def _split_batched_output(graph, value):
     return torch.split(value, nbonds)
 
 
-def mol_graph_to_rxn_graph(graph, feats, reactions, device=None):
+def mol_graph_to_rxn_graph(graph, feats, reactions, device=None, reverse = False):
     """
     Convert a batched molecule graph to a batched reaction graph.
 
@@ -271,7 +269,7 @@ def mol_graph_to_rxn_graph(graph, feats, reactions, device=None):
         
         
         g, fts = create_rxn_graph(
-            reactants, products, mappings, has_bonds, device
+            reactants, products, mappings, has_bonds, device, reverse = reverse
         )
         reaction_graphs.append(g)
         #if(device !=None):
@@ -298,6 +296,7 @@ def mol_graph_to_rxn_graph(graph, feats, reactions, device=None):
     batched_graph = dgl.batch(reaction_graphs) # batch graphs
     for nt in feats: # batch features
         batched_feats[nt] = torch.cat([ft[nt] for ft in reaction_feats])
+        
     return batched_graph, batched_feats
 
 
@@ -360,6 +359,7 @@ def create_rxn_graph(
     device=None, 
     ntypes=("global", "atom", "bond"),
     ft_name="ft",
+    reverse = False
 ):
     """
     A reaction is represented by:
@@ -431,35 +431,27 @@ def create_rxn_graph(
         
         if(device is not None):
             net_ft_full = net_ft_full.to(device)
-
-        if(verbose):
-            if(type(products_ft) == list):
-                for prod_ft in reactants_ft:
-                    print("products_ft shape: {}".format(prod_ft.shape))
-            else:
-                print("products_ft shape: {}".format(products_ft.shape))
-            if(type(reactants_ft) == list):
-                for react_ft in reactants_ft:
-                    print("reactants_ft shape: {}".format(react_ft.shape))
-            else:
-                print("reactants_ft shape: {}".format(reactants_ft.shape))
-            print("net_ft_full shape: {}".format(net_ft_full.shape))
         
         if nt == "global": 
+            coef = 1
+            if(reverse==True): coef = -1
+
             for product_ft in products_ft:
-                net_ft_full += torch.sum(product_ft, dim=0, keepdim=True)                
+                net_ft_full += coef * torch.sum(product_ft, dim=0, keepdim=True)                
             for reactant_ft in reactants_ft:
-                net_ft_full -= torch.sum(reactant_ft, dim=0, keepdim=True) 
-                                
+                net_ft_full -= coef * torch.sum(reactant_ft, dim=0, keepdim=True) 
+
         else:
             net_ft_full_temp = copy.deepcopy(net_ft_full) 
+            coef = 1
+            if(reverse==True): coef = -1
             for ind, reactant_ft in enumerate(reactants_ft):
                 mappings_raw = mappings[nt+"_map"][0][ind]
                 mappings_react = list(mappings_raw.keys())
                 mappings_total = [mappings_raw[mapping] for mapping in mappings_react]
                 assert np.max(np.array(mappings_total)) < len(net_ft_full_temp), f"invalid index  {mappings}"
                 net_ft_full_temp[mappings_total] = reactant_ft[mappings_react]
-                net_ft_full -= net_ft_full_temp
+                net_ft_full -= coef * net_ft_full_temp
 
             for ind, product_ft in enumerate(products_ft):
                 mappings_raw = mappings[nt+"_map"][1][ind]
@@ -467,7 +459,7 @@ def create_rxn_graph(
                 mappings_total = [mappings_raw[mapping] for mapping in mappings_prod]
                 assert np.max(np.array(mappings_total)) < len(net_ft_full_temp), f"invalid index  {mappings}"
                 net_ft_full_temp[mappings_total] = product_ft[mappings_prod]
-                net_ft_full += net_ft_full_temp
+                net_ft_full += coef * net_ft_full_temp
 
         feats[nt] = net_ft_full
     return graph, feats

@@ -405,6 +405,7 @@ def parse_settings(file="settings.txt"):
     lr = 0.00001
     num_gpu = 1
     categories = 5
+    category_weights = [1.0, 2.0, 1.0, 1.5, 2.0]
     weight_decay = 0.0001
     
     early_stop = True
@@ -458,7 +459,7 @@ def parse_settings(file="settings.txt"):
                 if i.split()[0] == "model_path":
                     model_path = i.split()[1]
                 if i.split()[0] == "augment":
-                    augment = bool(i.split()[1])
+                    augment = "True" == i.split()[1]
                 if i.split()[0] == "num_gpu":
                     num_gpu = int(i.split()[1])
                 if i.split()[0] == 'xyz_featurizer':
@@ -477,8 +478,6 @@ def parse_settings(file="settings.txt"):
                     classifier = "True" == i.split()[1]
                 if i.split()[0] == "categories":
                     categories = int(i.split()[1])
-
-
                 if i.split()[0] == "batch_size":
                     batch_size = int(i.split()[1])
                 if i.split()[0] == "epochs":
@@ -491,9 +490,12 @@ def parse_settings(file="settings.txt"):
                     lr = float(i.split()[1])
                 if i.split()[0] == "weight_decay":
                     weight_decay = float(i.split()[1])
-
                 if i.split()[0] == "gated_hidden_size":
                     gated_hidden_size = [int(j) for j in i.split()[1:]]
+                
+                if i.split()[0] == "category_weights":
+                    category_weights = [float(j) for j in i.split()[1:]]
+
                 if i.split()[0] == "gated_dropout":
                     gated_dropout = float(i.split()[1])
                 if i.split()[0] == "gated_graph_norm":
@@ -516,7 +518,7 @@ def parse_settings(file="settings.txt"):
                 if i.split()[0] == "fc_activation":
                     fc_activation = str(i.split()[1])
                 if i.split()[0] == "fc_batch_norm":
-                    fc_batch_norm = bool(i.split()[1])
+                    fc_batch_norm = "True" == i.split()[1]
                 if i.split()[0] == "fc_dropout":
                     fc_dropout = float(i.split()[1])
                 if i.split()[0] == 'filter_outliers':
@@ -544,11 +546,12 @@ def parse_settings(file="settings.txt"):
         print("filter species?                  {}".format(filter_species))
         print("filter outliers?                 {}".format(filter_outliers))
         print("num gpu:                         {}".format(str(num_gpu)))
-        print("xyz feeaturizer:                 {}".format(featurizer_xyz))
+        print("xyz featurizer:                 {}".format(featurizer_xyz))
         print("hyperparam save file:            {}".format(save_hyper_params))
         print("dataset state dict:              {}".format(dataset_state_dict_filename))
         print("model dir                        {}".format(model_path))
         print("classifier                       {}".format(classifier))
+        print("category weights:                {}".format(str(category_weights)))
         print("batch size:                      {}".format(batch_size))
         print("epochs:                          {:1d}".format(epochs))
         print("lr:                              {:7f}".format(lr))
@@ -580,6 +583,7 @@ def parse_settings(file="settings.txt"):
         dict_ret = {}
         dict_ret["classifier"] = classifier
         dict_ret["categories"] = categories
+        dict_ret["category_weights"] = category_weights
         dict_ret["dataset_loc"] = dataset_loc
         dict_ret["augment"] = augment
         dict_ret["debug"] = test

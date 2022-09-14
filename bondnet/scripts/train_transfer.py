@@ -37,10 +37,10 @@ def train_transfer(
     dict_train = parse_settings(settings_file)
     #path_mg_data = "../../../dataset/mg_dataset/20220826_mpreact_reactions.json"
     #path_mg_data = "../../../dataset/mg_dataset/20220613_reaction_data.json"
-    path_mg_data = dict_train["dataset_loc"]
+    #path_mg_data = dict_train["dataset_loc"]
 
     if(dict_train["classifier"]):
-        classif_categories = 5 # update this later
+        classif_categories = 5 
         run = wandb.init(project="project_classification_test", reinit=True)
     else:
         classif_categories = None
@@ -56,12 +56,12 @@ def train_transfer(
     else: dict_train["gpu"] = device
     
     wandb.config.update(dict_train)
-
     print("train on device: {}".format(dict_train["gpu"]))
+
     if(dataset == None):
        dataset = ReactionNetworkDatasetGraphs(
         grapher=get_grapher(), 
-        file=path_mg_data, 
+        file=dict_train["dataset_loc"], 
         out_file="./", 
         target = 'ts', 
         filter_species = dict_train["filter_species"],
@@ -99,7 +99,7 @@ def train_transfer(
     if(dict_train['transfer']):
         if(dataset_transfer == None):
             dataset_transfer = ReactionNetworkDatasetGraphs(
-            grapher=get_grapher(), file=path_mg_data, out_file="./", 
+            grapher=get_grapher(), file=dict_train["dataset_loc"], out_file="./", 
             target = 'diff', 
             classifier = dict_train["classifier"], 
             classif_categories=classif_categories, 
@@ -109,14 +109,14 @@ def train_transfer(
             )
 
         trainset_transfer, valset_tranfer, _ = train_validation_test_split(
-        dataset_transfer, validation=0.15, test=0.01
+            dataset_transfer, validation=0.15, test=0.01
         )
         dataset_transfer_loader = DataLoaderReactionNetwork(
-            trainset_transfer, batch_size=dict_train['batch_size'], 
-        shuffle=True)
+            trainset_transfer, batch_size=dict_train['batch_size'], shuffle=True
+        )
         dataset_transfer_loader_val = DataLoaderReactionNetwork(
-            valset_tranfer, batch_size=dict_train['batch_size'], 
-        shuffle=True)
+            valset_tranfer, batch_size=dict_train['batch_size'], shuffle=True
+        )
 
         print("Initiating Training w/ transfer...")
         model_parameters = filter(lambda p: p.requires_grad, model.parameters())
@@ -132,7 +132,9 @@ def train_transfer(
                     dataset_transfer_loader,
                     optimizer_transfer, 
                     device = dict_train["gpu"], 
-                    categories = classif_categories
+                    weight= dict_train["category_weights"],
+                    categories = classif_categories,
+                    augment=dict_train["augment"]
                 )
                 val_acc_transfer, f1_score = evaluate_classifier(
                     model, 
@@ -141,11 +143,11 @@ def train_transfer(
                     device = dict_train["gpu"],
                     categories = classif_categories
                 )
-                wandb.log({"transfer_val_acc": val_acc_transfer})
-                wandb.log({"transfer_val_f1": f1_score})
                 wandb.log({"loss_transfer": loss_transfer})
                 wandb.log({"train_acc_transfer": train_acc_transfer})
-            
+                wandb.log({"transfer_val_acc": val_acc_transfer})
+                wandb.log({"transfer_val_f1": f1_score})            
+
             else:
                 loss_transfer, train_acc_transfer = train(
                     model, 
@@ -176,7 +178,6 @@ def train_transfer(
         print("Number of Trainable Model Params: {}".format(params))
 
     t1 = time.time()
-
     if(dict_train["classifier"]):
         print("# Epoch     Loss         TrainAcc        ValAcc        ValF1")
     else: 
@@ -190,8 +191,10 @@ def train_transfer(
                 feature_names, 
                 train_loader, 
                 optimizer, 
+                weight= dict_train["category_weights"],
                 device = dict_train["gpu"],
-                categories = classif_categories
+                categories = classif_categories,
+                augment=dict_train["augment"]
             )
 
             # evaluate on validation set
@@ -202,7 +205,8 @@ def train_transfer(
                 device = dict_train["gpu"],
                 categories = classif_categories
             )
-
+            wandb.log({"loss": loss})
+            wandb.log({"acc train": train_acc})
             wandb.log({"acc validation": val_acc})
             wandb.log({"f1 validation": f1_score})
             print(

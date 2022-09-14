@@ -8,9 +8,9 @@ from bondnet.utils import parse_settings
 
 def main():
 
-    path_mg_data = "../dataset/mg_dataset/20220826_mpreact_reactions.json"
+    #path_mg_data = "../dataset/mg_dataset/20220826_mpreact_reactions.json"
     files = glob("settings*.txt")
-    print(files)
+    #print(files)
     first_setting = files[0]
     dict_train = parse_settings(first_setting)
     
@@ -32,7 +32,7 @@ def main():
 
     dataset = ReactionNetworkDatasetGraphs(
         grapher=get_grapher(featurizer_xyz), 
-        file=path_mg_data, 
+        file=dict_train["dataset_loc"], 
         out_file="./", 
         target = 'ts', 
         classifier = dict_train["classifier"], 
@@ -43,7 +43,7 @@ def main():
     )
     dataset_transfer = ReactionNetworkDatasetGraphs(
         grapher=get_grapher(featurizer_xyz), 
-        file=path_mg_data, 
+        file=dict_train["dataset_loc"], 
         out_file="./", 
         target = 'diff', 
         classifier = dict_train["classifier"], 
