@@ -267,7 +267,10 @@ def process_species_graph(row, classifier=False, target='ts', reverse_rxn=False,
             value = row['transition_state_energy'] - row[reactant_key+'_energy']
             reverse_energy = row['transition_state_energy'] - row[product_key+'_energy']
             if(reverse_energy < 0.0): reverse_energy = 0.0
-            if(value < 0.0): value = 0.0
+            if(value < 0.0): 
+                return []
+                #value = 0.0
+
         else:
             value = row[product_key+'_energy'] - row[reactant_key+'_energy']
             reverse_energy = row[reactant_key+'_energy'] - row[product_key+'_energy']
