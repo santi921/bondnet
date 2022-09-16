@@ -353,4 +353,5 @@ def rdkit_bond_desc(mol):
                 ft = [int(bond.GetIsConjugated())]
                 ft += one_hot_encoding(bond.GetBondType(), allowed_bond_type)
                 detected_bonds_dict[i, j] = ft  # adds with key = to the bond
+                
     return detected_bonds_dict
