@@ -140,8 +140,7 @@ def train_transfer(
                     model, 
                     feature_names, 
                     dataset_transfer_loader_val, 
-                    device = dict_train["gpu"],
-                    categories = classif_categories
+                    device = dict_train["gpu"]
                 )
                 wandb.log({"loss_transfer": loss_transfer})
                 wandb.log({"train_acc_transfer": train_acc_transfer})
@@ -202,8 +201,7 @@ def train_transfer(
                 model, 
                 feature_names, 
                 val_loader, 
-                device = dict_train["gpu"],
-                categories = classif_categories
+                device = dict_train["gpu"]
             )
             wandb.log({"loss": loss})
             wandb.log({"acc train": train_acc})
@@ -278,8 +276,7 @@ def train_transfer(
             model, 
             feature_names, 
             test_loader, 
-            device = dict_train["gpu"],
-            categories = classif_categories
+            device = dict_train["gpu"]
         )
 
 

@@ -150,7 +150,17 @@ def split_and_map(
     
     return ret_list, mapping, bond_map
 
-def process_species_graph(row, classifier=False, target='ts', reverse_rxn=False, verbose=False, filter_species = None, filter_outliers = False, lower_bound = -99, upper_bound = 100):
+def process_species_graph(
+    row, 
+    classifier=False, 
+    target='ts', 
+    reverse_rxn=False, 
+    verbose=False, 
+    filter_species = None, 
+    filter_outliers = False, 
+    lower_bound = -99, 
+    upper_bound = 100,
+    categories = 5):
     """
     Takes a row and processes the products/reactants - entirely defined by graphs from row
 
@@ -276,27 +286,43 @@ def process_species_graph(row, classifier=False, target='ts', reverse_rxn=False,
             reverse_energy = row[reactant_key+'_energy'] - row[product_key+'_energy']
         
         if classifier:
-            if value <= 0.04:
-                value = 0
-            elif value < 0.3 and value > 0.04:
-                value = 1
-            elif value < 0.7 and value > 0.3:
-                value = 2
-            elif value < 1.5 and value > 0.7:
-                value = 3
-            else:
-                value = 4
+            if(categories == 3):
+                if value <= 0.1:
+                    value = 0
+                elif value < 0.7 and value > 0.1:
+                    value = 2
+                else:
+                    value = 4
 
-            if reverse_energy <= 0.04:
-                reverse_energy = 0
-            elif reverse_energy < 0.3 and reverse_energy > 0.04:
-                reverse_energy = 1
-            elif reverse_energy < 0.7 and reverse_energy > 0.3:
-                reverse_energy = 2
-            elif reverse_energy < 1.5 and reverse_energy > 0.7:
-                reverse_energy = 3
-            else:
-                reverse_energy = 4
+                if reverse_energy <= 0.1:
+                    reverse_energy = 0
+                elif reverse_energy < 0.7 and reverse_energy > 0.1:
+                    reverse_energy = 2
+                else:
+                    reverse_energy = 3
+
+            else: 
+                if value <= 0.04:
+                    value = 0
+                elif value < 0.3 and value > 0.04:
+                    value = 1
+                elif value < 0.7 and value > 0.3:
+                    value = 2
+                elif value < 1.5 and value > 0.7:
+                    value = 3
+                else:
+                    value = 4
+                if reverse_energy <= 0.04:
+                    reverse_energy = 0
+                elif reverse_energy < 0.3 and reverse_energy > 0.04:
+                    reverse_energy = 1
+                elif reverse_energy < 0.7 and reverse_energy > 0.3:
+                    reverse_energy = 2
+                elif reverse_energy < 1.5 and reverse_energy > 0.7:
+                    reverse_energy = 3
+                else:
+                    reverse_energy = 4
+                
             
         rxn_type = [] 
 
@@ -550,7 +576,6 @@ def create_struct_label_dataset_bond_based_regression(filename, out_file):
 
     for rxn_temp in rxn_raw:
         if not isinstance(rxn_temp, list):
-            # if(reactions.)
             reactions.append(rxn_temp)
 
     print("number of rxns counted: " + str(len(reactions)))

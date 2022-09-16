@@ -47,7 +47,7 @@ def train_classifier(
     epoch_loss, accuracy, count = 0.0, 0.0, 0.0
 
     if(weight == None):
-        weight = torch.tensor([1., 2., 1. , 1.5, 2.])
+        weight = torch.tensor([1. for i in range(categories)])
     else: 
         weight = torch.tensor(weight)
 
@@ -197,7 +197,7 @@ def train(model, nodes, data_loader, optimizer,loss_fn ='mse', device=None, augm
     return epoch_loss, accuracy
 
 
-def evaluate_classifier(model, nodes, data_loader, device = None, categories = 3):
+def evaluate_classifier(model, nodes, data_loader, device = None):
     """
     basic loop for testing a classifier. Gets F1 and accuracy
         

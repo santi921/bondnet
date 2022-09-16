@@ -1104,7 +1104,6 @@ class BondAsNodeGraphFeaturizerBondLen(BondFeaturizer):
     """
 
     def __call__(self, mol, **kwargs):
-        print("new featurizer used")
         """
         Parameters
         ----------
