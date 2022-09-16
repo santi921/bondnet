@@ -262,7 +262,7 @@ def evaluate_classifier(model, nodes, data_loader, device = None, categories = 3
         outputs_numpy = outputs.long().numpy()
         target_numpy = targets.long().copy().numpy()
     
-    f1_val = f1_score(outputs_numpy, target_numpy, average = 'macro')
+    f1_val = f1_score(outputs_numpy, target_numpy, average = 'micro')
     
             
     return accuracy / count, f1_val

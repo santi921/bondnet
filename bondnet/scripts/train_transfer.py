@@ -282,8 +282,9 @@ def train_transfer(
             categories = classif_categories
         )
 
-        wandb.log({"acc validation": test_acc})
-        wandb.log({"f1 validation": test_f1})
+
+        wandb.log({"acc test": test_acc})
+        wandb.log({"f1 test": test_f1})
         print("Test Acc: {:12.6e}".format(test_acc))
         print("Test F1: {:12.6e}".format(test_f1))
 
