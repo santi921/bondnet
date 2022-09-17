@@ -14,7 +14,8 @@ def main():
     first_setting = files[0]
     dict_train = parse_settings(first_setting)
     
-    if(dict_train["classifier"]):classif_categories = 5 # update this later
+    if(dict_train["classifier"]):
+        classif_categories = dict_train["categories"]
     else:classif_categories = None
     
     #if(device == None):

@@ -138,7 +138,8 @@ def train_transfer(
                     device = dict_train["gpu"],
                     categories = classif_categories,
                     augment=dict_train["augment"]
-               )
+                )
+
                 val_acc_transfer, f1_score = evaluate_classifier(
                     model, 
                     feature_names, 
@@ -206,7 +207,6 @@ def train_transfer(
                 val_loader, 
                 device = dict_train["gpu"]
             )
-            print("evaluated")
             wandb.log({"loss": loss})
             wandb.log({"acc train": train_acc})
             wandb.log({"acc validation": val_acc})
