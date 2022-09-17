@@ -713,7 +713,8 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
             target=target, 
             filter_species = filter_species,
             classifier=classifier, debug=debug,
-            filter_outliers=filter_outliers
+            filter_outliers=filter_outliers,
+            categories=classif_categories
         )
 
         self.molecules = all_mols

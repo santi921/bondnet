@@ -40,7 +40,7 @@ def train_transfer(
     #path_mg_data = dict_train["dataset_loc"]
 
     if(dict_train["classifier"]):
-        classif_categories = 5 
+        classif_categories = dict_train["categories"]
         run = wandb.init(project="project_classification_test", reinit=True)
     else:
         classif_categories = None
@@ -59,18 +59,18 @@ def train_transfer(
     print("train on device: {}".format(dict_train["gpu"]))
 
     if(dataset == None):
-       dataset = ReactionNetworkDatasetGraphs(
-        grapher=get_grapher(), 
-        file=dict_train["dataset_loc"], 
-        out_file="./", 
-        target = 'ts', 
-        filter_species = dict_train["filter_species"],
-        classifier = dict_train["classifier"], 
-        classif_categories=classif_categories, 
-        debug = dict_train["debug"],
-        filter_outliers=dict_train["filter_outliers"],
-        device = device 
-        )
+        dataset = ReactionNetworkDatasetGraphs(
+            grapher=get_grapher(), 
+            file=dict_train["dataset_loc"], 
+            out_file="./", 
+            target = 'ts', 
+            classifier = dict_train["classifier"], 
+            classif_categories=classif_categories, 
+            filter_species = dict_train["filter_species"],
+            filter_outliers=dict_train["filter_outliers"],
+            debug = dict_train["debug"],
+            device = dict_train["gpu"]
+            )
     
     dict_train['in_feats'] = dataset.feature_size
     model, optimizer, optimizer_transfer = load_model(dict_train)
@@ -90,7 +90,7 @@ def train_transfer(
     )
 
     scheduler = ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.6, patience=50, verbose=True)
+        optimizer, mode="min", factor=0.8, patience=50, verbose=True)
     scheduler_transfer = ReduceLROnPlateau(
         optimizer_transfer, mode="min", factor=0.4, patience=30, verbose=True)
     stopper = EarlyStopping(patience=100)
@@ -99,14 +99,17 @@ def train_transfer(
     if(dict_train['transfer']):
         if(dataset_transfer == None):
             dataset_transfer = ReactionNetworkDatasetGraphs(
-            grapher=get_grapher(), file=dict_train["dataset_loc"], out_file="./", 
-            target = 'diff', 
-            classifier = dict_train["classifier"], 
-            classif_categories=classif_categories, 
-            filter_species = dict_train["filter_species"],
-            debug = dict_train["debug"],
-            device = dict_train["gpu"]
-            )
+                grapher=get_grapher(), 
+                file=dict_train["dataset_loc"], 
+                out_file="./", 
+                target = 'ts', 
+                classifier = dict_train["classifier"], 
+                classif_categories=classif_categories, 
+                filter_species = dict_train["filter_species"],
+                filter_outliers=dict_train["filter_outliers"],
+                debug = dict_train["debug"],
+                device = dict_train["gpu"]
+                )
 
         trainset_transfer, valset_tranfer, _ = train_validation_test_split(
             dataset_transfer, validation=0.15, test=0.01
@@ -130,12 +133,12 @@ def train_transfer(
                     model, 
                     feature_names, 
                     dataset_transfer_loader,
-                    optimizer_transfer, 
-                    device = dict_train["gpu"], 
+                    optimizer, 
                     weight= dict_train["category_weights"],
+                    device = dict_train["gpu"],
                     categories = classif_categories,
                     augment=dict_train["augment"]
-                )
+               )
                 val_acc_transfer, f1_score = evaluate_classifier(
                     model, 
                     feature_names, 
@@ -203,6 +206,7 @@ def train_transfer(
                 val_loader, 
                 device = dict_train["gpu"]
             )
+            print("evaluated")
             wandb.log({"loss": loss})
             wandb.log({"acc train": train_acc})
             wandb.log({"acc validation": val_acc})

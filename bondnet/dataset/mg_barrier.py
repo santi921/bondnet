@@ -277,9 +277,7 @@ def process_species_graph(
             value = row['transition_state_energy'] - row[reactant_key+'_energy']
             reverse_energy = row['transition_state_energy'] - row[product_key+'_energy']
             if(reverse_energy < 0.0): reverse_energy = 0.0
-            if(value < 0.0): 
-                return []
-                #value = 0.0
+            if(value < 0.0): value = 0.0
 
         else:
             value = row[product_key+'_energy'] - row[reactant_key+'_energy']
@@ -290,16 +288,16 @@ def process_species_graph(
                 if value <= 0.1:
                     value = 0
                 elif value < 0.7 and value > 0.1:
-                    value = 2
+                    value = 1
                 else:
-                    value = 4
+                    value = 2
 
                 if reverse_energy <= 0.1:
                     reverse_energy = 0
                 elif reverse_energy < 0.7 and reverse_energy > 0.1:
-                    reverse_energy = 2
+                    reverse_energy = 1
                 else:
-                    reverse_energy = 3
+                    reverse_energy = 2
 
             else: 
                 if value <= 0.04:
@@ -312,6 +310,7 @@ def process_species_graph(
                     value = 3
                 else:
                     value = 4
+
                 if reverse_energy <= 0.04:
                     reverse_energy = 0
                 elif reverse_energy < 0.3 and reverse_energy > 0.04:
@@ -725,7 +724,16 @@ def create_reaction_network_files(filename, out_file, classifier=False):
     return all_mols, all_labels, features
 
 
-def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_filter=False, target='ts', classifier=False, debug=False, augment=False, filter_species = False, filter_outliers = True):
+def create_reaction_network_files_and_valid_rows(filename, 
+                                                out_file, 
+                                                bond_map_filter=False, 
+                                                target='ts', 
+                                                classifier=False, 
+                                                debug=False, 
+                                                augment=False, 
+                                                filter_species = False, 
+                                                filter_outliers = True,
+                                                categories = 5):
     """
     Processes json file from emmet to use in training bondnet
 
@@ -768,6 +776,7 @@ def create_reaction_network_files_and_valid_rows(filename, out_file, bond_map_fi
                                 "target":target,
                                 "reverse_rxn":False,
                                 "verbose": False,
+                                "categories": categories,
                                 "filter_species": filter_species,
                                 "filter_outliers":filter_outliers,
                                 "upper_bound":upper_bound,
