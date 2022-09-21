@@ -158,6 +158,7 @@ def process_species_graph(
     verbose=False, 
     filter_species = None, 
     filter_outliers = False, 
+    filter_sparse_rxns = False,
     lower_bound = -99, 
     upper_bound = 100,
     categories = 5):
@@ -346,6 +347,25 @@ def process_species_graph(
                 atoms.sort()
                 key += atoms[0] + "_" + atoms[1]
                 rxn_type.append(key)
+        
+        if(filter_sparse_rxns):
+            filter_rxn_list = [
+                'broken_C_C', 'broken_C_Cl', 'broken_C_F', 'broken_C_H',
+            'broken_C_Li', 'broken_C_N',
+            'broken_C_O', 'broken_H_Li',
+            'broken_F_H', 'broken_H_N',
+            'broken_H_O', 'broken_Li_O',
+            'formed_C_C', 'formed_C_Cl',
+            'formed_C_F', 'formed_C_H',
+            'formed_C_Li', 'formed_C_N',
+            'formed_C_O', 'formed_H_Li',
+            'formed_F_H',  'formed_H_H',
+            'formed_H_O', 'formed_Li_O']
+
+            check = any(item in rxn_type for item in filter_rxn_list)
+            if (check == False): 
+                print("filtering rxn")
+                return []
 
         rxn = Reaction(
             reactants=reactants,
@@ -733,6 +753,7 @@ def create_reaction_network_files_and_valid_rows(filename,
                                                 augment=False, 
                                                 filter_species = False, 
                                                 filter_outliers = True,
+                                                filter_sparse_rxn = True,
                                                 categories = 5):
     """
     Processes json file from emmet to use in training bondnet
@@ -780,7 +801,8 @@ def create_reaction_network_files_and_valid_rows(filename,
                                 "filter_species": filter_species,
                                 "filter_outliers":filter_outliers,
                                 "upper_bound":upper_bound,
-                                "lower_bound":lower_bound },
+                                "lower_bound":lower_bound,
+                                "filter_sparse_rxns":filter_sparse_rxn },
                         timeout=30)
             future.add_done_callback(task_done)
             try:

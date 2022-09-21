@@ -693,11 +693,12 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         state_dict_filename=None,
         target = 'ts', 
         filter_species = [2, 3], 
+        filter_outliers = True,
+        filter_sparse_rxns = False,
         classifier = False,
         debug = False,
         classif_categories = None,
         device = None,
-        filter_outliers = True
     ):
 
         if dtype not in ["float32", "float64"]:
@@ -714,7 +715,8 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
             filter_species = filter_species,
             classifier=classifier, debug=debug,
             filter_outliers=filter_outliers,
-            categories=classif_categories
+            categories=classif_categories,
+            filter_sparse_rxn=filter_sparse_rxns
         )
 
         self.molecules = all_mols

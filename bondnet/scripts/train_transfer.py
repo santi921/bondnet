@@ -68,6 +68,7 @@ def train_transfer(
             classif_categories=classif_categories, 
             filter_species = dict_train["filter_species"],
             filter_outliers=dict_train["filter_outliers"],
+            filter_sparse_rxns=dict_train["filter_sparse_rxns"],
             debug = dict_train["debug"],
             device = dict_train["gpu"]
             )

@@ -39,6 +39,8 @@ def main():
         classifier = dict_train["classifier"], 
         classif_categories=classif_categories, 
         filter_species = dict_train["filter_species"],
+        filter_sparse_rxns=dict_train["filter_sparse_rxns"],
+        filter_outliers=dict_train["filter_outliers"],
         debug = dict_train["debug"],
         device = dict_train["gpu"] 
     )
@@ -50,6 +52,8 @@ def main():
         classifier = dict_train["classifier"], 
         classif_categories=classif_categories, 
         filter_species = dict_train["filter_species"],
+        filter_sparse_rxns=dict_train["filter_sparse_rxns"],
+        filter_outliers=dict_train["filter_outliers"],
         debug = dict_train["debug"],
         device = dict_train["gpu"]
     )

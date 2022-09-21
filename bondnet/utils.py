@@ -411,6 +411,7 @@ def parse_settings(file="settings.txt"):
     early_stop = True
     scheduler = False
     filter_outliers = True
+    filter_sparse_rxns = False
     transfer_epochs = 100
     transfer = True
     loss = 'mse'
@@ -522,6 +523,8 @@ def parse_settings(file="settings.txt"):
                     fc_dropout = float(i.split()[1])
                 if i.split()[0] == 'filter_outliers':
                     filter_outliers = "True" == i.split()[1]
+                if i.split()[0] == 'filter_sparse_rxns':
+                    filter_sparse_rxns = "True" == i.split()[1]
                 
                 if i.split()[0] == "num_lstm_iters":
                     num_lstm_iters = int(i.split()[1])
@@ -544,6 +547,7 @@ def parse_settings(file="settings.txt"):
         print("on gpu:                          {}".format(str(on_gpu)))
         print("filter species?                  {}".format(filter_species))
         print("filter outliers?                 {}".format(filter_outliers))
+        print("filter sparse rxns?              {}".format(filter_sparse_rxns))
         print("num gpu:                         {}".format(str(num_gpu)))
         print("xyz featurizer:                 {}".format(featurizer_xyz))
         print("hyperparam save file:            {}".format(save_hyper_params))
@@ -601,6 +605,7 @@ def parse_settings(file="settings.txt"):
         dict_ret['transfer'] = transfer 
         dict_ret['loss'] = loss 
         dict_ret['filter_outliers'] = filter_outliers
+        dict_ret['filter_sparse_rxns'] = filter_sparse_rxns
         dict_ret["freeze"] = freeze  
 
         dict_ret["start_epoch"] = start_epoch
