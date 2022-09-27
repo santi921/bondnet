@@ -35,7 +35,7 @@ def main():
         grapher=get_grapher(featurizer_xyz), 
         file=dict_train["dataset_loc"], 
         out_file="./", 
-        target = 'ts', 
+        target = 'dG_sp', 
         classifier = dict_train["classifier"], 
         classif_categories=classif_categories, 
         filter_species = dict_train["filter_species"],
@@ -44,24 +44,10 @@ def main():
         debug = dict_train["debug"],
         device = dict_train["gpu"] 
     )
-    dataset_transfer = ReactionNetworkDatasetGraphs(
-        grapher=get_grapher(featurizer_xyz), 
-        file=dict_train["dataset_loc"], 
-        out_file="./", 
-        target = 'diff', 
-        classifier = dict_train["classifier"], 
-        classif_categories=classif_categories, 
-        filter_species = dict_train["filter_species"],
-        filter_sparse_rxns=dict_train["filter_sparse_rxns"],
-        filter_outliers=dict_train["filter_outliers"],
-        debug = dict_train["debug"],
-        device = dict_train["gpu"]
-    )
 
     for ind, file in enumerate(files):
-        train_transfer(file, 
+        train_transfer_hydro(file, 
                 dataset = dataset, 
-                dataset_transfer = dataset_transfer, 
                 device = dict_train["gpu"]
             )
         os.rename(file, str(ind) + "_done.txt")

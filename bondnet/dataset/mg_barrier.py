@@ -217,8 +217,286 @@ def process_species_graph(
  
     bonds_reactant = row[reactant_key+"_bonds"]
     bonds_products = row[product_key+"_bonds"]
-    pymat_graph_reactants = row[reactant_key+"_molecule_graph"]["molecule"]["sites"]
-    pymat_graph_products = row[product_key+"_molecule_graph"]["molecule"]["sites"]
+    try:
+        #pymat_graph_reactants = row[reactant_key+"_structure"]["sites"]
+        #pymat_graph_products = row[product_key+"_structure"]["sites"]
+        pymat_graph_reactants = row["combined_" + reactant_key+"s_graph"]["molecule"]["sites"]
+        pymat_graph_products = row["combined_" + reactant_key+"s_graph"]["molecule"]["sites"]
+    except: 
+        pymat_graph_reactants = row[reactant_key+"_molecule_graph"]["molecule"]["sites"]
+        pymat_graph_products = row[product_key+"_molecule_graph"]["molecule"]["sites"]
+
+    species_reactant = [int_atom(i["name"]) for i in pymat_graph_reactants]
+    species_products_full = [int_atom(i["name"]) for i in pymat_graph_products]
+    coords_reactant = [i["xyz"] for i in pymat_graph_reactants]
+    coords_products_full = [i["xyz"] for i in pymat_graph_products]
+
+    # new 
+    total_bonds =  [tuple(bond) for bond in bonds_reactant]
+    [total_bonds.append((np.min(i), np.max(i))) for i in bonds_products]
+    total_bonds = list(set(total_bonds))
+    total_bonds = [list(bond) for bond in total_bonds]
+    
+    num_nodes = 0
+    for i in row["composition"].items():
+        num_nodes += int(i[-1])
+
+    bonds_nonmetal_product=row[product_key+'_bonds_nometal']
+    bonds_nonmetal_reactant=row[reactant_key+'_bonds_nometal']
+
+    products, atoms_products, mapping_products = split_and_map(
+        species=species_products_full,
+        coords=coords_products_full,
+        bonds=row[product_key+"_bonds"], 
+        atom_count=num_nodes, 
+        reaction_scaffold=total_bonds,
+        id=str(row[product_key+"_id"]), 
+        bonds_nonmetal=bonds_nonmetal_product,
+        charge=charge)
+    
+    reactants, atoms_reactants, mapping_reactants = split_and_map(
+        species=species_reactant,
+        coords=coords_reactant,
+        bonds = row[reactant_key+"_bonds"], 
+        atom_count = num_nodes, 
+        reaction_scaffold=total_bonds,
+        id = str(row[reactant_key+"_id"]), 
+        bonds_nonmetal=bonds_nonmetal_reactant,
+        charge=charge)
+    
+    total_atoms=list(set(list(np.concatenate([list(i.values()) for i in atoms_reactants]).flat)))
+    check=False
+    if(check):
+        total_atoms_check=list(set(list(np.concatenate([list(i.values()) for i in atoms_products]).flat)))
+        assert (total_atoms==total_atoms_check), 'atoms in reactant and products are not equal'
+    
+    if products != [] and reactants != []:
+        rxn_type = [] 
+
+        if(filter_prod != -99 or filter_reactant != -99):
+            if(len(products) > filter_prod):
+                return rxn  
+        if(filter_reactant != -99):
+            if(len(reactants) > filter_reactant):
+                return rxn  
+
+        try:
+            id = [i for i in row["reaction_id"].split("-")]
+            id = int(id[0] + id[1] + id[2])
+        except: 
+            id = row["reactant_id"]
+            if(type(row["product_id"]) == list): 
+                for i in row["product_id"]:
+                    id+=i
+            else: id+= row["product_id"]
+            id = int(id)
+
+
+        if(target == 'ts'):
+            value = row['transition_state_energy'] - row[reactant_key+'_energy']
+            reverse_energy = row['transition_state_energy'] - row[product_key+'_energy']
+            if(reverse_energy < 0.0): reverse_energy = 0.0
+            if(value < 0.0): value = 0.0
+        elif(target == 'dG_sp'):
+            value = row['dG_sp']
+            reverse_energy = -value
+        else:
+            value = row[product_key+'_energy'] - row[reactant_key+'_energy']
+            reverse_energy = row[reactant_key+'_energy'] - row[product_key+'_energy']
+        
+        if classifier:
+            if(categories == 3):
+                if value <= 0.1:
+                    value = 0
+                elif value < 0.7 and value > 0.1:
+                    value = 1
+                else:
+                    value = 2
+
+                if reverse_energy <= 0.1:
+                    reverse_energy = 0
+                elif reverse_energy < 0.7 and reverse_energy > 0.1:
+                    reverse_energy = 1
+                else:
+                    reverse_energy = 2
+
+            else: 
+                if value <= 0.04:
+                    value = 0
+                elif value < 0.3 and value > 0.04:
+                    value = 1
+                elif value < 0.7 and value > 0.3:
+                    value = 2
+                elif value < 1.5 and value > 0.7:
+                    value = 3
+                else:
+                    value = 4
+
+                if reverse_energy <= 0.04:
+                    reverse_energy = 0
+                elif reverse_energy < 0.3 and reverse_energy > 0.04:
+                    reverse_energy = 1
+                elif reverse_energy < 0.7 and reverse_energy > 0.3:
+                    reverse_energy = 2
+                elif reverse_energy < 1.5 and reverse_energy > 0.7:
+                    reverse_energy = 3
+                else:
+                    reverse_energy = 4
+                
+        if(len(broken_bonds) > 0 ):
+            for i in broken_bonds:
+                key = 'broken_'
+                index = i 
+
+                try:
+                    atom_1 = row["combined_" + reactant_key+"s_graph"]["molecule"]["sites"][index[0]]["name"]
+                    atom_2 = row["combined_" + reactant_key+"s_graph"]["molecule"]["sites"][index[1]]["name"] 
+                except: 
+                    atom_1 = row[reactant_key+"_molecule_graph"]["molecule"]["sites"][index[0]]["name"]
+                    atom_2 = row[reactant_key+"_molecule_graph"]["molecule"]["sites"][index[1]]["name"]
+                
+                atoms = [atom_1, atom_2]
+                atoms.sort()
+                key += atoms[0] + "_" + atoms[1]
+                rxn_type.append(key)
+
+        if(len(formed_bonds) > 0):
+            for i in formed_bonds:
+                key = 'formed_'
+                index = i 
+                try:
+                    atom_1 = row["combined_" + reactant_key+"s_graph"]["molecule"]["sites"][index[0]]["name"]
+                    atom_2 = row["combined_" + reactant_key+"s_graph"]["molecule"]["sites"][index[1]]["name"] 
+                except: 
+                    atom_1 = row[reactant_key+"_molecule_graph"]["molecule"]["sites"][index[0]]["name"]
+                    atom_2 = row[reactant_key+"_molecule_graph"]["molecule"]["sites"][index[1]]["name"]
+             
+                atoms = [atom_1, atom_2]
+                atoms.sort()
+                key += atoms[0] + "_" + atoms[1]
+                rxn_type.append(key)
+        
+        if(filter_sparse_rxns):
+            filter_rxn_list = [
+                'broken_C_C', 'broken_C_Cl', 'broken_C_F', 'broken_C_H',
+            'broken_C_Li', 'broken_C_N',
+            'broken_C_O', 'broken_H_Li',
+            'broken_F_H', 'broken_H_N',
+            'broken_H_O', 'broken_Li_O',
+            'formed_C_C', 'formed_C_Cl',
+            'formed_C_F', 'formed_C_H',
+            'formed_C_Li', 'formed_C_N',
+            'formed_C_O', 'formed_H_Li',
+            'formed_F_H',  'formed_H_H',
+            'formed_H_O', 'formed_Li_O']
+
+            check = any(item in rxn_type for item in filter_rxn_list)
+            if (check == False): 
+                print("filtering rxn")
+                return []
+
+        rxn = Reaction(
+            reactants=reactants,
+            products=products,
+            free_energy=value,
+            broken_bond=broken_bonds,
+            formed_bond=formed_bonds,
+            total_bonds=total_bonds,
+            total_atoms=total_atoms,
+            reverse_energy_target=reverse_energy,
+            identifier=id,
+            reaction_type = rxn_type 
+        )
+        atom_mapping_check = []
+        for i in atoms_reactants: 
+            for key in i.keys(): 
+                atom_mapping_check.append(i[key])
+        atom_mapping_check = list(set(atom_mapping_check))
+        if(atom_mapping_check!=total_atoms): print(atom_mapping_check, total_atoms)
+        
+        rxn.set_atom_mapping([atoms_reactants, atoms_products])
+        rxn._bond_mapping_by_int_index = [mapping_reactants, mapping_products]
+        
+        outlier_condition = lower_bound > value or upper_bound < value
+        if(outlier_condition and filter_outliers): return []
+    
+    return rxn
+
+def process_species_graph_extra_features(
+    row, 
+    classifier=False, 
+    target='ts', 
+    reverse_rxn=False, 
+    verbose=False, 
+    filter_species = None, 
+    filter_outliers = False, 
+    filter_sparse_rxns = False,
+    extra_feat_keys=[],
+    lower_bound = -99, 
+    upper_bound = 100,
+    categories = 5):
+    """
+    Takes a row and processes the products/reactants - entirely defined by graphs from row
+
+    Args:
+        row: the row (series) pandas object
+
+    Returns:
+        mol_list: a list of MolecularWrapper object(s) for product(s) or reactant
+    """
+    
+    rxn = []
+
+    if(filter_species == None): 
+        filter_prod = -99
+        filter_reactant = -99
+    else: 
+        filter_prod = filter_species[1]
+        filter_reactant = filter_species[0]
+        
+    reactant_key = 'reactant'
+    product_key = 'product'
+    #reverse_rxn = False # generalize to augment with reverse
+    
+    charge = row["charge"]
+    formed_len = len(row['bonds_formed'])
+    broken_len = len(row['bonds_broken'])
+    broken_bonds = [tuple(i) for i in row['bonds_broken']]
+    formed_bonds = [tuple(i) for i in row['bonds_formed']]
+    check_list_len = broken_len + formed_len
+    
+    if(check_list_len==0): 
+        if(verbose):
+            print("no bond changes detected")
+        return 0
+
+    else: 
+        if(reverse_rxn):
+            reactant_key = 'product'
+            product_key = 'reactant'          
+            formed_len = len(row['bonds_broken'])
+            broken_len = len(row['bonds_formed'])
+            formed_bonds = row['bonds_broken'] 
+            broken_bonds = row['bonds_formed']
+
+    if(broken_len == 0):
+        temp_key = copy.deepcopy(reactant_key)
+        reactant_key = product_key
+        product_key = temp_key
+        reverse_rxn = not reverse_rxn
+        temp_broken = copy.deepcopy(broken_bonds)
+        broken_bonds = formed_bonds
+        formed_bonds = temp_broken
+ 
+    bonds_reactant = row[reactant_key+"_bonds"]
+    bonds_products = row[product_key+"_bonds"]
+    try:
+        pymat_graph_reactants = row[reactant_key+"_molecule_graph"]["molecule"]["sites"]
+        pymat_graph_products = row[product_key+"_molecule_graph"]["molecule"]["sites"]
+    except: 
+        pymat_graph_reactants = row[reactant_key+"_structure"]["sites"]
+        pymat_graph_products = row[product_key+"_structure"]["sites"]
+
     species_reactant = [int_atom(i["name"]) for i in pymat_graph_reactants]
     species_products_full = [int_atom(i["name"]) for i in pymat_graph_products]
     coords_reactant = [i["xyz"] for i in pymat_graph_reactants]
@@ -279,7 +557,9 @@ def process_species_graph(
             reverse_energy = row['transition_state_energy'] - row[product_key+'_energy']
             if(reverse_energy < 0.0): reverse_energy = 0.0
             if(value < 0.0): value = 0.0
-
+        elif(target == 'dG_sp'):
+            value = row['dG_sp']
+            reverse_energy = -value
         else:
             value = row[product_key+'_energy'] - row[reactant_key+'_energy']
             reverse_energy = row[reactant_key+'_energy'] - row[product_key+'_energy']
@@ -393,6 +673,7 @@ def process_species_graph(
         if(outlier_condition and filter_outliers): return []
     
     return rxn
+
 
 def process_species_rdkit(row, classifier=False):
     """
