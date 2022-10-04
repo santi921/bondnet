@@ -4,7 +4,7 @@ dataset_state_dict_filename home/santiagovargas/Documents/Dataset/mg/dataset_sta
 model_path /home/santiagovargas/Documents/Dataset/mg/
 test False
 on_gpu True
-filter_species 2 2 
+filter_species 2 3
 
 fc_activation ReLU
 gated_activation ReLU
@@ -40,3 +40,7 @@ fc_hidden_size 128 64
 fc_num_layers 2
 fc_batch_norm 0
 lr 0.0001
+xyz_featurizer True
+featurizer_electronic_bond True
+electronic_featurizer True
+featurizer_filter True

@@ -14,7 +14,8 @@ def main():
     first_setting = files[0]
     dict_train = parse_settings(first_setting)
     
-    if(dict_train["classifier"]):classif_categories = 5 # update this later
+    if(dict_train["classifier"]):
+        classif_categories = dict_train["categories"]
     else:classif_categories = None
     
     #if(device == None):
@@ -29,28 +30,41 @@ def main():
     # IN THIS FOLDER B/C THIS MAKES IT SO YOU ONLY HAVE TO GEN 
     # DATASET ONCE
     featurizer_xyz = dict_train["featurizer_xyz"] 
+    featurizer_electronic = dict_train["featurizer_electronic"] 
 
     dataset = ReactionNetworkDatasetGraphs(
-        grapher=get_grapher(featurizer_xyz), 
+        grapher=get_grapher(
+                dict_train["featurizer_xyz"], 
+                dict_train["featurizer_electronic"],
+                dict_train["featurizer_electronic_bond"]), 
         file=dict_train["dataset_loc"], 
         out_file="./", 
         target = 'ts', 
         classifier = dict_train["classifier"], 
         classif_categories=classif_categories, 
         filter_species = dict_train["filter_species"],
+        filter_sparse_rxns=dict_train["filter_sparse_rxns"],
+        filter_outliers=dict_train["filter_outliers"],
         debug = dict_train["debug"],
-        device = dict_train["gpu"] 
+        device = dict_train["gpu"],
+        feature_filter = dict_train["featurizer_filter"]
     )
     dataset_transfer = ReactionNetworkDatasetGraphs(
-        grapher=get_grapher(featurizer_xyz), 
+        grapher=get_grapher(
+                dict_train["featurizer_xyz"], 
+                dict_train["featurizer_electronic"],
+                dict_train["featurizer_electronic_bond"]), 
         file=dict_train["dataset_loc"], 
         out_file="./", 
         target = 'diff', 
         classifier = dict_train["classifier"], 
         classif_categories=classif_categories, 
         filter_species = dict_train["filter_species"],
+        filter_sparse_rxns=dict_train["filter_sparse_rxns"],
+        filter_outliers=dict_train["filter_outliers"],
         debug = dict_train["debug"],
-        device = dict_train["gpu"]
+        device = dict_train["gpu"],
+        feature_filter = dict_train["featurizer_filter"]
     )
 
     for ind, file in enumerate(files):

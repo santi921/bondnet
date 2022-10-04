@@ -78,6 +78,7 @@ def parse_extra_electronic_feats_atom(extra_feats, inds = None):
 
 
 def parse_extra_electronic_feats_bond(extra_feats, dict_bonds_as_root_target_inds):
+    
     num_bonds = int(len(dict_bonds_as_root_target_inds.keys()))
     s_1 = [0 for i in range(num_bonds)]
     s_2 = [0 for i in range(num_bonds)]
@@ -92,9 +93,12 @@ def parse_extra_electronic_feats_bond(extra_feats, dict_bonds_as_root_target_ind
     occ_nbo = [0 for i in range(num_bonds)]
     original_atom_ind = [0 for i in range(num_bonds)]
     
+    extra_feature_keys=list(extra_feats.keys())
+    if("indices_nbo" not in extra_feature_keys):
+        return [], [], [], [], [], [], [], [], [], [], [], []
     extra_feat_bond_ind = extra_feats["indices_nbo"]
     extra_feat_bond_ind = [tuple(i) for i in extra_feat_bond_ind]
-    extra_feature_keys=list(extra_feats.keys())
+
     if("1_s" in extra_feature_keys):
         s_1_temp = extra_feats["1_s"]
     if("2_s" in extra_feature_keys):

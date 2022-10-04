@@ -40,3 +40,8 @@ fc_hidden_size 128 128
 fc_num_layers 2
 fc_batch_norm 0
 lr 0.0001
+
+xyz_featurizer True
+featurizer_electronic_bond True
+electronic_featurizer True
+featurizer_filter True

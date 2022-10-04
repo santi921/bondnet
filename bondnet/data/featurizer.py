@@ -928,6 +928,91 @@ class RBF(BaseFeaturizer):
 
 
 # NEW FEATURIZERS
+# NEW FEATURIZERS
+# NEW FEATURIZERS
+# NEW FEATURIZERS
+
+class AtomFeaturizerElectronicGraph(BaseFeaturizer):
+
+    """
+    Featurize atoms in a molecule.
+
+    Mimimum set of info without hybridization info.
+    """
+
+    def __call__(self, mol, **kwargs):
+        """
+        Args:
+            mol: molecular wraper object w/electronic info 
+
+            Also `extra_feats_info` should be provided as `kwargs` as additional info.
+
+        Returns:
+            Dictionary of atom features
+        """
+
+        try:
+            species = sorted(kwargs["dataset_species"])
+        except KeyError as e:
+            raise KeyError(
+                "{} `dataset_species` needed for {}.".format(e, self.__class__.__name__)
+            )
+        try:
+            feats_info = kwargs["extra_feats_info"]
+        except KeyError as e:
+            raise KeyError(
+                "{} `extra_feats_info` needed for {}.".format(
+                    e, self.__class__.__name__
+                )
+            )
+
+        feats, bond_list = [], []
+        num_atoms = 0
+        allowed_ring_size = [3, 4, 5, 6, 7]
+
+        valence_e = mol.valence_e
+        total_e = mol.total_e
+        charges = mol.charges
+        species_sites = mol.species
+        atoms_present = list(mol.composition_dict.keys())
+        for atom in atoms_present:
+            num_atoms += int(mol.composition_dict[atom])
+        bond_list_tuple = list(mol.bonds.keys())
+
+        atom_num = len(species_sites)
+        [bond_list.append(list(bond)) for bond in bond_list_tuple]
+        cycles = find_rings(atom_num, bond_list, edges=False)
+        ring_info = ring_features_from_atom_full(num_atoms, cycles, allowed_ring_size)
+
+        for atom_ind in range(num_atoms):
+            ft = []
+            atom_element = species_sites[atom_ind]
+            h_count, degree = h_count_and_degree(atom_ind, bond_list, species_sites)
+            ring_inclusion, ring_size_list = ring_info[atom_ind]
+            ft.append(degree)
+            ft.append(ring_inclusion)
+            ft.append(h_count)
+            ft.append(valence_e[atom_ind])
+            ft.append(total_e[atom_ind])
+            #ft.append(spin)
+            ft.append(charges[atom_ind])
+            ft += one_hot_encoding((atom_element), species)
+            ft += ring_size_list
+            feats.append(ft)
+
+        feats = torch.tensor(feats, dtype=getattr(torch, self.dtype))
+        self._feature_size = feats.shape[1]
+        self._feature_name = (
+            ["total degree", "is in ring", "total H"]
+            + ["valence", "total_e"]
+            + ["charges"]
+            + ["chemical symbol"] * len(species)
+            + ["ring size"] * len(allowed_ring_size)
+        )
+
+        return {"feat": feats}
+
+
 class AtomFeaturizerGraph(BaseFeaturizer):
 
     """
@@ -974,7 +1059,6 @@ class AtomFeaturizerGraph(BaseFeaturizer):
         for atom in atom_types:
             num_atoms += int(mol.composition_dict[atom])
 
-        # need to error handle here for products that are split
         species_sites = mol.species
         atom_num = len(species_sites)
 
@@ -983,6 +1067,7 @@ class AtomFeaturizerGraph(BaseFeaturizer):
 
         cycles = find_rings(atom_num, bond_list, edges=False)
         ring_info = ring_features_from_atom_full(num_atoms, cycles, allowed_ring_size)
+        
 
         for atom_ind in range(num_atoms):
             ft = []
@@ -1003,7 +1088,6 @@ class AtomFeaturizerGraph(BaseFeaturizer):
             + ["chemical symbol"] * len(species)
             + ["ring size"] * len(allowed_ring_size)
         )
-
         return {"feat": feats}
 
 
@@ -1036,9 +1120,6 @@ class BondAsNodeGraphFeaturizer(BondFeaturizer):
         num_feats = 7
         allowed_ring_size = [3, 4, 5, 6, 7]
 
-        charge = int(mol.charge)
-        atoms = [int_atom(i) for i in mol.species]
-        xyz_coordinates = mol.coords
         bond_list = list(mol.bonds)
         num_bonds = len(bond_list)
         bond_list_no_metal = mol.nonmetal_bonds
@@ -1091,6 +1172,7 @@ class BondAsNodeGraphFeaturizer(BondFeaturizer):
 
         return {"feat": feats}
 
+
 class BondAsNodeGraphFeaturizerBondLen(BondFeaturizer):
     """BaseFeaturizer
     Featurize all bonds in a molecule.
@@ -1107,8 +1189,7 @@ class BondAsNodeGraphFeaturizerBondLen(BondFeaturizer):
         """
         Parameters
         ----------
-        mol : pandas series with 'bond', 'pymatgen'/'site'/'molecule', and 
-        'composition' columns
+        mol : molwrapper object with xyz positions(coord)
 
         Returns
         -------
@@ -1177,6 +1258,208 @@ class BondAsNodeGraphFeaturizerBondLen(BondFeaturizer):
             + ["ring inclusion"]
             + ["ring size"] * 5
             + ["bond_len"]
+        )
+
+        if self.length_featurizer:
+            self._feature_name += self.length_featurizer.feature_name
+
+        return {"feat": feats}
+
+
+class BondAsNodeGraphFeaturizerBondLenElectronic(BondFeaturizer):
+    """BaseFeaturizer
+    Featurize all bonds in a molecule.
+
+    The bond indices will be preserved, i.e. feature i corresponds to atom i.
+    The number of features will be equal to the number of bonds in the molecule,
+    so this is suitable for the case where we represent bond as graph nodes.
+
+    See Also:
+        BondAsEdgeBidirectedFeaturizer
+    """
+
+    def __call__(self, mol, **kwargs):
+        """
+        Parameters
+        ----------
+        mol : molwrapper object with xyz positions(coord) + electronic information
+
+        Returns
+        -------
+            Dictionary for bond features
+        """
+  
+        
+        feats, bond_list_only_metal, no_metal_binary = [], [], []
+        num_atoms = 0
+        num_feats = 19
+        allowed_ring_size = [3, 4, 5, 6, 7]
+
+        s_1 = mol.s_1 
+        s_2 = mol.s_2
+        p_1 = mol.p_1
+        p_2 = mol.p_2
+        d_1 = mol.d_1
+        d_2 = mol.d_2 
+        f_1 = mol.f_1  
+        f_2 = mol.f_2
+        polar_1 = mol.polar_1
+        polar_2 = mol.polar_2
+        occ_nbo = mol.occ_nbo
+        xyz_coordinates = mol.coords
+        bond_list = list(mol.bonds)
+        num_bonds = len(bond_list)
+        bond_list_no_metal = mol.nonmetal_bonds
+        num_atoms = int(mol.num_atoms)
+        
+        if num_bonds == 0:
+            ft = [0.0 for _ in range(num_feats)]
+            if self.length_featurizer:
+                ft += [0.0 for _ in range(len(self.length_featurizer.feature_name))]
+            feats = [ft]
+        else:
+            feats = []
+            for i in bond_list:
+                if i not in bond_list_no_metal:
+                    bond_list_only_metal.append(i)
+                    no_metal_binary.append(0)
+                else:
+                    no_metal_binary.append(1)
+
+            cycles = find_rings(
+                num_atoms, bond_list_no_metal, allowed_ring_size, edges=True
+            )
+
+            ring_dict = ring_features_for_bonds_full(
+                bond_list, no_metal_binary, cycles, allowed_ring_size
+            )
+            ring_dict_keys = list(ring_dict.keys())
+            for ind, bond in enumerate(bond_list):
+                ft = []
+                if tuple(bond) in ring_dict_keys:
+                    ft.append(ring_dict[tuple(bond)][0])  # metal
+                    ft.append(ring_dict[tuple(bond)][1])  #
+                    ft += ring_dict[tuple(bond)][2]  # one hot ring
+                else:
+                    ft += [0, 0]
+                    ft += [0 for i in range(len(allowed_ring_size))]
+
+                bond_len = np.sqrt(
+                    np.sum(np.square(np.array(xyz_coordinates[bond[0]]) - 
+                    np.array(xyz_coordinates[bond[1]]
+                    ))))
+
+                ft.append(bond_len)
+                ft +=[s_1[ind], s_2[ind], p_1[ind], p_2[ind], d_1[ind], d_2[ind], f_1[ind], f_2[ind]]
+                ft +=[polar_1[ind], polar_2[ind], occ_nbo[ind]]
+                feats.append(ft)
+
+        feats = torch.tensor(feats, dtype=getattr(torch, self.dtype))
+        self._feature_size = feats.shape[1]
+        self._feature_name = (
+            ["metal bond"]
+            + ["ring inclusion"]
+            + ["ring size"] * 5
+            + ["bond_len"] 
+            + ["s1", "s2", "p1", "p2", "d1", "d2", "f1", "f2"]
+            + ["polarization1", "polarization2", "nbo_occ"]
+        )
+
+        if self.length_featurizer:
+            self._feature_name += self.length_featurizer.feature_name
+
+        return {"feat": feats}
+
+class BondAsNodeGraphFeaturizerElectronic(BondFeaturizer):
+    """BaseFeaturizer
+    Featurize all bonds in a molecule.
+
+    The bond indices will be preserved, i.e. feature i corresponds to atom i.
+    The number of features will be equal to the number of bonds in the molecule,
+    so this is suitable for the case where we represent bond as graph nodes.
+
+    See Also:
+        BondAsEdgeBidirectedFeaturizer
+    """
+
+    def __call__(self, mol, **kwargs):
+        """
+        Parameters
+        ----------
+        mol : molwrapper object with xyz positions(coord) + electronic information
+
+        Returns
+        -------
+            Dictionary for bond features
+        """
+  
+        
+        feats, bond_list_only_metal, no_metal_binary = [], [], []
+        num_atoms = 0
+        num_feats = 18
+        allowed_ring_size = [3, 4, 5, 6, 7]
+
+        s_1 = mol.s_1 
+        s_2 = mol.s_2
+        p_1 = mol.p_1
+        p_2 = mol.p_2
+        d_1 = mol.d_1
+        d_2 = mol.d_2 
+        f_1 = mol.f_1  
+        f_2 = mol.f_2
+        polar_1 = mol.polar_1
+        polar_2 = mol.polar_2
+        occ_nbo = mol.occ_nbo
+        bond_list = list(mol.bonds)
+        num_bonds = len(bond_list)
+        bond_list_no_metal = mol.nonmetal_bonds
+        num_atoms = int(mol.num_atoms)
+        
+        if num_bonds == 0:
+            ft = [0.0 for _ in range(num_feats)]
+            if self.length_featurizer:
+                ft += [0.0 for _ in range(len(self.length_featurizer.feature_name))]
+            feats = [ft]
+        else:
+            feats = []
+            for i in bond_list:
+                if i not in bond_list_no_metal:
+                    bond_list_only_metal.append(i)
+                    no_metal_binary.append(0)
+                else:
+                    no_metal_binary.append(1)
+
+            cycles = find_rings(
+                num_atoms, bond_list_no_metal, allowed_ring_size, edges=True
+            )
+
+            ring_dict = ring_features_for_bonds_full(
+                bond_list, no_metal_binary, cycles, allowed_ring_size
+            )
+            ring_dict_keys = list(ring_dict.keys())
+            for ind, bond in enumerate(bond_list):
+                ft = []
+                if tuple(bond) in ring_dict_keys:
+                    ft.append(ring_dict[tuple(bond)][0])  # metal
+                    ft.append(ring_dict[tuple(bond)][1])  #
+                    ft += ring_dict[tuple(bond)][2]  # one hot ring
+                else:
+                    ft += [0, 0]
+                    ft += [0 for i in range(len(allowed_ring_size))]
+
+
+                ft +=[s_1[ind], s_2[ind], p_1[ind], p_2[ind], d_1[ind], d_2[ind], f_1[ind], f_2[ind]]
+                ft +=[polar_1[ind], polar_2[ind], occ_nbo[ind]]
+                feats.append(ft)
+
+        feats = torch.tensor(feats, dtype=getattr(torch, self.dtype))
+        self._feature_size = feats.shape[1]
+        self._feature_name = (
+            ["metal bond"]
+            + ["ring inclusion"]
+            + ["ring size"] * 5
+            + ["s1", "s2", "p1", "p2", "d1", "d2", "f1", "f2"]
+            + ["polarization1", "polarization2", "nbo_occ"]
         )
 
         if self.length_featurizer:
@@ -1285,6 +1568,7 @@ class BondAsNodeGraphFeaturizerRDKit(BondFeaturizer):
             self._feature_name += self.length_featurizer.feature_name
 
         return {"feat": feats}
+
 
 class BondAsNodeGraphFeaturizerRDKit(BondFeaturizer):
     """BaseFeaturizer
