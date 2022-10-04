@@ -393,7 +393,11 @@ def parse_settings(file="settings.txt"):
     augment = False
     distributed = False
     classifier = False
-    featurizer_xyz = True
+    featurizer_xyz = False
+    featurizer_electronic = False
+    featurizer_electronic_bond = False
+    featurizer_filter = False
+
     save_hyper_params = "./hyper.pkl"
     dataset_state_dict_filename = "./dataset_state_dict.pkl"
     dataset_loc = "../../../dataset/mg_dataset/20220613_reaction_data.json"
@@ -465,6 +469,12 @@ def parse_settings(file="settings.txt"):
                     num_gpu = int(i.split()[1])
                 if i.split()[0] == 'xyz_featurizer':
                     featurizer_xyz = "True" == i.split()[1]
+                if i.split()[0] == 'electronic_featurizer':
+                    featurizer_electronic = "True" == i.split()[1]
+                if i.split()[0] == 'featurizer_filter':
+                    featurizer_filter = "True" == i.split()[1]
+                if i.split()[0] == 'featurizer_electronic_bond':
+                    featurizer_electronic_bond = "True" == i.split()[1]
                 if i.split()[0] == "early_stop":
                     early_stop = "True" == i.split()[1]
                 if i.split()[0] == "scheduler":
@@ -549,7 +559,11 @@ def parse_settings(file="settings.txt"):
         print("filter outliers?                 {}".format(filter_outliers))
         print("filter sparse rxns?              {}".format(filter_sparse_rxns))
         print("num gpu:                         {}".format(str(num_gpu)))
-        print("xyz featurizer:                 {}".format(featurizer_xyz))
+        print("xyz featurizer:                  {}".format(featurizer_xyz))
+        print("electronic bond featurizer:      {}".format(featurizer_electronic_bond))
+        print("electronic featurizer:           {}".format(featurizer_electronic))
+        print("featurizer filter:               {}".format(featurizer_filter))
+        
         print("hyperparam save file:            {}".format(save_hyper_params))
         print("dataset state dict:              {}".format(dataset_state_dict_filename))
         print("model dir                        {}".format(model_path))
@@ -599,6 +613,9 @@ def parse_settings(file="settings.txt"):
         dict_ret["dataset_state_dict_filename"] = Path(dataset_state_dict_filename)
         dict_ret["model_path"] = Path(model_path)
         dict_ret["featurizer_xyz"] = featurizer_xyz
+        dict_ret["featurizer_electronic"] = featurizer_electronic
+        dict_ret["featurizer_filter"] = featurizer_filter
+        dict_ret["featurizer_electronic_bond"] = featurizer_electronic_bond
         dict_ret['early_stop'] = early_stop 
         dict_ret['scheduler'] = scheduler 
         dict_ret['transfer_epochs'] = transfer_epochs 

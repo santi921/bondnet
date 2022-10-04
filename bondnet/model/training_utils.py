@@ -12,6 +12,7 @@ from bondnet.model.gated_reaction_classifier_graph import GatedGCNReactionNetwor
 
 from bondnet.data.featurizer import (
     AtomFeaturizerGraph,
+    AtomFeaturizerElectronicGraph,
     BondAsNodeGraphFeaturizerBondLen, # might want to switch
     BondAsNodeGraphFeaturizer,
     GlobalFeaturizerGraph,
@@ -463,9 +464,16 @@ def evaluate_r2(model, nodes, data_loader, device = None):
     return r2
 
 
-def get_grapher(bond_len_in_featurizer=True):
+def get_grapher(bond_len_in_featurizer=False, electronic_info_in_feat=False):
 
-    atom_featurizer = AtomFeaturizerGraph()
+    if(electronic_info_in_feat):
+        print("using atom featurizer w/ electronic info ")
+        atom_featurizer = AtomFeaturizerElectronicGraph()
+
+    else:
+        print("using baseline atom featurizer")
+        atom_featurizer = AtomFeaturizerGraph()
+
     if(bond_len_in_featurizer):
         print("using bond featurizer w/xyz coords")
         bond_featurizer = BondAsNodeGraphFeaturizerBondLen()

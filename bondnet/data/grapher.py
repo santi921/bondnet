@@ -433,7 +433,7 @@ class HeteroCompleteGraphFromMolWrapper(BaseGraph):
         )
         self.global_featurizer = global_featurizer
 
-    def build_graph(self, mol, reactant=True):
+    def build_graph(self, mol):
 
         bonds = list(mol.bonds.keys())
         num_bonds = len(bonds)

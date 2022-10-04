@@ -11,6 +11,7 @@ dist/
 *.pkl
 *.pt
 *.json
+*bson
 *.yaml
 *.svg
 *.sdf

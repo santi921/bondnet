@@ -695,6 +695,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         filter_species = [2, 3], 
         filter_outliers = True,
         filter_sparse_rxns = False,
+        feature_filter = False, 
         classifier = False,
         debug = False,
         classif_categories = None,
@@ -716,7 +717,8 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
             classifier=classifier, debug=debug,
             filter_outliers=filter_outliers,
             categories=classif_categories,
-            filter_sparse_rxn=filter_sparse_rxns
+            filter_sparse_rxn=filter_sparse_rxns,
+            feature_filter=feature_filter
         )
 
         self.molecules = all_mols

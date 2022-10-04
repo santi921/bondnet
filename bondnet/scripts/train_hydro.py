@@ -55,7 +55,7 @@ def train_transfer_hydro(
 
     if(dataset == None):
         dataset = ReactionNetworkDatasetGraphs(
-            grapher=get_grapher(), 
+            grapher=get_grapher(dict_train["featurizer_xyz"] ), 
             file=dict_train["dataset_loc"], 
             out_file="./", 
             target = 'dG_sp', 

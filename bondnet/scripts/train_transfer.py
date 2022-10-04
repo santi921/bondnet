@@ -1,18 +1,14 @@
 import torch
-import time, wandb, itertools, copy
+import time, wandb
 
 import numpy as np 
 from tqdm import tqdm
-#from sklearn.metrics import r2_score
-from torchmetrics import R2Score
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from bondnet.model.metric import EarlyStopping
 from bondnet.data.dataset import ReactionNetworkDatasetGraphs
 from bondnet.data.dataloader import DataLoaderReactionNetwork
 from bondnet.data.dataset import train_validation_test_split
-#from bondnet.scripts.create_label_file import read_input_files
-#from bondnet.model.metric import WeightedL1Loss, WeightedMSELoss
 from bondnet.utils import seed_torch, pickle_dump, parse_settings
 from bondnet.model.training_utils import (
     evaluate, 
@@ -41,7 +37,7 @@ def train_transfer(
 
     if(dict_train["classifier"]):
         classif_categories = dict_train["categories"]
-        run = wandb.init(project="project_classification_test", reinit=True)
+        run = wandb.init(project="project_classification", reinit=True)
     else:
         classif_categories = None
         run = wandb.init(project="project_regression", reinit=True)
@@ -60,7 +56,7 @@ def train_transfer(
 
     if(dataset == None):
         dataset = ReactionNetworkDatasetGraphs(
-            grapher=get_grapher(), 
+            grapher=get_grapher(dict_train["featurizer_xyz"], dict_train["featurizer_electronic"] ), 
             file=dict_train["dataset_loc"], 
             out_file="./", 
             target = 'ts', 
@@ -70,7 +66,8 @@ def train_transfer(
             filter_outliers=dict_train["filter_outliers"],
             filter_sparse_rxns=dict_train["filter_sparse_rxns"],
             debug = dict_train["debug"],
-            device = dict_train["gpu"]
+            device = dict_train["gpu"],
+            feature_filter = dict_train["featurizer_filter"]
             )
     
     dict_train['in_feats'] = dataset.feature_size
@@ -100,7 +97,7 @@ def train_transfer(
     if(dict_train['transfer']):
         if(dataset_transfer == None):
             dataset_transfer = ReactionNetworkDatasetGraphs(
-                grapher=get_grapher(), 
+                grapher=get_grapher(dict_train["featurizer_xyz"], dict_train["featurizer_electronic"]), 
                 file=dict_train["dataset_loc"], 
                 out_file="./", 
                 target = 'ts', 
@@ -109,7 +106,8 @@ def train_transfer(
                 filter_species = dict_train["filter_species"],
                 filter_outliers=dict_train["filter_outliers"],
                 debug = dict_train["debug"],
-                device = dict_train["gpu"]
+                device = dict_train["gpu"],
+                feature_filter = dict_train["featurizer_filter"]
                 )
 
         trainset_transfer, valset_tranfer, _ = train_validation_test_split(

@@ -1,7 +1,7 @@
 import torch
 import os 
 from glob import glob
-from bondnet.scripts.train_hydro import train_transfer_hydro
+from bondnet.scripts.train_transfer import train_transfer
 from bondnet.model.training_utils import get_grapher
 from bondnet.data.dataset import ReactionNetworkDatasetGraphs
 from bondnet.utils import parse_settings
@@ -30,9 +30,10 @@ def main():
     # IN THIS FOLDER B/C THIS MAKES IT SO YOU ONLY HAVE TO GEN 
     # DATASET ONCE
     featurizer_xyz = dict_train["featurizer_xyz"] 
+    featurizer_electronic = dict_train["featurizer_electronic"] 
 
     dataset = ReactionNetworkDatasetGraphs(
-        grapher=get_grapher(featurizer_xyz), 
+        grapher=get_grapher(featurizer_xyz, featurizer_electronic), 
         file=dict_train["dataset_loc"], 
         out_file="./", 
         target = 'ts', 
@@ -42,10 +43,11 @@ def main():
         filter_sparse_rxns=dict_train["filter_sparse_rxns"],
         filter_outliers=dict_train["filter_outliers"],
         debug = dict_train["debug"],
-        device = dict_train["gpu"] 
+        device = dict_train["gpu"],
+        feature_filter = dict_train["featurizer_filter"]
     )
     dataset_transfer = ReactionNetworkDatasetGraphs(
-        grapher=get_grapher(featurizer_xyz), 
+        grapher=get_grapher(featurizer_xyz, featurizer_electronic), 
         file=dict_train["dataset_loc"], 
         out_file="./", 
         target = 'diff', 
@@ -55,7 +57,8 @@ def main():
         filter_sparse_rxns=dict_train["filter_sparse_rxns"],
         filter_outliers=dict_train["filter_outliers"],
         debug = dict_train["debug"],
-        device = dict_train["gpu"]
+        device = dict_train["gpu"],
+        feature_filter = dict_train["featurizer_filter"]
     )
 
     for ind, file in enumerate(files):
