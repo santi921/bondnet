@@ -33,7 +33,10 @@ def main():
     featurizer_electronic = dict_train["featurizer_electronic"] 
 
     dataset = ReactionNetworkDatasetGraphs(
-        grapher=get_grapher(featurizer_xyz, featurizer_electronic), 
+        grapher=get_grapher(
+                dict_train["featurizer_xyz"], 
+                dict_train["featurizer_electronic"],
+                dict_train["featurizer_electronic_bond"]), 
         file=dict_train["dataset_loc"], 
         out_file="./", 
         target = 'ts', 
@@ -47,7 +50,10 @@ def main():
         feature_filter = dict_train["featurizer_filter"]
     )
     dataset_transfer = ReactionNetworkDatasetGraphs(
-        grapher=get_grapher(featurizer_xyz, featurizer_electronic), 
+        grapher=get_grapher(
+                dict_train["featurizer_xyz"], 
+                dict_train["featurizer_electronic"],
+                dict_train["featurizer_electronic_bond"]), 
         file=dict_train["dataset_loc"], 
         out_file="./", 
         target = 'diff', 

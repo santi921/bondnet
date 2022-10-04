@@ -26,12 +26,59 @@ class MoleculeWrapper:
         id (str): (unique) identification of the molecule
     """
 
-    def __init__(self, mol_graph, free_energy=None, id=None, non_metal_bonds=None, original_atom_ind = None, original_bond_mapping = None):
+    def __init__(self, 
+    mol_graph, 
+    free_energy=None, 
+    id=None, 
+    non_metal_bonds=None, 
+    valence_e = None, 
+    total_e = None, 
+    s = None, 
+    p = None,
+    d = None,
+    f = None,
+    occ = None,
+    spin = None,  
+    charges = None, 
+    s_1=None,
+    s_2=None,
+    p_1=None,
+    p_2=None,
+    d_1=None,
+    d_2=None,
+    f_1=None,  
+    f_2=None,
+    polar_1=None,
+    polar_2=None,
+    occ_nbo=None,
+    original_atom_ind = None, 
+    original_bond_mapping = None):
+
         self.mol_graph = mol_graph
         self.pymatgen_mol = mol_graph.molecule
         self.nonmetal_bonds = non_metal_bonds
         self.free_energy = free_energy
         self.id = id
+        self.valence_e = valence_e
+        self.total_e = total_e
+        self.s = s
+        self.p = p
+        self.d = d
+        self.f = f
+        self.occ = occ
+        self.spin = spin 
+        self.charges = charges
+        self.s_1=s_1 
+        self.s_2=s_2
+        self.p_1=p_1
+        self.p_2=p_2
+        self.d_1=d_1
+        self.d_2=d_2 
+        self.f_1=f_1  
+        self.f_2=f_2
+        self.polar_1=polar_1
+        self.polar_2=polar_2
+        self.occ_nbo=occ_nbo
         self.original_atom_ind = original_atom_ind
         self.original_bond_mapping = original_bond_mapping
         
@@ -512,8 +559,11 @@ class MoleculeWrapper:
 
 def create_wrapper_mol_from_atoms_and_bonds(
     species, coords, bonds, charge=0, free_energy=None, identifier=None, 
-    original_atom_ind = None, original_bond_ind = None
-):
+    original_atom_ind=None, original_bond_ind=None, valence_e=None, 
+    total_e=None, s=None, p=None, d=None, f=None,
+    occ=None, spin=None, charges=None, 
+    s_1=None, s_2=None, p_1=None, p_2=None, d_1=None, d_2=None, f_1=None, f_2=None, 
+    polar_1=None, polar_2=None, occ_nbo=None):
     """
     Create a :class:`MoleculeWrapper` from atoms and bonds.
 
@@ -538,7 +588,13 @@ def create_wrapper_mol_from_atoms_and_bonds(
                 free_energy, 
                 identifier, 
                 original_atom_ind=original_atom_ind, 
-                original_bond_mapping=original_bond_ind)
+                original_bond_mapping=original_bond_ind,
+                valence_e = valence_e, 
+                total_e = total_e, s = s, p = p, d = d, f = f,
+                occ = occ, spin = spin, charges = charges,
+                s_1=s_1, s_2=s_2, p_1=p_1, p_2=p_2, d_1=d_1, d_2=d_2, f_1=f_1, f_2=f_2, 
+                polar_1=polar_1, polar_2=polar_2, occ_nbo=occ_nbo
+                )
 
     return mol_wrapper
 

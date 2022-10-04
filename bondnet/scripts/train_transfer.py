@@ -56,7 +56,11 @@ def train_transfer(
 
     if(dataset == None):
         dataset = ReactionNetworkDatasetGraphs(
-            grapher=get_grapher(dict_train["featurizer_xyz"], dict_train["featurizer_electronic"] ), 
+            grapher=get_grapher(
+                dict_train["featurizer_xyz"], 
+                dict_train["featurizer_electronic"],
+                dict_train["featurizer_electronic_bond"]
+                ), 
             file=dict_train["dataset_loc"], 
             out_file="./", 
             target = 'ts', 
@@ -97,7 +101,10 @@ def train_transfer(
     if(dict_train['transfer']):
         if(dataset_transfer == None):
             dataset_transfer = ReactionNetworkDatasetGraphs(
-                grapher=get_grapher(dict_train["featurizer_xyz"], dict_train["featurizer_electronic"]), 
+                grapher=get_grapher(
+                    dict_train["featurizer_xyz"], 
+                    dict_train["featurizer_electronic"], 
+                    dict_train["featurizer_electronic_bond"]), 
                 file=dict_train["dataset_loc"], 
                 out_file="./", 
                 target = 'ts', 

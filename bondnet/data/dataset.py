@@ -727,7 +727,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         self.feature_transformer = feature_transformer
         self.label_transformer = label_transformer
         self.dtype = dtype
-        self.state_dict_filename = state_dict_filename
+        self.state_dict_filename = None
         self.graphs = None
         self.labels = None
         self.target = target
@@ -766,17 +766,17 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         # get species
         # species = get_dataset_species_from_json(self.pandas_df)
         system_species = set()
-
         for mol in self.molecules: 
             species = list(set(mol.species))
             system_species.update(species)
+
         self._species = sorted(system_species)
 
         # create dgl graphs
         print("constructing graphs & features....")
 
         graphs = self.build_graphs(
-            self.grapher, self.molecules, extra_features, species
+            self.grapher, self.molecules, extra_features, self._species
         )
         graphs_not_none_indices = [i for i, g in enumerate(graphs) if g is not None]
         print("number of graphs valid: " + str(len(graphs_not_none_indices)))
@@ -839,8 +839,6 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                     self._failed.append(True)
                     break
             else:
-                #print(lb["total_atoms"])
-                #print(lb["total_atoms"])
                 rxn = ReactionInNetwork(
                     reactants=lb["reactants"],
                     products=lb["products"],
@@ -1131,7 +1129,6 @@ class ReactionNetworkDataset(BaseDataset):
 
         # get species
         if self.state_dict_filename is None:
-
             species = get_dataset_species(molecules)
             self._species = species
         else:

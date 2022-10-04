@@ -13,9 +13,12 @@ from bondnet.model.gated_reaction_classifier_graph import GatedGCNReactionNetwor
 from bondnet.data.featurizer import (
     AtomFeaturizerGraph,
     AtomFeaturizerElectronicGraph,
+    BondAsNodeGraphFeaturizerBondLenElectronic,
+    BondAsNodeGraphFeaturizerElectronic,
     BondAsNodeGraphFeaturizerBondLen, # might want to switch
     BondAsNodeGraphFeaturizer,
     GlobalFeaturizerGraph,
+    
 )
 from bondnet.data.grapher import (
     HeteroCompleteGraphFromMolWrapper,
@@ -464,19 +467,27 @@ def evaluate_r2(model, nodes, data_loader, device = None):
     return r2
 
 
-def get_grapher(bond_len_in_featurizer=False, electronic_info_in_feat=False):
+def get_grapher(bond_len_in_featurizer=False, electronic_info_in_atoms=False, electronic_info_in_bonds=False):
 
-    if(electronic_info_in_feat):
+    if(electronic_info_in_atoms):
         print("using atom featurizer w/ electronic info ")
         atom_featurizer = AtomFeaturizerElectronicGraph()
-
     else:
         print("using baseline atom featurizer")
         atom_featurizer = AtomFeaturizerGraph()
 
-    if(bond_len_in_featurizer):
+    if(bond_len_in_featurizer and electronic_info_in_bonds):
+        print("using bond featurizer w/xyz + Electronic Info coords")
+        bond_featurizer = BondAsNodeGraphFeaturizerBondLenElectronic()
+         
+    elif(electronic_info_in_bonds): 
+        print("using bond featurizer w/Electronic Info coords")
+        bond_featurizer = BondAsNodeGraphFeaturizerElectronic()
+
+    elif(bond_len_in_featurizer):
         print("using bond featurizer w/xyz coords")
-        bond_featurizer = BondAsNodeGraphFeaturizerBondLen()
+        bond_featurizer = BondAsNodeGraphFeaturizerBondLen()       
+
     else: 
         print("using simple bond featurizer")
         bond_featurizer = BondAsNodeGraphFeaturizer()
