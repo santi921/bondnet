@@ -96,6 +96,7 @@ def parse_extra_electronic_feats_bond(extra_feats, dict_bonds_as_root_target_ind
     extra_feature_keys=list(extra_feats.keys())
     if("indices_nbo" not in extra_feature_keys):
         return [], [], [], [], [], [], [], [], [], [], [], []
+        
     extra_feat_bond_ind = extra_feats["indices_nbo"]
     extra_feat_bond_ind = [tuple(i) for i in extra_feat_bond_ind]
 

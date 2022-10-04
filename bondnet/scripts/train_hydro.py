@@ -36,10 +36,10 @@ def train_transfer_hydro(
 
     if(dict_train["classifier"]):
         classif_categories = dict_train["categories"]
-        #run = wandb.init(project="project_hydro_class", reinit=True)
+        run = wandb.init(project="project_hydro_class", reinit=True)
     else:
         classif_categories = None
-        #run = wandb.init(project="project_hydro", reinit=True)
+        run = wandb.init(project="project_hydro", reinit=True)
 
     if(device == None):
         if dict_train["on_gpu"]:
@@ -119,10 +119,10 @@ def train_transfer_hydro(
                 val_loader, 
                 device = dict_train["gpu"]
             )
-            #wandb.log({"loss": loss})
-            #wandb.log({"acc train": train_acc})
-            #wandb.log({"acc validation": val_acc})
-            #wandb.log({"f1 validation": f1_score})
+            wandb.log({"loss": loss})
+            wandb.log({"acc train": train_acc})
+            wandb.log({"acc validation": val_acc})
+            wandb.log({"f1 validation": f1_score})
             print(
                 "{:5d}   {:12.6e}   {:12.2e}   {:12.6e}   {:.2f}".format(
                     epoch, loss, train_acc, val_acc, f1_score
@@ -158,11 +158,11 @@ def train_transfer_hydro(
                 device = dict_train["gpu"]
                 )
         
-            #wandb.log({"loss": loss})
-            #wandb.log({"mae_train": train_acc})
-            #wandb.log({"mae_val": val_acc})
-            #wandb.log({"r2_val": val_r2})
-            #wandb.log({"r2_train": train_r2})
+            wandb.log({"loss": loss})
+            wandb.log({"mae_train": train_acc})
+            wandb.log({"mae_val": val_acc})
+            wandb.log({"r2_val": val_r2})
+            wandb.log({"r2_train": train_r2})
 
             print(
                 "{:5d}   {:12.6e}   {:12.2e}   {:12.6e}   {:.2f}   {:.2f}".format(
@@ -196,19 +196,19 @@ def train_transfer_hydro(
         )
 
 
-        #wandb.log({"acc test": test_acc})
-        #wandb.log({"f1 test": test_f1})
+        wandb.log({"acc test": test_acc})
+        wandb.log({"f1 test": test_f1})
         print("Test Acc: {:12.6e}".format(test_acc))
         print("Test F1: {:12.6e}".format(test_f1))
 
     else: 
         test_acc = evaluate(model, feature_names, test_loader, device = dict_train["gpu"])
         dict_res = evaluate_breakdown(model, feature_names, test_loader, device = dict_train["gpu"])
-        #wandb.log({"mae_val_breakdown": dict_res})
-        #wandb.log({"mae_test": test_acc})
+        wandb.log({"mae_val_breakdown": dict_res})
+        wandb.log({"mae_test": test_acc})
         print("Test MAE: {:12.6e}".format(test_acc))
     
     t2 = time.time()
     print("Time to Training: {:5.1f} seconds".format(float(t2 - t1)))
-    #run.finish()
+    run.finish()
 
