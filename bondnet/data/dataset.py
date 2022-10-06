@@ -690,7 +690,6 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         feature_transformer=True,
         label_transformer=True,
         dtype="float32",
-        state_dict_filename=None,
         target = 'ts', 
         filter_species = [2, 3], 
         filter_outliers = True,

@@ -1,7 +1,7 @@
 import torch
 import os 
 from glob import glob
-from bondnet.scripts.train_hydro import train_transfer_hydro
+from bondnet.scripts.train_hydro import train_hydro
 from bondnet.model.training_utils import get_grapher
 from bondnet.data.dataset import ReactionNetworkDatasetGraphs
 from bondnet.utils import parse_settings
@@ -46,7 +46,7 @@ def main():
     )
 
     for ind, file in enumerate(files):
-        train_transfer_hydro(file, 
+        train_hydro(file, 
                 dataset = dataset, 
                 device = dict_train["gpu"]
             )

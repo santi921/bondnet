@@ -6,10 +6,15 @@ test False
 on_gpu False
 
 xyz_featurizer True
-featurizer_electronic_bond True
-electronic_featurizer True
-featurizer_filter True
-
+featurizer_electronic_bond False
+electronic_featurizer False
+featurizer_filter False
+filter_species 2 5
+filter_outliers False
+filter_sparse_rxns False
+augment False
+debug False
+test False 
 fc_activation ReLU
 gated_activation ReLU
 output_file results.pkl

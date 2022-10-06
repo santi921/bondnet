@@ -1,17 +1,12 @@
 import torch
-import time, wandb, itertools, copy
+import time, wandb
 
-import numpy as np 
-from tqdm import tqdm
-from torchmetrics import R2Score
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from bondnet.model.metric import EarlyStopping
 from bondnet.data.dataset import ReactionNetworkDatasetGraphs
 from bondnet.data.dataloader import DataLoaderReactionNetwork
 from bondnet.data.dataset import train_validation_test_split
-#from bondnet.scripts.create_label_file import read_input_files
-#from bondnet.model.metric import WeightedL1Loss, WeightedMSELoss
 from bondnet.utils import seed_torch, pickle_dump, parse_settings
 from bondnet.model.training_utils import (
     evaluate, 
@@ -25,7 +20,7 @@ from bondnet.model.training_utils import (
 )
 seed_torch()
 
-def train_transfer_hydro(
+def train_hydro(
     settings_file = "settings.txt", 
     device = None, 
     dataset = None):
@@ -87,10 +82,7 @@ def train_transfer_hydro(
 
     scheduler = ReduceLROnPlateau(
         optimizer, mode="min", factor=0.8, patience=50, verbose=True)
-    scheduler_transfer = ReduceLROnPlateau(
-        optimizer_transfer, mode="min", factor=0.4, patience=30, verbose=True)
     stopper = EarlyStopping(patience=100)
-    stopper_transfer = EarlyStopping(patience=100)
 
     t1 = time.time()
     if(dict_train["classifier"]):
