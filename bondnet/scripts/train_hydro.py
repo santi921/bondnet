@@ -1,4 +1,3 @@
-import torch
 import time, wandb
 
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -19,6 +18,8 @@ from bondnet.model.training_utils import (
     evaluate_breakdown
 )
 seed_torch()
+import torch
+
 
 def train_hydro(
     settings_file = "settings.txt", 
@@ -45,7 +46,7 @@ def train_hydro(
             dict_train["gpu"] = "cpu"
     else: dict_train["gpu"] = device
     
-    #wandb.config.update(dict_train)
+    wandb.config.update(dict_train)
     print("train on device: {}".format(dict_train["gpu"]))
 
     if(dataset == None):
