@@ -1269,7 +1269,7 @@ def create_reaction_network_files_and_valid_rows(
         mg_df = mg_df.head(100)
 
     if filter_outliers:
-        de_barr = mg_df["dE_barrier"]
+        de_barr = mg_df[target]
         q1, q3, med = (
             np.quantile(de_barr, 0.25),
             np.quantile(de_barr, 0.75),

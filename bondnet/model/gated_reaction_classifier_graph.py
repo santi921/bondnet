@@ -460,6 +460,5 @@ def create_rxn_graph(
                 assert np.max(np.array(mappings_total)) < len(net_ft_full_temp), f"invalid index  {mappings}"
                 net_ft_full_temp[mappings_total] = product_ft[mappings_prod]
                 net_ft_full += coef * net_ft_full_temp
-
         feats[nt] = net_ft_full
     return graph, feats

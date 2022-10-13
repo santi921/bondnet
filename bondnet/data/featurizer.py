@@ -1250,7 +1250,7 @@ class BondAsNodeGraphFeaturizerBondLen(BondFeaturizer):
                     ))))
 
                 ft.append(bond_len)
-                feats.append(ft)
+                feats.append(ft)             
         feats = torch.tensor(feats, dtype=getattr(torch, self.dtype))
         self._feature_size = feats.shape[1]
         self._feature_name = (
