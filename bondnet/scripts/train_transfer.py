@@ -94,7 +94,7 @@ def train_transfer(
     scheduler = ReduceLROnPlateau(
         optimizer, mode="min", factor=0.8, patience=50, verbose=True)
     scheduler_transfer = ReduceLROnPlateau(
-        optimizer_transfer, mode="min", factor=0.4, patience=30, verbose=True)
+        optimizer_transfer, mode="min", factor=0.6, patience=30, verbose=True)
     stopper = EarlyStopping(patience=100)
     stopper_transfer = EarlyStopping(patience=100)
 
@@ -260,7 +260,7 @@ def train_transfer(
 
             print(
                 "{:5d}   {:12.6e}   {:12.2e}   {:12.6e}   {:.2f}".format(
-                    epoch, loss, train_acc, val_acc, val_r2
+                    epoch, loss, train_acc, val_acc, val_r2, train_r2
                 )
             )
 

@@ -43,7 +43,8 @@ class WeightedMSELoss(nn.Module):
                     )
                 )
 
-            rst = ((input - target) ** 2) * weight
+            rst = ((input - target) ** 2)
+            rst *= weight
             if self.reduction != "none":
                 if self.reduction == "mean":
                     rst = torch.sum(rst) / torch.sum(weight)

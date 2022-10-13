@@ -4,7 +4,7 @@ from copy import deepcopy
 from torch.optim import Adam
 from torch.nn import CrossEntropyLoss
 from sklearn.metrics import f1_score
-
+from torch.nn import MSELoss
 
 from bondnet.model.metric import WeightedL1Loss, WeightedMSELoss, WeightedSmoothL1Loss
 from bondnet.model.gated_reaction_network_graph import GatedGCNReactionNetwork
@@ -135,7 +135,7 @@ def train(model, nodes, data_loader, optimizer,loss_fn ='mse', device=None, augm
         loss (float): MSE
     """
     if(loss_fn == 'mse'):
-        loss_fn = WeightedMSELoss(reduction="mean")
+        loss_fn = MSELoss(reduction="mean")
     elif(loss_fn == 'huber'):
         loss_fn = WeightedSmoothL1Loss(reduction='mean')
     elif(loss_fn == 'mae'):
@@ -143,23 +143,24 @@ def train(model, nodes, data_loader, optimizer,loss_fn ='mse', device=None, augm
     else: 
         loss_fn = WeightedMSELoss(reduction="mean")
 
-    metric_fn = WeightedL1Loss(reduction="mean")
+    metric_fn = WeightedL1Loss(reduction="sum")
+    
     
     count, accuracy, epoch_loss = 0.0, 0.0, 0.0
     model.train()
 
     for it, (batched_graph, label) in enumerate(data_loader):
         feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
-        target = label["value"]     
-        target_aug = label["value_rev"]        
+        target = label["value"].view(-1)
+        target_aug = label["value_rev"].view(-1)       
         empty_aug = torch.isnan(target_aug).tolist()
         empty_aug = True in empty_aug
         norm_atom = label["norm_atom"]
         norm_bond = label["norm_bond"]
-
-        if(None in norm_bond.tolist()): print("nan value detected")
-
         stdev = label["scaler_stdev"]
+
+        if(None in norm_bond.tolist()): 
+            print("nan value detected")
 
         if device is not None:
             feats = {k: v.to(device) for k, v in feats.items()}
@@ -170,30 +171,37 @@ def train(model, nodes, data_loader, optimizer,loss_fn ='mse', device=None, augm
             if(augment and not empty_aug): 
                 target_aug = target_aug.to(device)
         
-        target_new_shape = (len(target), 1)
-        target = target.view(target_new_shape) 
+        #target_new_shape = (len(target), 1)
+        #target = target.view(target_new_shape) 
         pred = model(batched_graph, feats, label["reaction"], device=device, norm_bond = norm_bond, norm_atom=norm_atom)
-        pred_new_shape = (len(pred), 1)
-        pred = pred.view(pred_new_shape)
+        pred = pred.view(-1)
+        #pred_new_shape = (len(pred), 1)
+        #pred = pred.view(pred_new_shape)
 
         if(augment and not empty_aug):
-            target_aug_new_shape = (len(target_aug), 1)
-            target_aug = target_aug.view(target_aug_new_shape) 
+            #target_aug_new_shape = (len(target_aug), 1)
+            #target_aug = target_aug.view(target_aug_new_shape) 
             pred_aug = model(batched_graph, feats, label["reaction"], device=device, reverse=True, norm_bond = norm_bond, norm_atom=norm_atom)
-            pred_aug_new_shape = (len(pred_aug), 1)
-            pred_aug = pred_aug.view(pred_aug_new_shape)
-            loss = loss_fn(torch.concat([pred, pred_aug]), torch.concat([target,target_aug]), stdev)
+            pred_aug = pred_aug.view(-1)
+            #pred_aug_new_shape = (len(pred_aug), 1)
+            #pred_aug = pred_aug.view(pred_aug_new_shape)
+       
+            loss = loss_fn(
+                    torch.cat((pred, pred_aug), axis = 0), 
+                    torch.cat((target,  target_aug), axis = 0)
+                )
         
         else:
-            loss = loss_fn(pred, target, stdev)
+            loss = loss_fn(pred, target)
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()  # here is the actual optimizer step
         epoch_loss += loss.detach().item()
-        
+
         accuracy += metric_fn(pred, target, stdev).detach().item()
         count += len(target)
+
     epoch_loss /= it + 1
     accuracy /= count
 
@@ -273,7 +281,7 @@ def evaluate_classifier(model, nodes, data_loader, device = None):
 
 def evaluate(model, nodes, data_loader, device=None):
     """
-    basic loop for training a classifier. Gets mae
+    basic loop for training a regressor. Gets mae
         
     Args:
         model(pytorch model): pytorch model
@@ -283,14 +291,16 @@ def evaluate(model, nodes, data_loader, device=None):
     Returns: 
         mae(float): mae
     """
-    metric_fn = WeightedL1Loss(reduction="mean")
+    metric_fn = WeightedL1Loss(reduction="sum")
+
     model.eval()
 
     with torch.no_grad():
         count, mae = 0.0, 0.0
-        for batched_graph, label in data_loader:
+
+        for it, (batched_graph, label) in enumerate(data_loader):
             feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
-            target = label["value"]
+            target = label["value"].view(-1)
             norm_atom = label["norm_atom"]
             norm_bond = label["norm_bond"]
             stdev = label["scaler_stdev"]
@@ -302,9 +312,6 @@ def evaluate(model, nodes, data_loader, device=None):
                 norm_bond = norm_bond.to(device)
                 stdev = stdev.to(device)
                 
-            #try:
-            #    pred = model(batched_graph, feats, label["reaction"], norm_atom, norm_bond)
-            #except:
             pred = model(
                 batched_graph, 
                 feats, 
@@ -312,12 +319,12 @@ def evaluate(model, nodes, data_loader, device=None):
                 device=device, 
                 norm_atom = norm_atom, 
                 norm_bond = norm_bond)
+            pred = pred.view(-1)
 
             mae += metric_fn(pred, target, stdev).detach().item() 
             count += len(target)
 
     l1_acc = mae / count
-    
     return l1_acc
 
 
@@ -333,7 +340,7 @@ def evaluate_breakdown(model, nodes, data_loader, device=None):
     Returns: 
         mae(float): mae
     """
-    metric_fn = WeightedL1Loss(reduction='none')
+    metric_fn = WeightedL1Loss(reduction='sum')
     model.eval()
 
     dict_result_raw = {}
@@ -371,9 +378,9 @@ def evaluate_breakdown(model, nodes, data_loader, device=None):
             for ind, i in enumerate(reaction_types): 
                 for type in i:
                     if type in list(dict_result_raw.keys()):
-                        dict_result_raw[type].append(res[ind][0].detach().item())
+                        dict_result_raw[type].append(res[ind].detach().item())
                     else: 
-                        dict_result_raw[type] = [res[ind][0].detach().item()]
+                        dict_result_raw[type] = [res[ind].detach().item()]
 
     for k, v in dict_result_raw.items():
         dict_result_raw[k] = np.mean(np.array(v))
