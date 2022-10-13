@@ -476,7 +476,6 @@ def process_species_graph(
 
     reactant_key = "reactant"
     product_key = "product"
-    # reverse_rxn = False # generalize to augment with reverse
 
     charge = row["charge"]
     formed_len = len(row["bonds_formed"])
@@ -1283,7 +1282,6 @@ def create_reaction_network_files_and_valid_rows(
         lower_bound = q1 - (1.5 * iqr)
 
     with ProcessPool(max_workers=12, max_tasks=10) as pool:
-
         for ind, row in mg_df.iterrows():
             future = pool.schedule(
                 process_species_graph,
@@ -1309,10 +1307,24 @@ def create_reaction_network_files_and_valid_rows(
                 ind_val.append(ind)
             except:
                 pass
+            '''
             if augment:
                 future = pool.schedule(
                     process_species_graph,
-                    args=[row, classifier, target, True],
+                    args=[row, True],
+                    kwargs={
+                        "classifier": classifier,
+                        "target": target,
+                        "reverse_rxn": True,
+                        "verbose": False,
+                        "categories": categories,
+                        "filter_species": filter_species,
+                        "filter_outliers": filter_outliers,
+                        "upper_bound": upper_bound,
+                        "lower_bound": lower_bound,
+                        "filter_sparse_rxns": filter_sparse_rxn,
+                        "feature_filter": feature_filter,
+                    }
                     timeout=30,
                 )
                 future.add_done_callback(task_done)
@@ -1321,6 +1333,7 @@ def create_reaction_network_files_and_valid_rows(
                     ind_val.append(ind)
                 except:
                     pass
+            '''
     finish_time = time.perf_counter()
     print("rxn raw len: {}".format(int(len(rxn_raw))))
     print(f"Program finished in {finish_time-start_time} seconds")

@@ -102,7 +102,6 @@ def train_classifier(
                 reverse=True, 
                 norm_bond = norm_bond, 
                 norm_atom=norm_atom)
-
             target_filtered_aug = torch.argmax(target_filtered_aug, axis=1)
             loss = loss_fn(torch.concat([pred, pred_aug]), torch.flatten(torch.concat([target_filtered, target_filtered_aug])))
         
