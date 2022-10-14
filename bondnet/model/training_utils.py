@@ -60,8 +60,10 @@ def train_classifier(
         feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
         target = label["value"]
         stdev = label["scaler_stdev"]
-        norm_atom = label["norm_atom"]
-        norm_bond = label["norm_bond"]
+        #norm_atom = label["norm_atom"]
+        norm_atom = None
+        #norm_bond = label["norm_bond"]
+        norm_bond = None
         target_aug = label["value_rev"]        
         empty_aug = torch.isnan(target_aug).tolist()
         empty_aug = True in empty_aug
@@ -69,8 +71,8 @@ def train_classifier(
         if device is not None:
             feats = {k: v.to(device) for k, v in feats.items()}
             target = target.to(device)
-            norm_atom = norm_atom.to(device)
-            norm_bond = norm_bond.to(device)
+            #norm_atom = norm_atom.to(device)
+            #norm_bond = norm_bond.to(device)
             stdev = stdev.to(device)
             weight = weight.to(device)
             if(augment and not empty_aug): 
@@ -155,18 +157,20 @@ def train(model, nodes, data_loader, optimizer,loss_fn ='mse', device=None, augm
         target_aug = label["value_rev"].view(-1)       
         empty_aug = torch.isnan(target_aug).tolist()
         empty_aug = True in empty_aug
-        norm_atom = label["norm_atom"]
-        norm_bond = label["norm_bond"]
+        #norm_atom = label["norm_atom"]
+        norm_atom = None
+        #norm_bond = label["norm_bond"]
+        norm_bond = None
         stdev = label["scaler_stdev"]
 
-        if(None in norm_bond.tolist()): 
-            print("nan value detected")
+        #if(None in norm_bond.tolist()): 
+        #    print("nan value detected")
 
         if device is not None:
             feats = {k: v.to(device) for k, v in feats.items()}
             target = target.to(device)
-            norm_atom = norm_atom.to(device)
-            norm_bond = norm_bond.to(device)   
+            #norm_atom = norm_atom.to(device)
+            #norm_bond = norm_bond.to(device)   
             stdev = stdev.to(device)
             if(augment and not empty_aug): 
                 target_aug = target_aug.to(device)
@@ -188,7 +192,8 @@ def train(model, nodes, data_loader, optimizer,loss_fn ='mse', device=None, augm
        
             loss = loss_fn(
                     torch.cat((pred, pred_aug), axis = 0), 
-                    torch.cat((target,  target_aug), axis = 0)
+                    torch.cat((target,  target_aug), axis = 0),
+                    
                 )
         
         else:
@@ -235,15 +240,17 @@ def evaluate_classifier(model, nodes, data_loader, device = None):
         for batched_graph, label in data_loader:
             feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
             target = label["value"]
-            norm_atom = label["norm_atom"]
-            norm_bond = label["norm_bond"]
+            #norm_atom = label["norm_atom"]
+            norm_atom = None
+            #norm_bond = label["norm_bond"]
+            norm_bond = None
             stdev = label["scaler_stdev"]
 
             if device is not None:
                 feats = {k: v.to(device) for k, v in feats.items()}
                 target = target.to(device)
-                norm_atom = norm_atom.to(device)
-                norm_bond = norm_bond.to(device)
+                ##norm_atom = norm_atom.to(device)
+                #norm_bond = norm_bond.to(device)
                 stdev = stdev.to(device)
 
             pred, target_filtered, stdev_filtered = model(
@@ -301,15 +308,17 @@ def evaluate(model, nodes, data_loader, device=None):
         for it, (batched_graph, label) in enumerate(data_loader):
             feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
             target = label["value"].view(-1)
-            norm_atom = label["norm_atom"]
-            norm_bond = label["norm_bond"]
+            #norm_atom = label["norm_atom"]
+            norm_atom = None
+            #norm_bond = label["norm_bond"]
+            norm_bond = None
             stdev = label["scaler_stdev"]
 
             if device is not None:
                 feats = {k: v.to(device) for k, v in feats.items()}
                 target = target.to(device)
-                norm_atom = norm_atom.to(device)
-                norm_bond = norm_bond.to(device)
+                #norm_atom = norm_atom.to(device)
+                #norm_bond = norm_bond.to(device)
                 stdev = stdev.to(device)
                 
             pred = model(
@@ -350,16 +359,18 @@ def evaluate_breakdown(model, nodes, data_loader, device=None):
         for batched_graph, label in data_loader:
             feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
             target = label["value"]
-            norm_atom = label["norm_atom"]
-            norm_bond = label["norm_bond"]
+            #norm_atom = label["norm_atom"]
+            norm_atom = None
+            #norm_bond = label["norm_bond"]
+            norm_bond = None
             stdev = label["scaler_stdev"]
             reaction_types = label["reaction_types"]
 
             if device is not None:
                 feats = {k: v.to(device) for k, v in feats.items()}
                 target = target.to(device)
-                norm_atom = norm_atom.to(device)
-                norm_bond = norm_bond.to(device)
+                #norm_atom = norm_atom.to(device)
+                #norm_bond = norm_bond.to(device)
                 stdev = stdev.to(device)
                 
             pred = model(

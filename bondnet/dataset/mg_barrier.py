@@ -1269,11 +1269,17 @@ def create_reaction_network_files_and_valid_rows(
         mg_df = mg_df.head(100)
 
     if filter_outliers:
-        de_barr = mg_df[target]
+        if target == "ts": 
+            energy_dist = mg_df["transition_state_energy"] - mg_df["reactant_energy"]
+        elif target == "dG_sp": energy_dist = mg_df["dG_sp"]
+        else: 
+            energy_dist = mg_df["product_energy"] - mg_df["reactant_energy"]
+
+        energy_dist = mg_df[target]
         q1, q3, med = (
-            np.quantile(de_barr, 0.25),
-            np.quantile(de_barr, 0.75),
-            np.median(de_barr),
+            np.quantile(energy_dist, 0.25),
+            np.quantile(energy_dist, 0.75),
+            np.median(energy_dist),
         )
         # finding the iqr region
         iqr = q3 - q1
