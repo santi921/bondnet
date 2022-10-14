@@ -10,9 +10,10 @@ featurizer_electronic_bond False
 electronic_featurizer False
 featurizer_filter False
 filter_species 2 3
-filter_outliers False
+
 filter_sparse_rxns False
-augment False
+filter_outliers True
+augment true
 debug False
 test False 
 

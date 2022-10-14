@@ -12,7 +12,9 @@ featurizer_filter False
 filter_species 2 5
 filter_outliers False
 filter_sparse_rxns False
-augment False
+filter_outliers True
+filter_outliers True
+augment true
 debug False
 test False 
 

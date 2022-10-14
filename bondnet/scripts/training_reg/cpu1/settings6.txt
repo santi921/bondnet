@@ -9,7 +9,8 @@ xyz_featurizer True
 featurizer_electronic_bond True
 electronic_featurizer True
 featurizer_filter True
-
+filter_outliers True
+augment true
 fc_activation ReLU
 gated_activation ReLU
 output_file results.pkl

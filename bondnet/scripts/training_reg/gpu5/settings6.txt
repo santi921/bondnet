@@ -19,7 +19,8 @@ loss weighted_mse
 xyz_featurizer False
 transfer_epochs 1000
 epochs 500
-
+filter_outliers True
+augment true
 embedding_size 24
 
 num_lstm_iters 10

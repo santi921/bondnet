@@ -18,7 +18,8 @@ scheduler True
 transfer True
 loss weighted_mse
 xyz_featurizer False
-
+filter_outliers True
+augment true
 transfer_epochs 1000
 epochs 2000
 

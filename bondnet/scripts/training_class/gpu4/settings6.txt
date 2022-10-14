@@ -18,7 +18,8 @@ transfer True
 loss weighted_mse
 transfer_epochs 1500
 epochs 500
-
+filter_outliers True
+augment true
 embedding_size 24
 
 num_lstm_iters 10

@@ -4,7 +4,8 @@ dataset_state_dict_filename home/santiagovargas/Documents/Dataset/mg/dataset_sta
 dataset_loc ../../../dataset/mg_dataset/merged_mg.json
 test False
 on_gpu True
-
+filter_outliers True
+augment true
 xyz_featurizer True
 featurizer_electronic_bond True
 electronic_featurizer True

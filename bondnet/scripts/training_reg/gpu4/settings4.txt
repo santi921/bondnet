@@ -5,7 +5,8 @@ model_path /home/santiagovargas/Documents/Dataset/mg/
 test False
 on_gpu True
 filter_species 2 2 
-
+filter_outliers True
+augment true
 fc_activation ReLU
 gated_activation ReLU
 output_file results.pkl
