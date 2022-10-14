@@ -5,7 +5,7 @@ from torch.optim import Adam
 from torch.nn import CrossEntropyLoss
 from sklearn.metrics import f1_score
 from torch.nn import MSELoss
-
+import matplotlib.pyplot as plt
 from bondnet.model.metric import WeightedL1Loss, WeightedMSELoss, WeightedSmoothL1Loss
 from bondnet.model.gated_reaction_network_graph import GatedGCNReactionNetwork
 from bondnet.model.gated_reaction_classifier_graph import GatedGCNReactionNetworkClassifier
@@ -61,9 +61,7 @@ def train_classifier(
         target = label["value"]
         stdev = label["scaler_stdev"]
         norm_atom = label["norm_atom"]
-        #norm_atom = None
         norm_bond = label["norm_bond"]
-        #norm_bond = None
         target_aug = label["value_rev"]        
         empty_aug = torch.isnan(target_aug).tolist()
         empty_aug = True in empty_aug
@@ -286,7 +284,7 @@ def evaluate_classifier(model, nodes, data_loader, device = None):
     return accuracy / count, f1_val
 
 
-def evaluate(model, nodes, data_loader, device=None):
+def evaluate(model, nodes, data_loader, device=None, plot = False):
     """
     basic loop for training a regressor. Gets mae
         
@@ -329,9 +327,32 @@ def evaluate(model, nodes, data_loader, device=None):
                 norm_atom = norm_atom, 
                 norm_bond = norm_bond)
             pred = pred.view(-1)
+        
+            if plot:
+                if device is None: 
+                    pred_np = pred.detach().numpy()
+                    target_np = target.detach().numpy()
+                else: 
+                    pred_np = pred.detach().cpu().numpy()
+                    target_np = target.detach().cpu().numpy()  
+
+                plt.scatter(pred_np, target_np)
+                min_val = np.min([np.min(pred_np), np.min(target_np)]) - 0.5
+                max_val = np.max([np.max(pred_np), np.max(target_np)]) + 0.5
+                plt.ylim(min_val,max_val)
+                plt.xlim(min_val,max_val)
+                plt.title("Predicted vs. True")
+                plt.xlabel("Predicted")
+                plt.ylabel("True")
+                plt.savefig("./true_pred.png")
 
             mae += metric_fn(pred, target, stdev).detach().item() 
             count += len(target)
+
+
+
+
+
 
     l1_acc = mae / count
     return l1_acc
