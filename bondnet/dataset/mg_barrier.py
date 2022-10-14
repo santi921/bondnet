@@ -1275,7 +1275,6 @@ def create_reaction_network_files_and_valid_rows(
         else: 
             energy_dist = mg_df["product_energy"] - mg_df["reactant_energy"]
 
-        energy_dist = mg_df[target]
         q1, q3, med = (
             np.quantile(energy_dist, 0.25),
             np.quantile(energy_dist, 0.75),
