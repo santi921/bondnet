@@ -42,7 +42,6 @@ fc_num_layers 2
 fc_batch_norm 0
 lr 0.001
 
-filter_species True
 filter_outliers True
 xyz_featurizer True
 featurizer_electronic_bond True

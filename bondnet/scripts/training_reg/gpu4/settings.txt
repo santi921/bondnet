@@ -45,5 +45,4 @@ xyz_featurizer True
 featurizer_electronic_bond True
 electronic_featurizer True
 featurizer_filter True
-filter_species True
 filter_outliers True
