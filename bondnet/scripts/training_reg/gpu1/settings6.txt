@@ -5,10 +5,10 @@ dataset_loc ../../../dataset/mg_dataset/merged_mg.json
 test False
 on_gpu True
 
-xyz_featurizer True
-featurizer_electronic_bond True
-electronic_featurizer True
-featurizer_filter True
+xyz_featurizer False
+featurizer_electronic_bond False
+electronic_featurizer False
+featurizer_filter False
 
 fc_activation ReLU
 gated_activation ReLU

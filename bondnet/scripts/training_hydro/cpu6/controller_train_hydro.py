@@ -46,9 +46,12 @@ def main():
     )
 
     for ind, file in enumerate(files):
-        train_hydro(file, 
+        try:
+            train_hydro(file, 
                 dataset = dataset, 
                 device = dict_train["gpu"]
             )
-        os.rename(file, str(ind) + "_done.txt")
+            os.rename(file, str(ind) + "_done.txt")
+        except: 
+            print("failed file {}".format(file))
 main()

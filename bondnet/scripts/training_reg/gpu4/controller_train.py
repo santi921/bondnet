@@ -68,10 +68,13 @@ def main():
     )
 
     for ind, file in enumerate(files):
-        train_transfer(file, 
+        try:
+            train_transfer(file, 
                 dataset = dataset, 
                 dataset_transfer = dataset_transfer, 
                 device = dict_train["gpu"]
             )
-        os.rename(file, str(ind) + "_done.txt")
+            os.rename(file, str(ind) + "_done.txt")
+        except: 
+            print("failed on file {}".format(file))
 main()
