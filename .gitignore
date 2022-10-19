@@ -29,3 +29,4 @@ prediction.png
 *.wandb
 *.txt
 latest-run
+settings*
