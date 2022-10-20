@@ -183,9 +183,9 @@ def generate_and_write(options):
         write_one(dictionary_write, target, hydro=options["hydro"], perlmutter = options["perlmutter"])
 
     if(options["hydro"]):
-        controller_file = "controller_train_hydro_source.py"
+        controller_file = "controller_train_hydro.py"
     else:
-        controller_file = "controller_train_mg_source.py"
+        controller_file = "controller_train.py"
 
     if(options["perlmutter"] == False): 
         if(options["gpu"]):
