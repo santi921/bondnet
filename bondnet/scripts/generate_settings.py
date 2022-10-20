@@ -3,13 +3,20 @@ from random import choice
 import numpy as np 
 import os 
 
-def write_one(dictionary_in, target, hydro = False, perlmutter = False):
+def write_one(dictionary_in, target):
     """
     write all key-value pairs of a dictionary to a file
     """
     with open(target, "w") as f:
         for key, value in dictionary_in.items():
-            f.write("{} {}\n".format(key, value))
+            if(type(value) == list): 
+                str_write = ""
+                for i in value:
+                    str_write += str(i) + " " 
+                f.write("{} {}\n".format(key, str_write))
+
+            else: 
+                f.write("{} {}\n".format(key, value))
 
 def put_file_in_every_subfolder(folder, file):
     """
@@ -45,7 +52,7 @@ def generate_and_write(options):
 
     dictionary_archi = \
     {
-        "gated_num_layers": [1,2,3,4],
+        "gated_num_layers": [2,3,4],
         "fc_num_layers": [1,2,3],
         "gated_hidden_size_1": [128, 256, 512, 1024],
         "gated_hidden_size_shape": ["flat", "cone"],
@@ -78,8 +85,12 @@ def generate_and_write(options):
         "transfer_epochs": [500, 1000, 1500],
         "transfer": [True],
         "freeze" : [True, False],
-        "loss": ["mse", "huber"] 
-    }
+        "loss": ["mse", "huber"],
+        "weight_decay": [0.0, 0.001, 0.00001],
+        "num_lstm_iters": [5, 8, 10],
+        "num_lstm_layers": [2, 3, 4]
+    }   
+
 
     for i in range(options["num"]):
 
@@ -147,13 +158,16 @@ def generate_and_write(options):
             gat_layers = [base_gat for i in range(choice(dictionary_archi["gated_num_layers"]))]
         else:
             gat_layers = [int(base_gat/(2**i)) for i in range(choice(dictionary_archi["gated_num_layers"]))]
-        
-        
+
+
+        dictionary_write["fc_num_layers"] = len(fc_layers)
+        dictionary_write["gated_num_layers"] = len(gat_layers)
         dictionary_write["gated_hidden_size"] = gat_layers
         dictionary_write["fc_hidden_size"] = fc_layers
         dictionary_write["dataset_loc"] = options["dataset_loc"]
         dictionary_write["on_gpu"] = options["gpu"]
         dictionary_write["classifier"] = options["classifier"]
+
         for k, v in dictionary_values_options.items():
             dictionary_write[k] = choice(v)
 
@@ -180,7 +194,7 @@ def generate_and_write(options):
         check_folder(target)
         target += "/settings" + str(i) + ".txt"
         
-        write_one(dictionary_write, target, hydro=options["hydro"], perlmutter = options["perlmutter"])
+        write_one(dictionary_write, target)
 
     if(options["hydro"]):
         controller_file = "controller_train_hydro.py"
@@ -233,3 +247,4 @@ def main():
 
     
 main()
+
