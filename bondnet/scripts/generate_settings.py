@@ -161,6 +161,10 @@ def generate_and_write(options):
             folder = "./hydro_training"
         else: 
             folder = "./mg_training"
+
+        if(options["gpu"]): folder += "_gpu"
+        else: folder += "_cpu"
+
         if(options["classifier"]):
             folder += "_classifier/"
         else:
@@ -185,7 +189,7 @@ def generate_and_write(options):
     else:
         controller_file = "controller_train_mg_source.py"
 
-    if(options["perlmutter"]): 
+    if(options["perlmutter"] == False): 
         if(options["gpu"]):
             slurm_file = "./xsede_gpu.sh"
         else: 
