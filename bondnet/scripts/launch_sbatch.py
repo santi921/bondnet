@@ -5,12 +5,10 @@ def launch_all():
     for root, dirs, files in os.walk("."):
         condition = False
         for i in files: 
-            #print(i)
             if("settings" in i): condition = True
+            
         if condition:
-            #print(files)
-                #print(root)
-                os.chdir(root)
-                os.system("sbatch *.sh")
-                os.chdir("..")
+            os.chdir(root)
+            os.system("sbatch *.sh")
+            os.chdir("..")
 launch_all()

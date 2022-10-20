@@ -172,10 +172,8 @@ def generate_and_write(options):
 
         check_folder(folder)
 
-        if(options["gpu"]):
-            target = folder + "gpu_"
-        else: 
-            target = folder + "cpu_"
+        if(options["gpu"]): target = folder + "gpu_"
+        else: target = folder + "cpu_"
 
     
         target += str(int(np.floor(i / options["per_folder"])))
