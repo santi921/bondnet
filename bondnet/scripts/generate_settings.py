@@ -228,9 +228,9 @@ def main():
     perlmutter = False
 
     if hydro:
-        dataset_loc = "../../../dataset/mg_dataset/merged_mg.json"
+        dataset_loc = "../../../dataset/rev_corrected_bonds_qm_9_hydro_training.json"
     else: 
-        dataset_loc = "../../../dataset/dataset/rev_corrected_bonds_qm_9_hydro_training.json"
+        dataset_loc = "../../../dataset/mg_dataset/merged_mg.json"
 
     options_dict = {
         "dataset_loc": dataset_loc,
