@@ -96,7 +96,7 @@ def generate_and_write(options):
 
         dictionary_write = {}
 
-        if(options["hydro"] == True):
+        if(options["hydro"] == True or options["old_dataset"] == True):
             featurizer_dict = {
                 "choice_1":{
                     "xyz_featurizer": True,
@@ -111,6 +111,7 @@ def generate_and_write(options):
                     "featurizer_filter":False
                 }
             }
+
         else: 
             featurizer_dict = {
                 "choice_1":{
@@ -222,6 +223,7 @@ def main():
     classifier = False
     class_cats = 5
     hydro = False
+    old_dataset = True
     num = 50 
     per_folder = 5
     gpu = False
@@ -229,6 +231,8 @@ def main():
 
     if hydro:
         dataset_loc = "../../../dataset/rev_corrected_bonds_qm_9_hydro_training.json"
+    elif old_dataset: 
+        dataset_loc = "../../../dataset/mg_dataset/20220613_reaction_data.json"
     else: 
         dataset_loc = "../../../dataset/mg_dataset/merged_mg.json"
 
@@ -237,6 +241,7 @@ def main():
         "classifier": classifier,
         "class_cats": class_cats, 
         "hydro": hydro, 
+        "old_dataset": old_dataset,
         "num": num,  
         "per_folder": per_folder,
         "gpu": gpu,
