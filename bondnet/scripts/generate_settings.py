@@ -174,8 +174,10 @@ def generate_and_write(options):
 
         if(options["hydro"]):
             folder = "./hydro_training"
-        if(options["old_dataset"]):
+
+        elif(options["old_dataset"]):
             folder = "./old_mg_training"
+        
         else: 
             folder = "./mg_training"
 
