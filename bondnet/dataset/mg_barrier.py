@@ -21,159 +21,79 @@ from rdkit import Chem
 Chem.WrapLogs()
 
 
-def parse_extra_electronic_feats_atom(extra_feats, inds=None):
-
-    valence_e = None
-    total_e = None
-    s = None
-    p = None
-    d = None
-    f = None
-    occ = None
-    spin = None
-    charges = None
-
+def parse_extra_electronic_feats_atom(extra_feats, inds):
+    ret_dict = {}
+    
     extra_feature_keys = list(extra_feats.keys())
-    if "elec_occ" in extra_feature_keys:
-        occ = extra_feats["elec_occ"]
+    # get key as everything after "product_" or "reactant_"
+    extra_feature_keys_trimmed = [i.split("_")[1:] for i in extra_feature_keys]
+    extra_feature_keys_trimmed = ["_".join(i) for i in extra_feature_keys_trimmed]
 
-    if "f_char" in extra_feature_keys:
-        f = extra_feats["f_char"]
-
-    if "d_char" in extra_feature_keys:
-        d = extra_feats["d_char"]
-
-    if "p_char" in extra_feature_keys:
-        p = extra_feats["p_char"]
-
-    if "s_char" in extra_feature_keys:
-        s = extra_feats["s_char"]
-
-    if "total_electrons" in extra_feature_keys:
-        total_e = extra_feats["total_electrons"]
-
-    if "valence_electrons" in extra_feature_keys:
-        valence_e = extra_feats["valence_electrons"]
-
-    # if("partial_spins" in extra_feature_keys):
-    #    spin = extra_feats["partial_charges"]
-
-    if "partial_charges" in extra_feature_keys:
-        charges = extra_feats["partial_charges"]
+    for index, i in enumerate(extra_feature_keys):
+        ret_dict[extra_feature_keys_trimmed[index]] = extra_feats[i]
 
     if inds != None:
-        valence_e = [valence_e[ind] for ind in inds]
-        total_e = [total_e[ind] for ind in inds]
-        charges = [charges[ind] for ind in inds]
+        for k in ret_dict.keys():
+            try: 
+                ret_dict[k] = ret_dict[k][inds]
+            except:
+                pass
 
-        try:
-            s = [s[ind] for ind in inds]
-            p = [p[ind] for ind in inds]
-            d = [d[ind] for ind in inds]
-            f = [f[ind] for ind in inds]
-            occ = [occ[ind] for ind in inds]
-        except:
-            pass
-
-    ret_dict = {
-        "valence_electrons": valence_e,
-        "total_electrons": total_e,
-        "s_char": s,
-        "p_char": p,
-        "d_char": d,
-        "f_char": f,
-        "elec_occ": occ,
-        "partial_charges": charges,
-        "partial_spin": spin
-    }
     return ret_dict
 
 
 def parse_extra_electronic_feats_bond(extra_feats, dict_bonds_as_root_target_inds):
-
+    
+    ret_dict_temp, ret_dict = {}, {}
     num_bonds = int(len(dict_bonds_as_root_target_inds.keys()))
-    s_1 = [0 for i in range(num_bonds)]
-    s_2 = [0 for i in range(num_bonds)]
-    p_1 = [0 for i in range(num_bonds)]
-    p_2 = [0 for i in range(num_bonds)]
-    d_1 = [0 for i in range(num_bonds)]
-    d_2 = [0 for i in range(num_bonds)]
-    f_1 = [0 for i in range(num_bonds)]
-    f_2 = [0 for i in range(num_bonds)]
-    polar_1 = [0 for i in range(num_bonds)]
-    polar_2 = [0 for i in range(num_bonds)]
-    occ_nbo = [0 for i in range(num_bonds)]
-    original_atom_ind = [0 for i in range(num_bonds)]
-
     extra_feature_keys = list(extra_feats.keys())
-    if "indices_nbo" not in extra_feature_keys:
-        return [], [], [], [], [], [], [], [], [], [], [], []
+    extra_feature_keys_trimmed = [i.split("_")[1:] for i in extra_feature_keys]
+    extra_feature_keys_trimmed = ["_".join(i) for i in extra_feature_keys_trimmed]
 
-    extra_feat_bond_ind = extra_feats["indices_nbo"]
-    extra_feat_bond_ind = [tuple(i) for i in extra_feat_bond_ind]
+    for index, i in enumerate(extra_feature_keys):
+        ret_dict_temp[extra_feature_keys_trimmed[index]] = extra_feats[i]
+        ret_dict[extra_feature_keys_trimmed[index]] = []
+    
+    # might need to generalize this to just containing indices
+    if "indices_nbo" not in extra_feature_keys_trimmed:
+        return ret_dict
 
-    if "1_s" in extra_feature_keys:
-        s_1_temp = extra_feats["1_s"]
-    if "2_s" in extra_feature_keys:
-        s_2_temp = extra_feats["2_s"]
-    if "1_p" in extra_feature_keys:
-        p_1_temp = extra_feats["1_p"]
-    if "2_p" in extra_feature_keys:
-        p_2_temp = extra_feats["2_p"]
-    if "1_d" in extra_feature_keys:
-        d_1_temp = extra_feats["1_d"]
-    if "2_d" in extra_feature_keys:
-        d_2_temp = extra_feats["2_d"]
-    if "1_f" in extra_feature_keys:
-        f_1_temp = extra_feats["1_f"]
-    if "2_f" in extra_feature_keys:
-        f_2_temp = extra_feats["2_f"]
-    if "1_polar" in extra_feature_keys:
-        polar_1_temp = extra_feats["1_polar"]
-    if "2_polar" in extra_feature_keys:
-        polar_2_temp = extra_feats["2_polar"]
-    if "occ_nbo" in extra_feature_keys:
-        occ_nbo_temp = extra_feats["occ_nbo"]
+    else: 
+        if "reactant_indices_nbo" in extra_feature_keys:
+            extra_feat_bond_ind = extra_feats["reactant_indices_nbo"]
+        else:
+            extra_feat_bond_ind = extra_feats["product_indices_nbo"]
+        
+        extra_feat_bond_ind = [tuple(i) for i in extra_feat_bond_ind]
+    
+    if(extra_feat_bond_ind == [] and num_bonds != 0):
+        
+        for k in ret_dict.keys():
+            ret_dict[k] = [0] * num_bonds
+        return ret_dict
 
-    # for bond in bond_list:
-    ind = 0
+    
     for k, v in dict_bonds_as_root_target_inds.items():
-        hit = 0
-
+        
         if k in extra_feat_bond_ind:
             ind_in_extra = extra_feat_bond_ind.index(k)
             hit = True
-        if (k[-1], k[0]) in extra_feat_bond_ind:
+
+        elif (k[-1], k[0]) in extra_feat_bond_ind: # reverse order
             ind_in_extra = extra_feat_bond_ind.index((k[-1], k[0]))
             hit = True
-        if hit:
-            s_1[ind] = s_1_temp[ind_in_extra]
-            s_2[ind] = s_2_temp[ind_in_extra]
-            p_1[ind] = p_1_temp[ind_in_extra]
-            p_2[ind] = p_2_temp[ind_in_extra]
-            d_1[ind] = d_1_temp[ind_in_extra]
-            d_2[ind] = d_2_temp[ind_in_extra]
-            f_1[ind] = f_1_temp[ind_in_extra]
-            f_2[ind] = f_2_temp[ind_in_extra]
-            polar_1[ind] = polar_1_temp[ind_in_extra]
-            polar_2[ind] = polar_2_temp[ind_in_extra]
-            occ_nbo[ind] = occ_nbo_temp[ind_in_extra]
-        ind += 1
+            
+        else: 
+            hit = False
 
-    ret_dict = {
-        "1_s": s_1,
-        "2_s": s_2,
-        "1_p": p_1,
-        "2_p": p_2,
-        "1_d": d_1,
-        "2_d": d_2,
-        "1_f": f_1,
-        "2_f": f_2,
-        "1_polar": polar_1,
-        "2_polar": polar_2,
-        "occ_nbo": occ_nbo,
-        "atom_ind": original_atom_ind
-    }
+        for k2, v2 in ret_dict_temp.items():
+            if k2 not in ret_dict:
+                ret_dict[k2] = []
+            if hit:
+                ret_dict[k2].append(v2[ind_in_extra])
+            else: 
+                ret_dict[k2].append(0)
+    
     return ret_dict
 
 
@@ -212,7 +132,6 @@ def split_and_map(
 
     ret_list, bond_map = [], []
     id = str(id)
-
     G = nx.Graph()
     G.add_nodes_from([int(i) for i in range(atom_count)])
 
@@ -258,18 +177,23 @@ def split_and_map(
             mapping.append(mapping_temp)
 
             if extra_feats_atom != {}:
-                atom_feats_nbo = parse_extra_electronic_feats_atom(extra_feats_atom, nodes)
+                atom_feats = parse_extra_electronic_feats_atom(extra_feats_atom, nodes)
+            else: 
+                atom_feats = {}
             if extra_feats_bond != {}:
-                bond_feats_nbo = parse_extra_electronic_feats_bond(
-                    extra_feats_bond, dict_bonds_as_root_target_inds
+                bond_feats = parse_extra_electronic_feats_bond(
+                    extra_feats_bond, 
+                    dict_bonds_as_root_target_inds
                 )
+            else: 
+                bond_feats = {}
 
             species_molwrapper = create_wrapper_mol_from_atoms_and_bonds(
                 species_sg,
                 coords_sg,
                 bond_reindex_list,
-                **atom_feats_nbo,
-                **bond_feats_nbo,
+                atom_features = atom_feats,
+                bond_features = bond_feats,
                 identifier=id + "_" + str(ind_sg),
             )
 
@@ -286,62 +210,49 @@ def split_and_map(
 
     else:
         bond_reindex_list = []
-        dict_temp, dict_bonds = {}, {}
+        dict_temp, dict_bonds, dict_bonds_as_root_target_inds = {}, {}, {}
 
-        (
-            valence_e,
-            total_e,
-            s,
-            p,
-            d,
-            f,
-            occ,
-            spin,
-            charges,
-        ) = parse_extra_electronic_feats_atom(extra_feats_atom)
+        for origin_bond_ind in bonds:
+            nodes = list(G.nodes())
+            check = any(item in origin_bond_ind for item in nodes)
+            if check:  # if it is then map these to lowest values in nodes
+                bond_orig = nodes.index(origin_bond_ind[0])
+                bond_targ = nodes.index(origin_bond_ind[1])
+                bond_reindex_list.append([bond_orig, bond_targ])
+                # finds the index of these nodes in the reactant bonds
+                ordered_targ_obj = [
+                    np.min([origin_bond_ind[0], origin_bond_ind[1]]),
+                    np.max([origin_bond_ind[0], origin_bond_ind[1]]),
+                ]
+                original_bond_index = reaction_scaffold.index(ordered_targ_obj)
+                dict_bonds[len(bond_reindex_list) - 1] = original_bond_index
+                
+                
+                dict_bonds_as_root_target_inds[tuple(ordered_targ_obj)] = (
+                    bond_orig,
+                    bond_targ,
+                )
+        
+        bond_map = [dict_bonds]
+        
+        if extra_feats_atom != {}:
+            atom_feats = parse_extra_electronic_feats_atom(extra_feats_atom, list(G.nodes()))
+            
+        else: atom_feats = {}
 
-        (
-            s_1,
-            s_2,
-            p_1,
-            p_2,
-            d_1,
-            d_2,
-            f_1,
-            f_2,
-            polar_1,
-            polar_2,
-            occ_nbo,
-            _,
-        ) = parse_extra_electronic_feats_bond(
-            extra_feats_bond, {tuple(i): tuple(i) for i in bonds}
-        )
+        if extra_feats_bond != {}:
+            bond_feats = parse_extra_electronic_feats_bond(
+                extra_feats_bond, dict_bonds_as_root_target_inds
+            )
+        else: 
+            bond_feats = {}
 
         species_molwrapper = create_wrapper_mol_from_atoms_and_bonds(
             species,
             coords,
             bonds,
-            valence_e=valence_e,
-            total_e=total_e,
-            s=s,
-            p=p,
-            d=d,
-            f=f,
-            occ=occ,
-            spin=spin,
-            charges=charges,
-            charge=charge,
-            s_1=s_1,
-            s_2=s_2,
-            p_1=p_1,
-            p_2=p_2,
-            d_1=d_1,
-            d_2=d_2,
-            f_1=f_1,
-            f_2=f_2,
-            polar_1=polar_1,
-            polar_2=polar_2,
-            occ_nbo=occ_nbo,
+            atom_features = atom_feats,
+            bond_features = bond_feats,
             identifier=id,
         )
 
@@ -349,28 +260,8 @@ def split_and_map(
             species_molwrapper.nonmetal_bonds = bonds
         else:
             species_molwrapper.nonmetal_bonds = bonds_nonmetal
+  
 
-        for origin_bond_ind in bonds:
-            nodes = list(G.nodes())
-            check = any(item in origin_bond_ind for item in nodes)
-
-            if check:  # if it is then map these to lowest values in nodes
-                bond_orig = nodes.index(origin_bond_ind[0])
-                bond_targ = nodes.index(origin_bond_ind[1])
-                bond_reindex_list.append([bond_orig, bond_targ])
-                # finds the index of these nodes in the reactant bonds
-                try:
-                    original_bond_index = reaction_scaffold.index(
-                        [
-                            np.min([origin_bond_ind[0], origin_bond_ind[1]]),
-                            np.max([origin_bond_ind[0], origin_bond_ind[1]]),
-                        ]
-                    )
-
-                    dict_bonds[len(bond_reindex_list) - 1] = original_bond_index
-                except:
-                    print("detected bond in prod. not in reaction scaffold")
-        bond_map = [dict_bonds]
 
         # atom map
         for i in range(len(species)):
@@ -398,7 +289,7 @@ def process_species_graph(
     lower_bound=-99,
     upper_bound=100,
     feature_filter=False,
-    categories=5,
+    categories=5
 ):
     """
     Takes a row and processes the products/reactants - entirely defined by graphs from row
@@ -492,107 +383,65 @@ def process_species_graph(
     # checks if there are other features to add to mol_wrapper object
     keys_list = list(row.index)
 
+    # check all pandas columns that start with "extra_feat_atom" or "extra_feat_bond"
     extra_atom_feats_dict_prod, extra_atom_feats_dict_react = {}, {}
     extra_bond_feats_dict_prod, extra_bond_feats_dict_react = {}, {}
 
-    if (
-        "reactant_partial_charges" in keys_list
-        and "product_partial_charges" in keys_list
-    ):
-        extra_atom_feats_dict_prod["partial_charges"] = row[
-            product_key + "_partial_charges"][0]
-        extra_atom_feats_dict_react["partial_charges"] = row[
-            reactant_key + "_partial_charges"][0]
-    if (
-        "reactant_valence_electrons" in keys_list
-        and "product_valence_electrons" in keys_list
-    ):  
-        #print(row[product_key + "_valence_electrons"])
-        extra_atom_feats_dict_prod["valence_electrons"] = row[
-            product_key + "_valence_electrons"][0]
-        extra_atom_feats_dict_react["valence_electrons"] = row[
-            reactant_key + "_valence_electrons"][0]
-    if (
-        "reactant_total_electrons" in keys_list
-        and "product_total_electrons" in keys_list
-    ):
-        extra_atom_feats_dict_prod["total_electrons"] = row[
-            product_key + "_total_electrons"
-        ][0]
-        extra_atom_feats_dict_react["total_electrons"] = row[
-            reactant_key + "_total_electrons"
-        ][0]
-    if "reactant_s_char" in keys_list and "product_s_char" in keys_list:
-        extra_atom_feats_dict_prod["s_char"] = row[product_key + "_s_char"][0]
-        extra_atom_feats_dict_react["s_char"] = row[reactant_key + "_s_char"][0]
-    if "reactant_p_char" in keys_list and "product_p_char" in keys_list:
-        extra_atom_feats_dict_prod["p_char"] = row[product_key + "_p_char"][0]
-        extra_atom_feats_dict_react["p_char"] = row[reactant_key + "_p_char"][0]
-    if "reactant_d_char" in keys_list and "product_d_char" in keys_list:
-        extra_atom_feats_dict_prod["d_char"] = row[product_key + "_d_char"][0]
-        extra_atom_feats_dict_react["d_char"] = row[reactant_key + "_d_char"][0]
-    if "reactant_f_char" in keys_list and "product_f_char" in keys_list:
-        extra_atom_feats_dict_prod["f_char"] = row[product_key + "_f_char"][0]
-        extra_atom_feats_dict_react["f_char"] = row[reactant_key + "_f_char"][0]
-    if "reactant_elec_occ" in keys_list and "product_elec_occ" in keys_list:
-        extra_atom_feats_dict_prod["elec_occ"] = row[product_key + "_elec_occ"][0]
-        extra_atom_feats_dict_react["elec_occ"] = row[reactant_key + "_elec_occ"][0]
+    for key in keys_list:
+        prod = False
+        # check if key starts with "extra_feat_atom"
+        if key.startswith("extra_feat_atom"):
+            # check if next underscore is product or reactant
+            # add key to dict if reactant equivalent is also present
+            if key.split("_")[3] == "product":
+                opposite_key = key.replace("product", "reactant")
+                prod = True
+            if key.split("_")[3] == "reactant":
+                opposite_key = key.replace("reactant", "product")
+                prod = False
+            if opposite_key in keys_list:
+                final_key = key.replace("extra_feat_atom_", "")
+                if prod:
+                    extra_atom_feats_dict_prod[final_key] = row[key]
+                else:
+                    extra_atom_feats_dict_react[final_key] = row[key]
 
-    if "product_1_s" in keys_list and "reactant_1_s" in keys_list:
-        extra_bond_feats_dict_prod["1_s"] = row[product_key + "_1_s"][0]
-        extra_bond_feats_dict_react["1_s"] = row[reactant_key + "_1_s"][0]
-    if "product_2_s" in keys_list and "reactant_2_s" in keys_list:
-        extra_bond_feats_dict_prod["2_s"] = row[product_key + "_2_s"][0]
-        extra_bond_feats_dict_react["2_s"] = row[reactant_key + "_2_s"][0]
-    if "product_1_p" in keys_list and "reactant_1_p" in keys_list:
-        extra_bond_feats_dict_prod["1_p"] = row[product_key + "_1_p"][0]
-        extra_bond_feats_dict_react["1_p"] = row[reactant_key + "_1_p"][0]
-    if "product_2_p" in keys_list and "reactant_2_p" in keys_list:
-        extra_bond_feats_dict_prod["2_p"] = row[product_key + "_2_p"][0]
-        extra_bond_feats_dict_react["2_p"] = row[reactant_key + "_2_p"][0]
-    if "product_1_d" in keys_list and "reactant_1_d" in keys_list:
-        extra_bond_feats_dict_prod["1_d"] = row[product_key + "_1_d"][0]
-        extra_bond_feats_dict_react["1_d"] = row[reactant_key + "_1_d"][0]
-    if "product_2_d" in keys_list and "reactant_2_d" in keys_list:
-        extra_bond_feats_dict_prod["2_d"] = row[product_key + "_2_d"][0]
-        extra_bond_feats_dict_react["2_d"] = row[reactant_key + "_2_d"][0]
-    if "product_1_f" in keys_list and "reactant_1_f" in keys_list:
-        extra_bond_feats_dict_prod["1_f"] = row[product_key + "_1_f"][0]
-        extra_bond_feats_dict_react["1_f"] = row[reactant_key + "_1_f"][0]
-    if "product_2_f" in keys_list and "reactant_2_f" in keys_list:
-        extra_bond_feats_dict_prod["2_f"] = row[product_key + "_2_f"][0]
-        extra_bond_feats_dict_react["2_f"] = row[reactant_key + "_2_f"][0]
+        if key.startswith("extra_feat_bond"):
+            prod = False
+            # check if next underscore is product or reactant
+            # add key to dict if reactant equivalent is also present
+            if key.split("_")[3] == "product":
+                opposite_key = key.replace("product", "reactant")
+                prod = True
+            
+            if key.split("_")[3] == "reactant":
+                opposite_key = key.replace("reactant", "product")
+                prod = False
 
-    if "reactant_1_polar" in keys_list and "product_2_polar" in keys_list:
-        extra_bond_feats_dict_prod["1_polar"] = row[product_key + "_1_polar"][0]
-        extra_bond_feats_dict_react["1_polar"] = row[reactant_key + "_1_polar"][0]
-    if "reactant_2_polar" in keys_list and "product_2_polar" in keys_list:
-        extra_bond_feats_dict_prod["2_polar"] = row[product_key + "_2_polar"][0]
-        extra_bond_feats_dict_react["2_polar"] = row[reactant_key + "_2_polar"][0]
-    if "reactant_occ_nbo" in keys_list and "product_occ_nbo" in keys_list:
-        extra_bond_feats_dict_prod["occ_nbo"] = row[product_key + "_occ_nbo"][0]
-        extra_bond_feats_dict_react["occ_nbo"] = row[reactant_key + "_occ_nbo"][0]
+            if opposite_key in keys_list:
+                # remove the "extra_feat_bond" from the key
+                final_key = key.replace("extra_feat_bond_", "")
+                if prod:
+                    extra_bond_feats_dict_prod[final_key] = row[key][0]
+                else:
+                    extra_bond_feats_dict_react[final_key] = row[key][0]            
+    
 
-    if "reactant_indices_nbo" in keys_list and "product_indices_nbo" in keys_list:
-        extra_bond_feats_dict_prod["indices_nbo"] = row[product_key + "_indices_nbo"][0]
-        extra_bond_feats_dict_react["indices_nbo"] = row[reactant_key + "_indices_nbo"][
-            0
-        ]
-
-    if feature_filter:
-        for k, v in extra_bond_feats_dict_prod.items():
-            if v == []:
-                return []
-        for k, v in extra_bond_feats_dict_react.items():
-            if v == []:
-                return []
-        for k, v in extra_atom_feats_dict_prod.items():
-            if v == []:
-                return []
-        for k, v in extra_atom_feats_dict_react.items():
-            if v == []:
-                return []
-
+    if feature_filter: # filter out reactions without complete features
+        filter_rxn = False
+        for dict in [
+            extra_atom_feats_dict_prod, 
+            extra_atom_feats_dict_react, 
+            extra_bond_feats_dict_prod, 
+            extra_bond_feats_dict_react]:
+            for k, v in dict.items():
+                
+                if v == [] or v == None or v == [[]]: 
+                    filter_rxn = True
+        if filter_rxn: 
+            print("filter rxn bc of missing features")
+            return []
+    
     products, atoms_products, mapping_products = split_and_map(
         species=species_products_full,
         coords=coords_products_full,
@@ -618,6 +467,7 @@ def process_species_graph(
         extra_feats_atom=extra_atom_feats_dict_react,
         extra_feats_bond=extra_bond_feats_dict_react,
     )
+    
 
     total_atoms = list(
         set(list(np.concatenate([list(i.values()) for i in atoms_reactants]).flat))

@@ -681,6 +681,7 @@ class MoleculeDataset(BaseDataset):
 
         return rst, extensive
 
+
 class ReactionNetworkDatasetGraphs(BaseDataset):
     def __init__(
         self,
@@ -987,6 +988,8 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         return rn, rxn, lb
 
     def __len__(self):
+        return len(self.reaction_ids)
+
         return len(self.reaction_ids)
 
 

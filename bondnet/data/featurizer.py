@@ -990,7 +990,7 @@ class BondAsNodeGraphFeaturizerGeneral(BondFeaturizer):
         num_atoms = int(mol.num_atoms)
         features = mol.bond_features
         xyz_coordinates = mol.coords
-
+        
         # count number of keys in features
         num_feats = len(self.selected_keys)
         num_feats += 7 
@@ -1120,7 +1120,6 @@ class AtomFeaturizerGraphGeneral(BaseFeaturizer):
         num_atoms = len(mol.coords)
         species_sites = mol.species
         bond_list_tuple = list(mol.bonds.keys())
-        
         for i in range(num_atoms):
             feats_flatten_temp = []
             for key in self.selected_keys:
