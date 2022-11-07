@@ -75,7 +75,18 @@ def parse_extra_electronic_feats_atom(extra_feats, inds=None):
         except:
             pass
 
-    return valence_e, total_e, s, p, d, f, occ, spin, charges
+    ret_dict = {
+        "valence_electrons": valence_e,
+        "total_electrons": total_e,
+        "s_char": s,
+        "p_char": p,
+        "d_char": d,
+        "f_char": f,
+        "elec_occ": occ,
+        "partial_charges": charges,
+        "partial_spin": spin
+    }
+    return ret_dict
 
 
 def parse_extra_electronic_feats_bond(extra_feats, dict_bonds_as_root_target_inds):
@@ -149,20 +160,21 @@ def parse_extra_electronic_feats_bond(extra_feats, dict_bonds_as_root_target_ind
             occ_nbo[ind] = occ_nbo_temp[ind_in_extra]
         ind += 1
 
-    return (
-        s_1,
-        s_2,
-        p_1,
-        p_2,
-        d_1,
-        d_2,
-        f_1,
-        f_2,
-        polar_1,
-        polar_2,
-        occ_nbo,
-        original_atom_ind,
-    )
+    ret_dict = {
+        "1_s": s_1,
+        "2_s": s_2,
+        "1_p": p_1,
+        "2_p": p_2,
+        "1_d": d_1,
+        "2_d": d_2,
+        "1_f": f_1,
+        "2_f": f_2,
+        "1_polar": polar_1,
+        "2_polar": polar_2,
+        "occ_nbo": occ_nbo,
+        "atom_ind": original_atom_ind
+    }
+    return ret_dict
 
 
 def split_and_map(
@@ -245,58 +257,10 @@ def split_and_map(
             mapping_temp = {i: ind for i, ind in enumerate(nodes)}
             mapping.append(mapping_temp)
 
-            s_1, s_2, p_1, p_2, d_1, d_2, f_1, f_2, polar_1, polar_2, occ_nbo = (
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None
-            )
-            valence_e, total_e, s, p, d, f, occ, spin, charges = (
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-            )
-
             if extra_feats_atom != {}:
-                (
-                    valence_e,
-                    total_e,
-                    s,
-                    p,
-                    d,
-                    f,
-                    occ,
-                    spin,
-                    charges,
-                ) = parse_extra_electronic_feats_atom(extra_feats_atom, nodes)
+                atom_feats_nbo = parse_extra_electronic_feats_atom(extra_feats_atom, nodes)
             if extra_feats_bond != {}:
-                (
-                    s_1,
-                    s_2,
-                    p_1,
-                    p_2,
-                    d_1,
-                    d_2,
-                    f_1,
-                    f_2,
-                    polar_1,
-                    polar_2,
-                    occ_nbo,
-                    _,
-                ) = parse_extra_electronic_feats_bond(
+                bond_feats_nbo = parse_extra_electronic_feats_bond(
                     extra_feats_bond, dict_bonds_as_root_target_inds
                 )
 
@@ -304,27 +268,8 @@ def split_and_map(
                 species_sg,
                 coords_sg,
                 bond_reindex_list,
-                valence_e=valence_e,
-                total_e=total_e,
-                s=s,
-                p=p,
-                d=d,
-                f=f,
-                occ=occ,
-                spin=spin,
-                charges=charges,
-                charge=charge,
-                s_1=s_1,
-                s_2=s_2,
-                p_1=p_1,
-                p_2=p_2,
-                d_1=d_1,
-                d_2=d_2,
-                f_1=f_1,
-                f_2=f_2,
-                polar_1=polar_1,
-                polar_2=polar_2,
-                occ_nbo=occ_nbo,
+                **atom_feats_nbo,
+                **bond_feats_nbo,
                 identifier=id + "_" + str(ind_sg),
             )
 
@@ -1312,33 +1257,7 @@ def create_reaction_network_files_and_valid_rows(
                 ind_val.append(ind)
             except:
                 pass
-            '''
-            if augment:
-                future = pool.schedule(
-                    process_species_graph,
-                    args=[row, True],
-                    kwargs={
-                        "classifier": classifier,
-                        "target": target,
-                        "reverse_rxn": True,
-                        "verbose": False,
-                        "categories": categories,
-                        "filter_species": filter_species,
-                        "filter_outliers": filter_outliers,
-                        "upper_bound": upper_bound,
-                        "lower_bound": lower_bound,
-                        "filter_sparse_rxns": filter_sparse_rxn,
-                        "feature_filter": feature_filter,
-                    }
-                    timeout=30,
-                )
-                future.add_done_callback(task_done)
-                try:
-                    rxn_raw.append(future.result())
-                    ind_val.append(ind)
-                except:
-                    pass
-            '''
+
     finish_time = time.perf_counter()
     print("rxn raw len: {}".format(int(len(rxn_raw))))
     print(f"Program finished in {finish_time-start_time} seconds")

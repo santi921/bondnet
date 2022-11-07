@@ -951,28 +951,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
 
         count = 0
         graphs = []
-        '''
-        with ProcessPool(max_workers=6, max_tasks=6) as pool:
-            print("yeet")
-            for i, (m, feats) in enumerate(zip(molecules, features)):
-                feats = features[count]
-                if m is not None:
-                    future = pool.schedule(grapher.build_graph_and_featurize, 
-                                            args=[m],
-                                            kwargs={"extra_feats_info":feats, 
-                                                    "dataset_species":species}
-                                            )
-                    future.add_done_callback(task_done)
-                    try:
-                        g = future.result()
-                        g.graph_id = i
-                        graphs.append(g)
-                        count += 1
-                    except:
-                        pass
-                else: graphs.append(None)
 
-        '''
         for ind, mol in enumerate(molecules):
             feats = features[count]
             if mol is not None:
@@ -1009,6 +988,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
 
     def __len__(self):
         return len(self.reaction_ids)
+
 
 class ReactionDataset(BaseDataset):
     def _load(self):

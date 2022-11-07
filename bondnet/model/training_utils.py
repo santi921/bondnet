@@ -17,6 +17,8 @@ from bondnet.data.featurizer import (
     BondAsNodeGraphFeaturizerElectronic,
     BondAsNodeGraphFeaturizerBondLen, # might want to switch
     BondAsNodeGraphFeaturizer,
+    AtomFeaturizerGraphGeneral, 
+    BondAsNodeGraphFeaturizerGeneral,
     GlobalFeaturizerGraph,
     
 )
@@ -506,30 +508,35 @@ def evaluate_r2(model, nodes, data_loader, device = None):
 
 
 def get_grapher(bond_len_in_featurizer=False, electronic_info_in_atoms=False, electronic_info_in_bonds=False):
+    keys_selected_bonds, keys_selected_atoms = [], []
 
     if(electronic_info_in_atoms):
-        print("using atom featurizer w/ electronic info ")
-        atom_featurizer = AtomFeaturizerElectronicGraph()
+        keys_selected_atoms = ["valence_electrons", "total_electrons", "partial_charges"]
+        print("using general atom featurizer w/ electronic info ")
+
     else:
-        print("using baseline atom featurizer")
-        atom_featurizer = AtomFeaturizerGraph()
+        keys_selected_atoms = []
+        print("using general baseline atom featurizer")
 
     if(bond_len_in_featurizer and electronic_info_in_bonds):
-        print("using bond featurizer w/xyz + Electronic Info coords")
-        bond_featurizer = BondAsNodeGraphFeaturizerBondLenElectronic()
-         
+        keys_selected_bonds = ["1_s", "2_s", "1_p", "2_p", "1_d", "2_d", "1_f", "2_f", "1_polar", "2_polar", "occ_nbo", "bond_length"]
+        print("using general bond featurizer w/xyz + Electronic Info coords")
+
     elif(electronic_info_in_bonds): 
-        print("using bond featurizer w/Electronic Info coords")
-        bond_featurizer = BondAsNodeGraphFeaturizerElectronic()
-
-    elif(bond_len_in_featurizer):
-        print("using bond featurizer w/xyz coords")
-        bond_featurizer = BondAsNodeGraphFeaturizerBondLen()       
-
-    else: 
-        print("using simple bond featurizer")
-        bond_featurizer = BondAsNodeGraphFeaturizer()
+        keys_selected_bonds = ["1_s", "2_s", "1_p", "2_p", "1_d", "2_d", "1_f", "2_f", "1_polar", "2_polar", "occ_nbo"]
+        print("using general bond featurizer w/Electronic Info coords")
         
+    elif(bond_len_in_featurizer):
+        keys_selected_bonds = ["bond_length"]
+        print("using general bond featurizer w/xyz coords")
+        
+    else: 
+        print("using general simple bond featurizer")
+        
+
+    bond_featurizer = BondAsNodeGraphFeaturizerGeneral(selected_keys = keys_selected_bonds)
+    atom_featurizer = AtomFeaturizerGraphGeneral(selected_keys = keys_selected_atoms)
+
     global_featurizer = GlobalFeaturizerGraph(allowed_charges=[-2, -1, 0, 1])
     grapher = HeteroCompleteGraphFromMolWrapper(
         atom_featurizer, bond_featurizer, global_featurizer

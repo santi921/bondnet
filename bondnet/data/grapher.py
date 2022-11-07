@@ -486,16 +486,16 @@ class HeteroCompleteGraphFromMolWrapper(BaseGraph):
             g.atom_ind = mol.original_atom_ind
         if(mol.original_bond_mapping != None):
             g.bond_ind = mol.original_bond_mapping
+
+
         return g
 
     def featurize(self, g, row, **kwargs):
-        
+
         if self.atom_featurizer is not None:
-            # print(self.atom_featurizer(row, **kwargs))
             g.nodes["atom"].data.update(self.atom_featurizer(row, **kwargs))
 
         if self.bond_featurizer is not None:
-            # print(self.bond_featurizer(row, **kwargs))
             self.bond_featurizer(row, **kwargs)
             g.nodes["bond"].data.update(self.bond_featurizer(row, **kwargs))
 
