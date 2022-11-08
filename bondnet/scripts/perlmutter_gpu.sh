@@ -5,7 +5,7 @@
 #SBATCH -q regular
 #SBATCH --mail-user=santiagovargas921@gmail.com
 #SBATCH --mail-type=ALL
-#SBATCH -t 10:00:00
+#SBATCH -t 20:00:00
 #SBATCH -A jcesr_g
 
 #OpenMP settings:
