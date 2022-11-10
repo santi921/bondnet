@@ -511,7 +511,9 @@ def get_grapher(bond_len_in_featurizer=False, electronic_info_in_atoms=False, el
     keys_selected_bonds, keys_selected_atoms = [], []
 
     if(electronic_info_in_atoms):
-        keys_selected_atoms = ["valence_electrons", "total_electrons", "partial_charges_nbo", "partial_charges_mulliken", "partial_charges_resp"]
+        keys_selected_atoms = ["valence_electrons", "total_electrons", 
+        "partial_charges_nbo", "partial_charges_mulliken", "partial_charges_resp",
+        "partial_spins1", "partial_spins2"]
         print("using general atom featurizer w/ electronic info ")
 
     else:
