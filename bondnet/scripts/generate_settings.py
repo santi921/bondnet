@@ -234,7 +234,7 @@ def main():
     perlmutter = False
 
     if hydro:
-        dataset_loc = "../../../dataset/rev_corrected_bonds_qm_9_hydro_training.json"
+        dataset_loc = "../../../dataset/qm_9_hydro_complete.json"
     elif old_dataset: 
         dataset_loc = "../../../dataset/mg_dataset/20220613_reaction_data.json"
     else: 
