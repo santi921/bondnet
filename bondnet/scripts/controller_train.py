@@ -29,8 +29,6 @@ def main():
     # NOTE YOU WANT TO USE SAME FEATURIZER/DEVICE ON ALL RUNS
     # IN THIS FOLDER B/C THIS MAKES IT SO YOU ONLY HAVE TO GEN 
     # DATASET ONCE
-    featurizer_xyz = dict_train["featurizer_xyz"] 
-    featurizer_electronic = dict_train["featurizer_electronic"] 
 
     dataset = ReactionNetworkDatasetGraphs(
         grapher=get_grapher(
@@ -49,6 +47,7 @@ def main():
         device = dict_train["gpu"],
         feature_filter = dict_train["featurizer_filter"]
     )
+    
     dataset_transfer = ReactionNetworkDatasetGraphs(
         grapher=get_grapher(
                 dict_train["featurizer_xyz"], 

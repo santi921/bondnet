@@ -1315,7 +1315,6 @@ class AtomFeaturizerGraph(BaseFeaturizer):
             + ["ring size"] * len(allowed_ring_size)
         )
         return {"feat": feats}
-
 class BondAsNodeGraphFeaturizer(BondFeaturizer):
     """BaseFeaturizer
     Featurize all bonds in a molecule.

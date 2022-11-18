@@ -11,12 +11,6 @@ from bondnet.model.gated_reaction_network_graph import GatedGCNReactionNetwork
 from bondnet.model.gated_reaction_classifier_graph import GatedGCNReactionNetworkClassifier
 
 from bondnet.data.featurizer import (
-    AtomFeaturizerGraph,
-    AtomFeaturizerElectronicGraph,
-    BondAsNodeGraphFeaturizerBondLenElectronic,
-    BondAsNodeGraphFeaturizerElectronic,
-    BondAsNodeGraphFeaturizerBondLen, # might want to switch
-    BondAsNodeGraphFeaturizer,
     AtomFeaturizerGraphGeneral, 
     BondAsNodeGraphFeaturizerGeneral,
     GlobalFeaturizerGraph,
@@ -509,6 +503,22 @@ def evaluate_r2(model, nodes, data_loader, device = None):
 
 def get_grapher(bond_len_in_featurizer=False, electronic_info_in_atoms=False, electronic_info_in_bonds=False):
     keys_selected_bonds, keys_selected_atoms = [], []
+    
+    # adding qtaim should just be adding to these lists for atoms at least
+    # bonds will require a bit more work
+    """keys_selected_bonds = [        
+        "Lagrangian_K", "Hamiltonian_K", "e_density", "lap_e_density",
+        "e_loc_func", "ave_loc_ion_E", "delta_g_promolecular",
+        "delta_g_hirsh", "esp_nuc", "esp_e", "esp_total",
+        "grad_norm", "lap_norm", "eig_hess", "det_hessian",
+        "ellip_e_dens", "eta"]
+    """
+    """ keys_selected_atoms = [        
+        "Lagrangian_K", "Hamiltonian_K", "e_density", "lap_e_density",
+        "e_loc_func", "ave_loc_ion_E", "delta_g_promolecular",
+        "delta_g_hirsh", "esp_nuc", "esp_e", "esp_total",
+        "grad_norm", "lap_norm", "eig_hess", "det_hessian",
+        "ellip_e_dens", "eta"]"""
 
     if(electronic_info_in_atoms):
         keys_selected_atoms = ["valence_electrons", "total_electrons", 
