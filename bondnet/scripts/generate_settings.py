@@ -210,7 +210,7 @@ def generate_and_write(options):
         if(options["gpu"]):
             slurm_file = "./xsede_gpu.sh"
             if(options["hydro"]):
-                controller_file = "xsede_gpu_hydro.sh"
+                slurm_file = "xsede_gpu_hydro.sh"
         else: 
             slurm_file = "./xsede_cpu.sh"
             if(options["hydro"]): 
@@ -220,11 +220,11 @@ def generate_and_write(options):
         if(options["gpu"]):
             slurm_file = "./perlmutter_gpu.sh"
             if(options["hydro"]):
-                controller_file = "./perlmutter_gpu_hydro.sh"
+                slurm_file = "./perlmutter_gpu_hydro.sh"
         else: 
             slurm_file = "./perlmutter_cpu.sh"
             if(options["hydro"]):
-                controller_file = "./perlmutter_cpu_hydro.sh"
+                slurm_file = "./perlmutter_cpu_hydro.sh"
         
     put_file_in_every_subfolder(folder, controller_file)
     put_file_in_every_subfolder(folder, slurm_file)
