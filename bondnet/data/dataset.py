@@ -700,6 +700,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         debug = False,
         classif_categories = None,
         device = None,
+        extra_keys = None
     ):
 
         if dtype not in ["float32", "float64"]:
@@ -718,7 +719,8 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
             filter_outliers=filter_outliers,
             categories=classif_categories,
             filter_sparse_rxn=filter_sparse_rxns,
-            feature_filter=feature_filter
+            feature_filter=feature_filter,
+            extra_keys=extra_keys
         )
 
         self.molecules = all_mols
@@ -731,6 +733,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         self.graphs = None
         self.labels = None
         self.target = target
+        self.extra_keys = extra_keys
         self._feature_size = None
         self._feature_name = None
         self._feature_scaler_mean = None

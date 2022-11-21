@@ -51,7 +51,9 @@ def train_hydro(
 
     if(dataset == None):
         dataset = ReactionNetworkDatasetGraphs(
-            grapher=get_grapher(dict_train["featurizer_xyz"] ), 
+            grapher=get_grapher(dict_train["featurizer_xyz"], 
+                dict_train["featurizer_electronic"],
+                dict_train["featurizer_electronic_bond"] ), 
             file=dict_train["dataset_loc"], 
             out_file="./", 
             target = 'dG_sp', 
@@ -61,7 +63,8 @@ def train_hydro(
             filter_outliers=dict_train["filter_outliers"],
             filter_sparse_rxns=dict_train["filter_sparse_rxns"],
             debug = dict_train["debug"],
-            device = dict_train["gpu"]
+            device = dict_train["gpu"],
+            extra_keys=dict_train["extra_keys"]
             )
     
     dict_train['in_feats'] = dataset.feature_size

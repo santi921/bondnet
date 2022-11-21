@@ -72,7 +72,8 @@ def train_transfer(
             filter_sparse_rxns=dict_train["filter_sparse_rxns"],
             debug = dict_train["debug"],
             device = dict_train["gpu"],
-            feature_filter = dict_train["featurizer_filter"]
+            feature_filter = dict_train["featurizer_filter"],
+            extra_keys = dict_train["extra_keys"]
             )
     
     dict_train['in_feats'] = dataset.feature_size
@@ -115,7 +116,8 @@ def train_transfer(
                 filter_outliers=dict_train["filter_outliers"],
                 debug = dict_train["debug"],
                 device = dict_train["gpu"],
-                feature_filter = dict_train["featurizer_filter"]
+                feature_filter = dict_train["featurizer_filter"],
+                extra_keys = dict_train["extra_keys"]
                 )
 
         trainset_transfer, valset_tranfer, _ = train_validation_test_split(

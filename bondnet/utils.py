@@ -397,6 +397,7 @@ def parse_settings(file="settings.txt"):
     featurizer_electronic = False
     featurizer_electronic_bond = False
     featurizer_filter = False
+    extra_keys = []
 
     save_hyper_params = "./hyper.pkl"
     dataset_state_dict_filename = "./dataset_state_dict.pkl"
@@ -506,6 +507,9 @@ def parse_settings(file="settings.txt"):
                 if i.split()[0] == "category_weights":
                     category_weights = [float(j) for j in i.split()[1:]]
 
+                if i.split()[0] == "extra_keys":
+                    extra_keys = [j for j in i.split()[1:]]
+
                 if i.split()[0] == "gated_dropout":
                     gated_dropout = float(i.split()[1])
                 if i.split()[0] == "gated_graph_norm":
@@ -563,7 +567,7 @@ def parse_settings(file="settings.txt"):
         print("electronic bond featurizer:      {}".format(featurizer_electronic_bond))
         print("electronic featurizer:           {}".format(featurizer_electronic))
         print("featurizer filter:               {}".format(featurizer_filter))
-        
+        print("extra keys:                      {}".format(extra_keys))
         print("hyperparam save file:            {}".format(save_hyper_params))
         print("dataset state dict:              {}".format(dataset_state_dict_filename))
         print("model dir                        {}".format(model_path))
@@ -624,6 +628,7 @@ def parse_settings(file="settings.txt"):
         dict_ret['filter_outliers'] = filter_outliers
         dict_ret['filter_sparse_rxns'] = filter_sparse_rxns
         dict_ret["freeze"] = freeze  
+        dict_ret["extra_keys"] = extra_keys
 
         dict_ret["start_epoch"] = start_epoch
         dict_ret["embedding_size"] = embedding_size

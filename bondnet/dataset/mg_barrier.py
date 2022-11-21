@@ -47,6 +47,14 @@ def parse_extra_electronic_feats_bond(extra_feats, dict_bonds_as_root_target_ind
     ret_dict_temp, ret_dict = {}, {}
     num_bonds = int(len(dict_bonds_as_root_target_inds.keys()))
     extra_feature_keys = list(extra_feats.keys())
+    # check that there is a key with indices in the name
+    key_with_indices = -1
+    for ind, i in enumerate(extra_feature_keys):
+        if "indices" in i:
+            key_with_indices = ind
+            break
+    
+    
     extra_feature_keys_trimmed = [i.split("_")[1:] for i in extra_feature_keys]
     extra_feature_keys_trimmed = ["_".join(i) for i in extra_feature_keys_trimmed]
 
@@ -55,24 +63,24 @@ def parse_extra_electronic_feats_bond(extra_feats, dict_bonds_as_root_target_ind
         ret_dict[extra_feature_keys_trimmed[index]] = []
     
     # might need to generalize this to just containing indices
-    if "indices_nbo" not in extra_feature_keys_trimmed:
+    if key_with_indices == -1:
         return ret_dict
 
     else: 
-        if "reactant_indices_nbo" in extra_feature_keys:
-            extra_feat_bond_ind = extra_feats["reactant_indices_nbo"]
+        if "reactant_" + extra_feature_keys_trimmed[key_with_indices] in extra_feature_keys:
+            extra_feat_bond_ind = extra_feats["reactant_" + extra_feature_keys_trimmed[key_with_indices]]
         else:
-            extra_feat_bond_ind = extra_feats["product_indices_nbo"]
+            extra_feat_bond_ind = extra_feats["product_" + extra_feature_keys_trimmed[key_with_indices]]
         
         extra_feat_bond_ind = [tuple(i) for i in extra_feat_bond_ind]
     
+
     if(extra_feat_bond_ind == [] and num_bonds != 0):
         
         for k in ret_dict.keys():
             ret_dict[k] = [0] * num_bonds
         return ret_dict
 
-    
     for k, v in dict_bonds_as_root_target_inds.items():
         
         if k in extra_feat_bond_ind:
@@ -93,7 +101,7 @@ def parse_extra_electronic_feats_bond(extra_feats, dict_bonds_as_root_target_ind
                 ret_dict[k2].append(v2[ind_in_extra])
             else: 
                 ret_dict[k2].append(0)
-    
+    #print(ret_dict)
     return ret_dict
 
 
@@ -242,7 +250,8 @@ def split_and_map(
 
         if extra_feats_bond != {}:
             bond_feats = parse_extra_electronic_feats_bond(
-                extra_feats_bond, dict_bonds_as_root_target_inds
+                extra_feats_bond, 
+                dict_bonds_as_root_target_inds
             )
         else: 
             bond_feats = {}
@@ -289,7 +298,8 @@ def process_species_graph(
     lower_bound=-99,
     upper_bound=100,
     feature_filter=False,
-    categories=5
+    categories=5,
+    extra_keys = None
 ):
     """
     Takes a row and processes the products/reactants - entirely defined by graphs from row
@@ -381,13 +391,18 @@ def process_species_graph(
     bonds_nonmetal_reactant = row[reactant_key + "_bonds_nometal"]
 
     # checks if there are other features to add to mol_wrapper object
-    keys_list = list(row.index)
-
+    if extra_keys == None: # if there are no extra features just look for the right named ones
+        extra_keys_full = list(row.index)
+    else: 
+        extra_keys_full = list(row.index)
+        # find extra keys that contain extra_keys in string
+        extra_keys_full = [i for i in extra_keys_full if any([j in i for j in extra_keys])]
+        #print("full extra keys", extra_keys_full)
     # check all pandas columns that start with "extra_feat_atom" or "extra_feat_bond"
     extra_atom_feats_dict_prod, extra_atom_feats_dict_react = {}, {}
     extra_bond_feats_dict_prod, extra_bond_feats_dict_react = {}, {}
 
-    for key in keys_list:
+    for key in extra_keys_full:
         prod = False
         # check if key starts with "extra_feat_atom"
         if key.startswith("extra_feat_atom"):
@@ -399,7 +414,7 @@ def process_species_graph(
             if key.split("_")[3] == "reactant":
                 opposite_key = key.replace("reactant", "product")
                 prod = False
-            if opposite_key in keys_list:
+            if opposite_key in extra_keys_full:
                 final_key = key.replace("extra_feat_atom_", "")
                 if prod:
                     extra_atom_feats_dict_prod[final_key] = row[key]
@@ -418,9 +433,10 @@ def process_species_graph(
                 opposite_key = key.replace("reactant", "product")
                 prod = False
 
-            if opposite_key in keys_list:
+            if opposite_key in extra_keys_full:
                 # remove the "extra_feat_bond" from the key
                 final_key = key.replace("extra_feat_bond_", "")
+            
                 if prod:
                     extra_bond_feats_dict_prod[final_key] = row[key][0]
                 else:
@@ -1037,6 +1053,7 @@ def create_reaction_network_files_and_valid_rows(
     filter_sparse_rxn=False,
     feature_filter=False,
     categories=5,
+    extra_keys = None
 ):
     """
     Processes json file from emmet to use in training bondnet
@@ -1080,7 +1097,7 @@ def create_reaction_network_files_and_valid_rows(
         # finding upper and lower whiskers
         upper_bound = q3 + (1.5 * iqr)
         lower_bound = q1 - (1.5 * iqr)
-
+    
     with ProcessPool(max_workers=12, max_tasks=10) as pool:
         for ind, row in mg_df.iterrows():
             future = pool.schedule(
@@ -1098,6 +1115,7 @@ def create_reaction_network_files_and_valid_rows(
                     "lower_bound": lower_bound,
                     "filter_sparse_rxns": filter_sparse_rxn,
                     "feature_filter": feature_filter,
+                    "extra_keys": extra_keys
                 },
                 timeout=30,
             )

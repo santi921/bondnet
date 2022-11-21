@@ -990,7 +990,8 @@ class BondAsNodeGraphFeaturizerGeneral(BondFeaturizer):
         num_atoms = int(mol.num_atoms)
         features = mol.bond_features
         xyz_coordinates = mol.coords
-        
+        #print("features", features)
+        #print("selected keys", self.selected_keys)
         # count number of keys in features
         num_feats = len(self.selected_keys)
         num_feats += 7 
@@ -1105,14 +1106,7 @@ class AtomFeaturizerGraphGeneral(BaseFeaturizer):
             raise KeyError(
                 "{} `dataset_species` needed for {}.".format(e, self.__class__.__name__)
             )
-        try:
-            feats_info = kwargs["extra_feats_info"]
-        except KeyError as e:
-            raise KeyError(
-                "{} `extra_feats_info` needed for {}.".format(
-                    e, self.__class__.__name__
-                )
-            )
+
         allowed_ring_size = [3, 4, 5, 6, 7]
         
         features = mol.atom_features 
@@ -1120,9 +1114,11 @@ class AtomFeaturizerGraphGeneral(BaseFeaturizer):
         num_atoms = len(mol.coords)
         species_sites = mol.species
         bond_list_tuple = list(mol.bonds.keys())
+        #print("atom feats,", features)
         for i in range(num_atoms):
             feats_flatten_temp = []
             for key in self.selected_keys:
+                #print(key, features[key])
                 feats_flatten_temp.append(features[key][i])
             features_flatten.append(feats_flatten_temp)
 

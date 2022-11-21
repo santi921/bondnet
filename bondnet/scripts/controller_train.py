@@ -45,7 +45,8 @@ def main():
         filter_outliers=dict_train["filter_outliers"],
         debug = dict_train["debug"],
         device = dict_train["gpu"],
-        feature_filter = dict_train["featurizer_filter"]
+        feature_filter = dict_train["featurizer_filter"],
+        extra_keys = dict_train["extra_keys"]
     )
     
     dataset_transfer = ReactionNetworkDatasetGraphs(
@@ -63,7 +64,8 @@ def main():
         filter_outliers=dict_train["filter_outliers"],
         debug = dict_train["debug"],
         device = dict_train["gpu"],
-        feature_filter = dict_train["featurizer_filter"]
+        feature_filter = dict_train["featurizer_filter"],
+        extra_keys = dict_train["extra_keys"]
     )
 
     for ind, file in enumerate(files):

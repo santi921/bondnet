@@ -521,21 +521,43 @@ def get_grapher(bond_len_in_featurizer=False, electronic_info_in_atoms=False, el
         "ellip_e_dens", "eta"]"""
 
     if(electronic_info_in_atoms):
-        keys_selected_atoms = ["valence_electrons", "total_electrons", 
-        "partial_charges_nbo", "partial_charges_mulliken", "partial_charges_resp",
-        "partial_spins1", "partial_spins2"]
+        # madeira
+        #keys_selected_atoms = ["valence_electrons", "total_electrons", 
+        #"partial_charges_nbo", "partial_charges_mulliken", "partial_charges_resp",
+        #]
+
+        #"partial_spins1" # these might need to be imputed
+        #"partial_spins2" # these might need to be imputed
+        
+        keys_selected_atoms = [        
+            "Lagrangian_K", "Hamiltonian_K", "e_density", "lap_e_density",
+            "e_loc_func", "ave_loc_ion_E", "delta_g_promolecular",
+            "delta_g_hirsh", "esp_nuc", "esp_e", "esp_total",
+            "grad_norm", "lap_norm", "eig_hess", "det_hessian",
+            "ellip_e_dens", "eta"]
+
         print("using general atom featurizer w/ electronic info ")
 
     else:
-        keys_selected_atoms = []
         print("using general baseline atom featurizer")
 
     if(bond_len_in_featurizer and electronic_info_in_bonds):
-        keys_selected_bonds = ["1_s", "2_s", "1_p", "2_p", "1_d", "2_d", "1_f", "2_f", "1_polar", "2_polar", "occ_nbo", "bond_length"]
+        # evans 
+        #keys_selected_bonds = ["1_s", "2_s", "1_p", "2_p", "1_d", "2_d", "1_f", "2_f", "1_polar", "2_polar", "occ_nbo", "bond_length"]
+        
+        # qtaim
+        keys_selected_bonds = [        
+            "Lagrangian_K", "Hamiltonian_K", "e_density", "lap_e_density",
+            "e_loc_func", "ave_loc_ion_E", "delta_g_promolecular",
+            "delta_g_hirsh", "esp_nuc", "esp_e", "esp_total",
+            "grad_norm", "lap_norm", "eig_hess", "det_hessian",
+            "ellip_e_dens", "eta"]
         print("using general bond featurizer w/xyz + Electronic Info coords")
 
     elif(electronic_info_in_bonds): 
+        # evans
         keys_selected_bonds = ["1_s", "2_s", "1_p", "2_p", "1_d", "2_d", "1_f", "2_f", "1_polar", "2_polar", "occ_nbo"]
+        
         print("using general bond featurizer w/Electronic Info coords")
         
     elif(bond_len_in_featurizer):
@@ -544,12 +566,13 @@ def get_grapher(bond_len_in_featurizer=False, electronic_info_in_atoms=False, el
         
     else: 
         print("using general simple bond featurizer")
-        
 
-    bond_featurizer = BondAsNodeGraphFeaturizerGeneral(selected_keys = keys_selected_bonds)
+    print(keys_selected_atoms)
+    print(keys_selected_bonds)
     atom_featurizer = AtomFeaturizerGraphGeneral(selected_keys = keys_selected_atoms)
-
+    bond_featurizer = BondAsNodeGraphFeaturizerGeneral(selected_keys = keys_selected_bonds)
     global_featurizer = GlobalFeaturizerGraph(allowed_charges=[-2, -1, 0, 1])
+
     grapher = HeteroCompleteGraphFromMolWrapper(
         atom_featurizer, bond_featurizer, global_featurizer
     )

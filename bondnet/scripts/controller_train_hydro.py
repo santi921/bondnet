@@ -32,7 +32,9 @@ def main():
     featurizer_xyz = dict_train["featurizer_xyz"] 
 
     dataset = ReactionNetworkDatasetGraphs(
-        grapher=get_grapher(featurizer_xyz), 
+        grapher=get_grapher(dict_train["featurizer_xyz"], 
+                dict_train["featurizer_electronic"],
+                dict_train["featurizer_electronic_bond"]), 
         file=dict_train["dataset_loc"], 
         out_file="./", 
         target = 'dG_sp', 
@@ -42,7 +44,8 @@ def main():
         filter_sparse_rxns=dict_train["filter_sparse_rxns"],
         filter_outliers=dict_train["filter_outliers"],
         debug = dict_train["debug"],
-        device = dict_train["gpu"] 
+        device = dict_train["gpu"],
+        extra_keys = dict_train["extra_keys"]
     )
 
     for ind, file in enumerate(files):
