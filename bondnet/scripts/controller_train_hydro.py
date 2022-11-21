@@ -32,9 +32,7 @@ def main():
     featurizer_xyz = dict_train["featurizer_xyz"] 
 
     dataset = ReactionNetworkDatasetGraphs(
-        grapher=get_grapher(dict_train["featurizer_xyz"], 
-                dict_train["featurizer_electronic"],
-                dict_train["featurizer_electronic_bond"]), 
+        grapher=get_grapher(dict_train["extra_features"]), 
         file=dict_train["dataset_loc"], 
         out_file="./", 
         target = 'dG_sp', 

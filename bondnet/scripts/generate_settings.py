@@ -95,43 +95,64 @@ def generate_and_write(options):
     for i in range(options["num"]):
 
         dictionary_write = {}
+        
+        #if(options["extra_features"]): 
+            
 
         if(options["hydro"] == True or options["old_dataset"] == True):
             featurizer_dict = {
                 "choice_1":{
-                    "xyz_featurizer": True,
-                    "featurizer_electronic_bond": False,
-                    "electronic_featurizer": False,
-                    "featurizer_filter":False
+                    "extra_features": ["bond_length"]
                 },
                 "choice_2":{
-                    "xyz_featurizer": False,
-                    "featurizer_electronic_bond": False,
-                    "electronic_featurizer": False,
-                    "featurizer_filter":False
+                    "extra_features": []
                 }
             }
 
         else: 
             featurizer_dict = {
-                "choice_1":{
-                    "xyz_featurizer": True,
-                    "featurizer_electronic_bond": False,
-                    "electronic_featurizer": False,
-                    "featurizer_filter":False
-                },
+                #"choice_1":{
+                #    "extra_features": [
+                #        "1_s", "2_s", "1_p", "2_p", "1_d", "2_d", "1_f", "2_f", 
+                #        "1_polar", "2_polar", "occ_nbo", "valence_electrons", "total_electrons", 
+                #        "partial_charges_nbo", "partial_charges_mulliken", 
+                #        "partial_charges_resp", "indices_nbo"], 
+                #    "feature_filter": True
+                #},
                 "choice_2":{
-                    "xyz_featurizer": True,
-                    "featurizer_electronic_bond": False,
-                    "electronic_featurizer": False,
-                    "featurizer_filter":False
+                    "extra_features": [        
+                        "Lagrangian_K", "Hamiltonian_K", "e_density", "lap_e_density",
+                        "e_loc_func", "ave_loc_ion_E", "delta_g_promolecular",
+                        "delta_g_hirsh", "esp_nuc", "esp_e", "esp_total",
+                        "grad_norm", "lap_norm", "eig_hess", "det_hessian",
+                        "ellip_e_dens", "eta", "indices_qtaim"
+                        ],
+                    "feature_filter": True
                 },
-                "choice_3":{
-                    "xyz_featurizer": True,
-                    "featurizer_electronic_bond": False,
-                    "electronic_featurizer": False,
-                    "featurizer_filter":False
-                }
+                "choice_3": {
+                        "extra_features": [        
+                        "Lagrangian_K", "Hamiltonian_K", "e_density", "lap_e_density",
+                        "e_loc_func", "ave_loc_ion_E", "delta_g_promolecular",
+                        "delta_g_hirsh", "esp_nuc", "esp_e", "esp_total",
+                        "grad_norm", "lap_norm", "eig_hess", "det_hessian",
+                        "ellip_e_dens", "eta", "bond_length", "indices_qtaim"
+                        ],
+                    "feature_filter": True
+                }, 
+
+                #"choice_4":{
+                #    "extra_features": [
+                #        "bond_length", "1_s", "2_s", "1_p", "2_p", "1_d", "2_d", "1_f", "2_f", 
+                #        "1_polar", "2_polar", "occ_nbo", "valence_electrons", "total_electrons", 
+                #        "partial_charges_nbo", "partial_charges_mulliken", "partial_charges_resp",
+                #           "indices_nbo"], 
+                #    "feature_filter": True
+                #},
+
+                #"choice_5":{
+                #    "extra_features": [], 
+                #    "feature_filter": False
+                #}
             }
 
         featurizer_settings = choice(list(featurizer_dict.keys()))
@@ -234,18 +255,18 @@ def main():
     classifier = False
     class_cats = 5
     hydro = False
-    old_dataset = True
+    old_dataset = False
     num = 50 
     per_folder = 5
     gpu = False
-    perlmutter = False
+    perlmutter = True
 
     if hydro:
         dataset_loc = "../../../dataset/qm_9_hydro_complete.json"
     elif old_dataset: 
         dataset_loc = "../../../dataset/mg_dataset/20220613_reaction_data.json"
     else: 
-        dataset_loc = "../../../dataset/mg_dataset/merged_mg.json"
+        dataset_loc = "../../../dataset/mg_dataset/mg_qtaim_complete.json"
 
     options_dict = {
         "dataset_loc": dataset_loc,

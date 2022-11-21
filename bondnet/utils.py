@@ -397,7 +397,7 @@ def parse_settings(file="settings.txt"):
     featurizer_electronic = False
     featurizer_electronic_bond = False
     featurizer_filter = False
-    extra_keys = []
+    extra_features = []
 
     save_hyper_params = "./hyper.pkl"
     dataset_state_dict_filename = "./dataset_state_dict.pkl"
@@ -468,14 +468,14 @@ def parse_settings(file="settings.txt"):
                     augment = "True" == i.split()[1]
                 if i.split()[0] == "num_gpu":
                     num_gpu = int(i.split()[1])
-                if i.split()[0] == 'xyz_featurizer':
-                    featurizer_xyz = "True" == i.split()[1]
-                if i.split()[0] == 'electronic_featurizer':
-                    featurizer_electronic = "True" == i.split()[1]
+                #if i.split()[0] == 'xyz_featurizer':
+                #    featurizer_xyz = "True" == i.split()[1]
+                #if i.split()[0] == 'electronic_featurizer':
+                #    featurizer_electronic = "True" == i.split()[1]
+                #if i.split()[0] == 'featurizer_electronic_bond':
+                #    featurizer_electronic_bond = "True" == i.split()[1]
                 if i.split()[0] == 'featurizer_filter':
                     featurizer_filter = "True" == i.split()[1]
-                if i.split()[0] == 'featurizer_electronic_bond':
-                    featurizer_electronic_bond = "True" == i.split()[1]
                 if i.split()[0] == "early_stop":
                     early_stop = "True" == i.split()[1]
                 if i.split()[0] == "scheduler":
@@ -507,8 +507,8 @@ def parse_settings(file="settings.txt"):
                 if i.split()[0] == "category_weights":
                     category_weights = [float(j) for j in i.split()[1:]]
 
-                if i.split()[0] == "extra_keys":
-                    extra_keys = [j for j in i.split()[1:]]
+                if i.split()[0] == "extra_features":
+                    extra_features = [j for j in i.split()[1:]]
 
                 if i.split()[0] == "gated_dropout":
                     gated_dropout = float(i.split()[1])
@@ -563,11 +563,11 @@ def parse_settings(file="settings.txt"):
         print("filter outliers?                 {}".format(filter_outliers))
         print("filter sparse rxns?              {}".format(filter_sparse_rxns))
         print("num gpu:                         {}".format(str(num_gpu)))
-        print("xyz featurizer:                  {}".format(featurizer_xyz))
-        print("electronic bond featurizer:      {}".format(featurizer_electronic_bond))
-        print("electronic featurizer:           {}".format(featurizer_electronic))
+        #print("xyz featurizer:                  {}".format(featurizer_xyz))
+        #print("electronic bond featurizer:      {}".format(featurizer_electronic_bond))
+        #print("electronic featurizer:           {}".format(featurizer_electronic))
         print("featurizer filter:               {}".format(featurizer_filter))
-        print("extra keys:                      {}".format(extra_keys))
+        print("extra features:                  {}".format(extra_features))
         print("hyperparam save file:            {}".format(save_hyper_params))
         print("dataset state dict:              {}".format(dataset_state_dict_filename))
         print("model dir                        {}".format(model_path))
@@ -616,10 +616,11 @@ def parse_settings(file="settings.txt"):
         dict_ret["save_hyper_params"] = save_hyper_params
         dict_ret["dataset_state_dict_filename"] = Path(dataset_state_dict_filename)
         dict_ret["model_path"] = Path(model_path)
-        dict_ret["featurizer_xyz"] = featurizer_xyz
-        dict_ret["featurizer_electronic"] = featurizer_electronic
+        #dict_ret["featurizer_xyz"] = featurizer_xyz
+        #dict_ret["featurizer_electronic"] = featurizer_electronic
+        #dict_ret["featurizer_electronic_bond"] = featurizer_electronic_bond
+        
         dict_ret["featurizer_filter"] = featurizer_filter
-        dict_ret["featurizer_electronic_bond"] = featurizer_electronic_bond
         dict_ret['early_stop'] = early_stop 
         dict_ret['scheduler'] = scheduler 
         dict_ret['transfer_epochs'] = transfer_epochs 
@@ -628,7 +629,7 @@ def parse_settings(file="settings.txt"):
         dict_ret['filter_outliers'] = filter_outliers
         dict_ret['filter_sparse_rxns'] = filter_sparse_rxns
         dict_ret["freeze"] = freeze  
-        dict_ret["extra_keys"] = extra_keys
+        dict_ret["extra_features"] = extra_features
 
         dict_ret["start_epoch"] = start_epoch
         dict_ret["embedding_size"] = embedding_size
