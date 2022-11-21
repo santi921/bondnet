@@ -557,7 +557,7 @@ def get_grapher(features):
     # find keys with bonds in the name 
 
     keys_selected_atoms, keys_selected_bonds = [], []
-    for key in features.keys():
+    for key in features:
         if "bond" in key:
             keys_selected_bonds.append(key)
         else:  

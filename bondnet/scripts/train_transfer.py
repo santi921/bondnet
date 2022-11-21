@@ -69,7 +69,7 @@ def train_transfer(
             debug = dict_train["debug"],
             device = dict_train["gpu"],
             feature_filter = dict_train["featurizer_filter"],
-            extra_keys = dict_train["extra_keys"]
+            extra_keys = dict_train["extra_features"]
             )
     
     dict_train['in_feats'] = dataset.feature_size
@@ -111,7 +111,7 @@ def train_transfer(
                 debug = dict_train["debug"],
                 device = dict_train["gpu"],
                 feature_filter = dict_train["featurizer_filter"],
-                extra_keys = dict_train["extra_keys"]
+                extra_keys = dict_train["extra_features"]
                 )
 
         trainset_transfer, valset_tranfer, _ = train_validation_test_split(

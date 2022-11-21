@@ -29,8 +29,7 @@ def main():
     # NOTE YOU WANT TO USE SAME FEATURIZER/DEVICE ON ALL RUNS
     # IN THIS FOLDER B/C THIS MAKES IT SO YOU ONLY HAVE TO GEN 
     # DATASET ONCE
-    featurizer_xyz = dict_train["featurizer_xyz"] 
-
+    
     dataset = ReactionNetworkDatasetGraphs(
         grapher=get_grapher(dict_train["extra_features"]), 
         file=dict_train["dataset_loc"], 
@@ -43,7 +42,7 @@ def main():
         filter_outliers=dict_train["filter_outliers"],
         debug = dict_train["debug"],
         device = dict_train["gpu"],
-        extra_keys = dict_train["extra_keys"]
+        extra_keys = dict_train["extra_features"]
     )
 
     for ind, file in enumerate(files):

@@ -1042,12 +1042,10 @@ def create_reaction_network_files(filename, out_file, classifier=False):
 
 def create_reaction_network_files_and_valid_rows(
     filename,
-    out_file,
     bond_map_filter=False,
     target="ts",
     classifier=False,
     debug=False,
-    augment=False,
     filter_species=False,
     filter_outliers=True,
     filter_sparse_rxn=False,

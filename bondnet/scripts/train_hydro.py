@@ -62,7 +62,7 @@ def train_hydro(
             filter_sparse_rxns=dict_train["filter_sparse_rxns"],
             debug = dict_train["debug"],
             device = dict_train["gpu"],
-            extra_keys=dict_train["extra_keys"]
+            extra_keys=dict_train["extra_features"]
             )
     
     dict_train['in_feats'] = dataset.feature_size

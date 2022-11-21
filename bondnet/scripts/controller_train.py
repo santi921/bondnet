@@ -43,7 +43,7 @@ def main():
         debug = dict_train["debug"],
         device = dict_train["gpu"],
         feature_filter = dict_train["featurizer_filter"],
-        extra_keys = dict_train["extra_keys"]
+        extra_keys = dict_train["extra_features"]
     )
     
     dataset_transfer = ReactionNetworkDatasetGraphs(
@@ -59,7 +59,7 @@ def main():
         debug = dict_train["debug"],
         device = dict_train["gpu"],
         feature_filter = dict_train["featurizer_filter"],
-        extra_keys = dict_train["extra_keys"]
+        extra_keys = dict_train["extra_features"]
     )
 
     for ind, file in enumerate(files):

@@ -712,7 +712,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
             all_labels,
             features,
         ) = create_reaction_network_files_and_valid_rows(
-            file, out_file, bond_map_filter=False, 
+            file, bond_map_filter=False, 
             target=target, 
             filter_species = filter_species,
             classifier=classifier, debug=debug,
