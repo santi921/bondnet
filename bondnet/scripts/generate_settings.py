@@ -1,7 +1,7 @@
 
 from random import choice 
 import numpy as np 
-import os 
+import os, argparse
 
 def write_one(dictionary_in, target):
     """
@@ -64,9 +64,8 @@ def generate_and_write(options):
     dictionary_values_options = \
     {
         "filter_outliers": [True],
-        "filter_sparse_rxns": [True],
-        "filter_species": [[1, 2],[2, 4],[3, 6]],
-        "augment": [False, True],
+        "filter_sparse_rxns": [False],
+        "filter_species": [[2, 4],[3, 6]],
         "debug": [False],
         "test": [False],
         "batch_size": [128, 256],
@@ -77,27 +76,30 @@ def generate_and_write(options):
         "freeze": [False, True],
         "gated_activation": ["ReLU"],
         "gated_num_fc_layers": [1, 2, 3, 4],
-        "lr": [0.001, 0.0001],
+        "lr": [0.0001, 0.00001],
         "output_file": ["results.pkl"],
         "start_epoch": [0],
         "early_stop": [True],
         "scheduler": [False, True],
         "transfer_epochs": [500, 1000, 1500],
-        "transfer": [True],
+        "transfer": [False, True],
         "freeze" : [True, False],
         "loss": ["mse", "huber"],
-        "weight_decay": [0.0, 0.001, 0.00001],
+        "weight_decay": [0.0, 0.0001, 0.00001],
         "num_lstm_iters": [5, 8, 10],
         "num_lstm_layers": [2, 3, 4]
     }   
+    if(options["hydro"]):
+        dictionary_values_options["augment"] = [False]
+        dictionary_values_options["transfer"] = [False]
+    else: 
+        dictionary_values_options["augment"] = [True]
 
 
     for i in range(options["num"]):
 
         dictionary_write = {}
         
-        #if(options["extra_features"]): 
-            
 
         if(options["hydro"] == True or options["old_dataset"] == True):
             featurizer_dict = {
@@ -251,20 +253,38 @@ def generate_and_write(options):
     put_file_in_every_subfolder(folder, slurm_file)
 
 def main():
+    # create argparse 
+    parser = argparse.ArgumentParser(description='Create settings files for training')
+    parser.add_argument('--perlmutter', action='store_true', help='Use perlmutter')
+    parser.add_argument('--gpu', action='store_true', help='Use gpu')
+    parser.add_argument('--hydro', action='store_true', help='Use hydro')
+    parser.add_argument('--old_dataset', action='store_true', help='Use old dataset')
+    parser.add_argument('--classifier', action='store_true', help='Use classifier')
+    parser.add_argument('--class_cats', type=int, default=3, help='Number of categories')
+    # number of runs 
+    parser.add_argument('--num', type=int, default=50, help='Number of runs')
+    # number of runs per folder
+    parser.add_argument('--per_folder', type=int, default=50, help='Number of runs per folder')
+    # parse arguments
+    args = parser.parse_args()
+    options = vars(args)
 
-    classifier = False
-    class_cats = 5
-    hydro = False
-    old_dataset = False
-    num = 50 
-    per_folder = 5
-    gpu = False
-    perlmutter = True
+    classifier = options["classifier"]
+    class_cats = options["class_cats"]
+    gpu = options["gpu"]
+    hydro = options["hydro"]
+    perlmutter = options["perlmutter"]
+    old_dataset = options["old_dataset"]
+    num = options["num"]
+    per_folder = options["per_folder"]
+    
+    if(classifier and class_cats != 3 and class_cats != 5):
+        raise ValueError("Must have 3 or 5 categories for classifier")
 
     if hydro:
         dataset_loc = "../../../dataset/qm_9_hydro_complete.json"
     elif old_dataset: 
-        dataset_loc = "../../../dataset/mg_dataset/20220613_reaction_data.json"
+        dataset_loc = "../../../dataset/mg_dataset/merged_mg.json"
     else: 
         dataset_loc = "../../../dataset/mg_dataset/mg_qtaim_complete.json"
 
