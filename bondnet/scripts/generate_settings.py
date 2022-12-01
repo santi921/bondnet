@@ -86,8 +86,8 @@ def generate_and_write(options):
         "freeze" : [True, False],
         "loss": ["mse", "huber"],
         "weight_decay": [0.0, 0.0001, 0.00001],
-        "num_lstm_iters": [5, 8, 10],
-        "num_lstm_layers": [2, 3, 4]
+        "num_lstm_iters": [3, 5, 8],
+        "num_lstm_layers": [1, 2, 3]
     }   
     if(options["hydro"]):
         dictionary_values_options["augment"] = [False]
@@ -122,22 +122,16 @@ def generate_and_write(options):
                 #    "feature_filter": True
                 #},
                 "choice_2":{
-                    "extra_features": [        
-                        "Lagrangian_K", "Hamiltonian_K", "e_density", "lap_e_density",
-                        "e_loc_func", "ave_loc_ion_E", "delta_g_promolecular",
-                        "delta_g_hirsh", "esp_nuc", "esp_e", "esp_total",
-                        "grad_norm", "lap_norm", "eig_hess", "det_hessian",
-                        "ellip_e_dens", "eta", "indices_qtaim"
+                    "extra_features": [       
+                        "esp_nuc", "esp_e", "esp_total",
+                        "ellip_e_dens", "indices_qtaim"
                         ],
                     "feature_filter": True
                 },
                 "choice_3": {
-                        "extra_features": [        
-                        "Lagrangian_K", "Hamiltonian_K", "e_density", "lap_e_density",
-                        "e_loc_func", "ave_loc_ion_E", "delta_g_promolecular",
-                        "delta_g_hirsh", "esp_nuc", "esp_e", "esp_total",
-                        "grad_norm", "lap_norm", "eig_hess", "det_hessian",
-                        "ellip_e_dens", "eta", "bond_length", "indices_qtaim"
+                        "extra_features": [     
+                        "esp_nuc", "esp_e", "esp_total",
+                        "ellip_e_dens", "bond_length", "indices_qtaim"
                         ],
                     "feature_filter": True
                 }, 
