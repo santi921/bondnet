@@ -54,7 +54,7 @@ def generate_and_write(options):
     {
         "gated_num_layers": [2,3,4],
         "fc_num_layers": [1,2,3],
-        "gated_hidden_size_1": [128, 256, 512, 1024],
+        "gated_hidden_size_1": [128, 256, 512],
         "gated_hidden_size_shape": ["flat", "cone"],
         "fc_hidden_size_1": [64, 128, 256],
         "fc_hidden_size_shape": ["flat", "cone"]
@@ -70,7 +70,7 @@ def generate_and_write(options):
         "test": [False],
         "batch_size": [128, 256],
         "embedding_size": [24, 32, 64],
-        "epochs": [1000,1500,2000],
+        "epochs": [500,1000,1500],
         "fc_activation": ["ReLU"],
         "fc_batch_norm": [False, True],
         "freeze": [False, True],
@@ -81,7 +81,7 @@ def generate_and_write(options):
         "start_epoch": [0],
         "early_stop": [True],
         "scheduler": [False, True],
-        "transfer_epochs": [500, 1000, 1500],
+        "transfer_epochs": [250, 500, 1000],
         "transfer": [False, True],
         "freeze" : [True, False],
         "loss": ["mse", "huber"],
