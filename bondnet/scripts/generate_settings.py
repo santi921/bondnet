@@ -253,6 +253,7 @@ def main():
     parser.add_argument('--gpu', action='store_true', help='Use gpu')
     parser.add_argument('--hydro', action='store_true', help='Use hydro')
     parser.add_argument('--old_dataset', action='store_true', help='Use old dataset')
+    parser.add_argument('--imputed_data', action='store_true', help='Use imputed data in training')
     parser.add_argument('--classifier', action='store_true', help='Use classifier')
     parser.add_argument('--class_cats', type=int, default=3, help='Number of categories')
     # number of runs 
@@ -271,6 +272,7 @@ def main():
     old_dataset = options["old_dataset"]
     num = options["num"]
     per_folder = options["per_folder"]
+    imputed = options["imputed_data"]
     
     if(classifier and class_cats != 3 and class_cats != 5):
         raise ValueError("Must have 3 or 5 categories for classifier")
@@ -280,7 +282,10 @@ def main():
     elif old_dataset: 
         dataset_loc = "../../../dataset/mg_dataset/merged_mg.json"
     else: 
-        dataset_loc = "../../../dataset/mg_dataset/mg_qtaim_complete.json"
+        if not imputed:
+            dataset_loc = "../../../dataset/mg_dataset/mg_qtaim_complete_nonimputed.json"
+        else:
+            dataset_loc = "../../../dataset/mg_dataset/mg_qtaim_complete.json"
 
     options_dict = {
         "dataset_loc": dataset_loc,
