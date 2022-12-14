@@ -52,7 +52,7 @@ def generate_and_write(options):
 
     dictionary_archi = \
     {
-        "gated_num_layers": [2,3,4],
+        "gated_num_layers": [1,2,3,4],
         "fc_num_layers": [1,2,3],
         "gated_hidden_size_1": [128, 256, 512],
         "gated_hidden_size_shape": ["flat", "cone"],
@@ -85,15 +85,17 @@ def generate_and_write(options):
         "transfer": [False, True],
         "freeze" : [True, False],
         "loss": ["mse", "huber"],
-        "weight_decay": [0.0, 0.0001, 0.00001],
+        "weight_decay": [0.0, 0.00001],
         "num_lstm_iters": [3, 5, 8],
         "num_lstm_layers": [1, 2, 3]
     }   
     if(options["hydro"]):
         dictionary_values_options["augment"] = [False]
         dictionary_values_options["transfer"] = [False]
+        dictionary_values_options["freeze"] = [False]
+
     else: 
-        dictionary_values_options["augment"] = [True]
+        dictionary_values_options["augment"] = [False, True]
 
 
     for i in range(options["num"]):
