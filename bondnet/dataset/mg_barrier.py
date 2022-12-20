@@ -312,7 +312,7 @@ def process_species_graph(
     """
 
     rxn = []
-
+    
     if filter_species == None:
         filter_prod = -99
         filter_reactant = -99
@@ -330,19 +330,19 @@ def process_species_graph(
     formed_bonds = [tuple(i) for i in row["bonds_formed"]]
     check_list_len = broken_len + formed_len
 
-    if check_list_len == 0:
-        if verbose:
-            print("no bond changes detected")
-        return 0
+    #if check_list_len == 0:
+    #    if verbose:
+    #        print("no bond changes detected")
+    #    return []
 
-    else:
-        if reverse_rxn:
-            reactant_key = "product"
-            product_key = "reactant"
-            formed_len = len(row["bonds_broken"])
-            broken_len = len(row["bonds_formed"])
-            formed_bonds = row["bonds_broken"]
-            broken_bonds = row["bonds_formed"]
+    #else:
+    if reverse_rxn:
+        reactant_key = "product"
+        product_key = "reactant"
+        formed_len = len(row["bonds_broken"])
+        broken_len = len(row["bonds_formed"])
+        formed_bonds = row["bonds_broken"]
+        broken_bonds = row["bonds_formed"]
 
     if broken_len == 0:
         temp_key = copy.deepcopy(reactant_key)
@@ -455,7 +455,8 @@ def process_species_graph(
                 if v == [] or v == None or v == [[]]: 
                     filter_rxn = True
         if filter_rxn: 
-            print("filter rxn bc of missing features")
+            if verbose: 
+                print("filter rxn bc of missing features")
             return []
     
     products, atoms_products, mapping_products = split_and_map(
@@ -500,12 +501,14 @@ def process_species_graph(
     if products != [] and reactants != []:
         rxn_type = []
 
-        if filter_prod != -99 or filter_reactant != -99:
+        if filter_prod != -99:
             if len(products) > filter_prod:
-                return rxn
+                if verbose: print("too many products")
+                return []
         if filter_reactant != -99:
             if len(reactants) > filter_reactant:
-                return rxn
+                if verbose: print("too many reactants")
+                return []
 
         try:
             id = [i for i in row["reaction_id"].split("-")]
@@ -981,26 +984,26 @@ def create_reaction_network_files(filename, out_file, classifier=False):
     fail_default, fail_count, fail_sdf_map, fail_prod_len = 0, 0, 0, 0
     for rxn_temp in rxn_raw:
         if not isinstance(rxn_temp, list):  # bunch of stuff is being filtered here
+            #try:
+            #    rxn_temp.get_broken_bond()
             try:
-                rxn_temp.get_broken_bond()
-                try:
-                    bond_map = rxn_temp.bond_mapping_by_sdf_int_index()
-                    rxn_temp._bond_mapping_by_int_index = bond_map
+                bond_map = rxn_temp.bond_mapping_by_sdf_int_index()
+                rxn_temp._bond_mapping_by_int_index = bond_map
 
-                    reactant_bond_count = int(
-                        len(rxn_temp.reactants[0].rdkit_mol.GetBonds())
-                    )
-                    prod_bond_count = 0
-                    for i in rxn_temp.products:
-                        prod_bond_count += int(len(i.rdkit_mol.GetBonds()))
-                    if reactant_bond_count < prod_bond_count:
-                        fail_prod_len += 1
-                    else:
-                        reactions.append(rxn_temp)
-                except:
-                    fail_sdf_map += 1
+                reactant_bond_count = int(
+                    len(rxn_temp.reactants[0].rdkit_mol.GetBonds())
+                )
+                prod_bond_count = 0
+                for i in rxn_temp.products:
+                    prod_bond_count += int(len(i.rdkit_mol.GetBonds()))
+                if reactant_bond_count < prod_bond_count:
+                    fail_prod_len += 1
+                else:
+                    reactions.append(rxn_temp)
             except:
-                fail_count += 1
+                fail_sdf_map += 1
+            #except:
+            #    fail_count += 1
         else:
             fail_default += 1
 
@@ -1067,7 +1070,7 @@ def create_reaction_network_files_and_valid_rows(
 
     # path_mg_data = "../../../dataset/mg_dataset/20220613_reaction_data.json"
     path_json = filename
-
+    
     print("reading file from: {}".format(path_json))
     mg_df = pd.read_json(path_json)
 
@@ -1151,8 +1154,8 @@ def create_reaction_network_files_and_valid_rows(
                     except:
                         fail_sdf_map += 1
                 else:
-                    bond_map = rxn_temp.bond_mapping_by_int_index()
-
+                    bond_map = rxn_temp.bond_mapping_by_int_index() 
+                    
                     if len(rxn_temp.reactants) != len(bond_map[0]) or len(
                         rxn_temp.products
                     ) != len(bond_map[1]):

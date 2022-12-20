@@ -32,6 +32,7 @@ def train_transfer(
     best = 1e10
     feature_names = ["atom", "bond", "global"]
     dict_train = parse_settings(settings_file)
+    print("settings parsed: {}".format(settings_file))
     #path_mg_data = "../../../dataset/mg_dataset/20220826_mpreact_reactions.json"
     #path_mg_data = "../../../dataset/mg_dataset/20220613_reaction_data.json"
     #path_mg_data = dict_train["dataset_loc"]
@@ -140,7 +141,7 @@ def train_transfer(
                     weight= dict_train["category_weights"],
                     device = dict_train["gpu"],
                     categories = classif_categories,
-                    augment=dict_train["augment"]
+                    augment=False
                 )
 
                 val_acc_transfer, f1_score = evaluate_classifier(
@@ -161,7 +162,7 @@ def train_transfer(
                     dataset_transfer_loader, 
                     optimizer_transfer, 
                     device = dict_train["gpu"],
-                    augment=dict_train["augment"]
+                    augment=False
                 )
                 val_acc_transfer = evaluate(
                     model, 

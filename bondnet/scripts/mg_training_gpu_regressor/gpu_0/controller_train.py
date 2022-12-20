@@ -1,4 +1,5 @@
 import torch
+torch.backends.cudnn.benchmark = True
 import os 
 from glob import glob
 from bondnet.scripts.train_transfer import train_transfer
@@ -7,7 +8,7 @@ from bondnet.data.dataset import ReactionNetworkDatasetGraphs
 from bondnet.utils import parse_settings
 
 def main():
-    
+
     #path_mg_data = "../dataset/mg_dataset/20220826_mpreact_reactions.json"
     files = glob("settings*.txt")
     #print(files)

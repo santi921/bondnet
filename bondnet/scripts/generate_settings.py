@@ -54,9 +54,9 @@ def generate_and_write(options):
     {
         "gated_num_layers": [1,2,3,4],
         "fc_num_layers": [1,2,3],
-        "gated_hidden_size_1": [128, 256, 512],
+        "gated_hidden_size_1": [512, 1024],
         "gated_hidden_size_shape": ["flat", "cone"],
-        "fc_hidden_size_1": [64, 128, 256],
+        "fc_hidden_size_1": [512],
         "fc_hidden_size_shape": ["flat", "cone"]
     }
 
@@ -68,15 +68,15 @@ def generate_and_write(options):
         "filter_species": [[2, 4],[3, 6]],
         "debug": [False],
         "test": [False],
-        "batch_size": [128, 256],
-        "embedding_size": [24, 32, 64],
+        "batch_size": [256, 512],
+        "embedding_size": [8, 16, 24],
         "epochs": [500,1000,1500],
         "fc_activation": ["ReLU"],
-        "fc_batch_norm": [False, True],
+        "fc_batch_norm": [False],
         "freeze": [False, True],
         "gated_activation": ["ReLU"],
         "gated_num_fc_layers": [1, 2, 3, 4],
-        "lr": [0.0001, 0.00001],
+        "lr": [0.001, 0.0001],
         "output_file": ["results.pkl"],
         "start_epoch": [0],
         "early_stop": [True],
@@ -84,9 +84,9 @@ def generate_and_write(options):
         "transfer_epochs": [250, 500, 1000],
         "transfer": [False, True],
         "freeze" : [True, False],
-        "loss": ["mse", "huber"],
+        "loss": ["huber"],
         "weight_decay": [0.0, 0.00001],
-        "num_lstm_iters": [3, 5, 8],
+        "num_lstm_iters": [9, 11, 13],
         "num_lstm_layers": [1, 2, 3]
     }   
     if(options["hydro"]):
@@ -105,24 +105,37 @@ def generate_and_write(options):
 
         if(options["hydro"] == True or options["old_dataset"] == True):
             featurizer_dict = {
+                '''
                 "choice_1":{
                     "extra_features": ["bond_length"]
                 },
                 "choice_2":{
                     "extra_features": []
-                }
+                },
+                '''
+                "choice_3":{
+                    "extra_features": ["bond_length", 'Lagrangian_K', 'Hamiltonian_K', 'e_density', 'lap_e_density', 
+                            'e_loc_func', 'ave_loc_ion_E', 'delta_g_promolecular', 'delta_g_hirsh', 'esp_nuc', 
+                            'esp_e', 'esp_total', 'grad_norm', 'lap_norm', 'eig_hess', 
+                            'det_hessian', 'ellip_e_dens', 'eta'],
+                    "feature_filter": True
+                },
+                "choice_4":{
+                    "extra_features": ["bond_length", 'Lagrangian_K', 'e_density','e_loc_func', 'esp_nuc', 'esp_e', 'esp_total', 'eig_hess',  'ellip_e_dens'], 
+                    "feature_filter": True
+                },
             }
 
         else: 
             featurizer_dict = {
-                #"choice_1":{
-                #    "extra_features": [
-                #        "1_s", "2_s", "1_p", "2_p", "1_d", "2_d", "1_f", "2_f", 
-                #        "1_polar", "2_polar", "occ_nbo", "valence_electrons", "total_electrons", 
-                #        "partial_charges_nbo", "partial_charges_mulliken", 
-                #        "partial_charges_resp", "indices_nbo"], 
-                #    "feature_filter": True
-                #},
+                "choice_1":{
+                    "extra_features": [
+                        "1_s", "2_s", "1_p", "2_p", "1_d", "2_d", "1_f", "2_f", 
+                        "1_polar", "2_polar", "occ_nbo", "valence_electrons", "total_electrons", 
+                        "partial_charges_nbo", "partial_charges_mulliken", 
+                        "partial_charges_resp", "indices_nbo"], 
+                    "feature_filter": True
+                },
                 "choice_2":{
                     "extra_features": [       
                         "esp_nuc", "esp_e", "esp_total",
@@ -132,27 +145,24 @@ def generate_and_write(options):
                 },
                 "choice_3": {
                         "extra_features": [     
-                        "esp_nuc", "esp_e", "esp_total",
-                        "ellip_e_dens", "bond_length", "indices_qtaim"
+                        "esp_nuc", "esp_e", "esp_total", "ellip_e_dens", "bond_length", 
                         ],
                     "feature_filter": True
                 }, 
 
-                #"choice_4":{
-                #    "extra_features": [
-                #        "bond_length", "1_s", "2_s", "1_p", "2_p", "1_d", "2_d", "1_f", "2_f", 
-                #        "1_polar", "2_polar", "occ_nbo", "valence_electrons", "total_electrons", 
-                #        "partial_charges_nbo", "partial_charges_mulliken", "partial_charges_resp",
-                #           "indices_nbo"], 
-                #    "feature_filter": True
-                #},
-
-                #"choice_5":{
-                #    "extra_features": [], 
-                #    "feature_filter": False
-                #}
+                "choice_4":{
+                    "extra_features": [
+                        "bond_length", "1_s", "2_s", "1_p", "2_p", "1_d", "2_d", "1_f", "2_f", 
+                        "1_polar", "2_polar", "occ_nbo", "valence_electrons", "total_electrons", 
+                        "partial_charges_nbo", "partial_charges_mulliken", "partial_charges_resp",
+                           "indices_nbo"], 
+                    "feature_filter": True
+                },
+                "choice_5":{
+                    "extra_features": [], 
+                    "feature_filter": False
+                }
             }
-
         featurizer_settings = choice(list(featurizer_dict.keys()))
         featurizer_settings = featurizer_dict[featurizer_settings]
         dictionary_write.update(featurizer_settings)
@@ -280,7 +290,8 @@ def main():
         raise ValueError("Must have 3 or 5 categories for classifier")
 
     if hydro:
-        dataset_loc = "../../../dataset/qm_9_hydro_complete.json"
+        dataset_loc = "../../../dataset/qm_9_hydro_qtaim_impute.json"
+    
     elif old_dataset: 
         dataset_loc = "../../../dataset/mg_dataset/merged_mg.json"
     else: 
