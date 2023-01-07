@@ -280,7 +280,7 @@ def evaluate_classifier(model, nodes, data_loader, device = None):
     return accuracy / count, f1_val
 
 
-def evaluate(model, nodes, data_loader, device=None, plot = False):
+def evaluate(model, nodes, data_loader, device=None, plot = False, name = "true_pred"):
     """
     basic loop for training a regressor. Gets mae
         
@@ -340,15 +340,10 @@ def evaluate(model, nodes, data_loader, device=None, plot = False):
                 plt.title("Predicted vs. True")
                 plt.xlabel("Predicted")
                 plt.ylabel("True")
-                plt.savefig("./true_pred.png")
+                plt.savefig("./{}.png".format(name))
 
             mae += metric_fn(pred, target, stdev).detach().item() 
             count += len(target)
-
-
-
-
-
 
     l1_acc = mae / count
     return l1_acc

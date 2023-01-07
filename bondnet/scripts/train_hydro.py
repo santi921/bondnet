@@ -137,7 +137,8 @@ def train_hydro(
                 model, 
                 feature_names, 
                 val_loader, 
-                device = dict_train["gpu"]
+                device = dict_train["gpu"],
+                name = settings_file.split(".")[0]
                 )
             val_r2 = evaluate_r2(
                 model, 

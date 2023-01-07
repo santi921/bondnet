@@ -15,6 +15,7 @@ dist/
 *.yaml
 *.svg
 *.sdf
+*sh
 *.csv
 *.tsv
 *.pdf

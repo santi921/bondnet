@@ -69,7 +69,7 @@ def generate_and_write(options):
         "debug": [False],
         "test": [False],
         "batch_size": [256, 512],
-        "embedding_size": [8, 16, 24],
+        "embedding_size": [12, 16, 18, 20],
         "epochs": [500,1000,1500],
         "fc_activation": ["ReLU"],
         "fc_batch_norm": [False],
@@ -77,17 +77,22 @@ def generate_and_write(options):
         "gated_activation": ["ReLU"],
         "gated_num_fc_layers": [1, 2, 3, 4],
         "lr": [0.001, 0.0001],
+        "dropout": [0.0, 0.1, 0.25],
         "output_file": ["results.pkl"],
         "start_epoch": [0],
         "early_stop": [True],
-        "scheduler": [False, True],
+        "scheduler": [False],
         "transfer_epochs": [250, 500, 1000],
         "transfer": [False, True],
         "freeze" : [True, False],
         "loss": ["huber"],
-        "weight_decay": [0.0, 0.00001],
+        "weight_decay": [0.0, 0.0001, 0.00001],
         "num_lstm_iters": [9, 11, 13],
-        "num_lstm_layers": [1, 2, 3]
+        "num_lstm_layers": [1, 2, 3],
+        "gated_batch_norm": [0, 1],
+        "gated_graph_norm":[0,1],
+        "gated_residual":[False, True],
+        "fc_batch_norm":[False, True]
     }   
     if(options["hydro"]):
         dictionary_values_options["augment"] = [False]
@@ -106,22 +111,16 @@ def generate_and_write(options):
         if(options["hydro"] == True or options["old_dataset"] == True):
             featurizer_dict = {
                 '''
-                "choice_1":{
-                    "extra_features": ["bond_length"]
-                },
-                "choice_2":{
-                    "extra_features": []
-                },
-                '''
                 "choice_3":{
                     "extra_features": ["bond_length", 'Lagrangian_K', 'Hamiltonian_K', 'e_density', 'lap_e_density', 
                             'e_loc_func', 'ave_loc_ion_E', 'delta_g_promolecular', 'delta_g_hirsh', 'esp_nuc', 
                             'esp_e', 'esp_total', 'grad_norm', 'lap_norm', 'eig_hess', 
                             'det_hessian', 'ellip_e_dens', 'eta'],
                     "feature_filter": True
-                },
+                },'''
+
                 "choice_4":{
-                    "extra_features": ["bond_length", 'Lagrangian_K', 'e_density','e_loc_func', 'esp_nuc', 'esp_e', 'esp_total', 'eig_hess',  'ellip_e_dens'], 
+                    "extra_features": ["bond_length", 'esp_total'], 
                     "feature_filter": True
                 },
             }
