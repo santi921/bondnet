@@ -52,11 +52,11 @@ def generate_and_write(options):
 
     dictionary_archi = \
     {
-        "gated_num_layers": [1,2,3,4],
-        "fc_num_layers": [1,2,3],
-        "gated_hidden_size_1": [512, 1024],
+        "gated_num_layers": [1,2,3,4,5],
+        "fc_num_layers": [1,2,3, 4],
+        "gated_hidden_size_1": [512, 1024, 2048],
         "gated_hidden_size_shape": ["flat", "cone"],
-        "fc_hidden_size_1": [512],
+        "fc_hidden_size_1": [512, 1024],
         "fc_hidden_size_shape": ["flat", "cone"]
     }
 
@@ -65,19 +65,19 @@ def generate_and_write(options):
     {
         "filter_outliers": [True],
         "filter_sparse_rxns": [False],
-        "filter_species": [[2, 4],[3, 6]],
+        "filter_species": [[3, 6]],
         "debug": [False],
         "test": [False],
         "batch_size": [256, 512],
-        "embedding_size": [12, 16, 18, 20],
+        "embedding_size": [12, 16, 18, 20, 22],
         "epochs": [500,1000,1500],
         "fc_activation": ["ReLU"],
         "fc_batch_norm": [False],
         "freeze": [False, True],
         "gated_activation": ["ReLU"],
         "gated_num_fc_layers": [1, 2, 3, 4],
-        "lr": [0.001, 0.0001],
-        "dropout": [0.0, 0.1, 0.25],
+        "lr": [0.001],
+        "dropout": [0.1, 0.25],
         "output_file": ["results.pkl"],
         "start_epoch": [0],
         "early_stop": [True],
@@ -87,11 +87,11 @@ def generate_and_write(options):
         "freeze" : [True, False],
         "loss": ["huber"],
         "weight_decay": [0.0, 0.0001, 0.00001],
-        "num_lstm_iters": [9, 11, 13],
+        "num_lstm_iters": [9, 11, 13, 15],
         "num_lstm_layers": [1, 2, 3],
         "gated_batch_norm": [0, 1],
         "gated_graph_norm":[0,1],
-        "gated_residual":[False, True],
+        "gated_residual":[True],
         "fc_batch_norm":[False, True]
     }   
     if(options["hydro"]):
@@ -121,6 +121,14 @@ def generate_and_write(options):
 
                 "choice_4":{
                     "extra_features": ["bond_length", 'esp_total'], 
+                    "feature_filter": True
+                },
+                "choice_5":{
+                    "extra_features": ['esp_total'], 
+                    "feature_filter": True
+                },
+                "choice_6":{
+                    "extra_features": ["bond_length"], 
                     "feature_filter": True
                 },
             }

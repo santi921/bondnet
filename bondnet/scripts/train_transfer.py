@@ -294,7 +294,13 @@ def train_transfer(
         print("Test F1: {:12.6e}".format(test_f1))
 
     else: 
-        test_acc = evaluate(model, feature_names, test_loader, device = dict_train["gpu"], plot=True)
+        test_acc = evaluate(
+            model, 
+            feature_names, 
+            test_loader, 
+            device = dict_train["gpu"], 
+            plot=True, 
+            name = settings_file.split(".")[0])
         #dict_res = evaluate_breakdown(model, feature_names, test_loader, device = dict_train["gpu"])
         #wandb.log({"mae_val_breakdown": dict_res})
         wandb.log({"mae_test": test_acc})
