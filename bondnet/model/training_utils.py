@@ -331,8 +331,8 @@ def evaluate(model, nodes, data_loader, device=None, plot = False, name = "true_
                 else: 
                     pred_np = pred.detach().cpu().numpy()
                     target_np = target.detach().cpu().numpy()  
-
-                plt.scatter(pred_np, target_np)
+                
+                plt.scatter(pred_np * stdev, target_np * stdev)
                 min_val = np.min([np.min(pred_np), np.min(target_np)]) - 0.5
                 max_val = np.max([np.max(pred_np), np.max(target_np)]) + 0.5
                 plt.ylim(min_val,max_val)

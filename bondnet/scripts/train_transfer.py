@@ -266,7 +266,8 @@ def train_transfer(
         is_best = val_acc < best
         if is_best:
             best = val_acc
-            torch.save(model.state_dict(), "checkpoint.pkl")
+            #torch.save(model.state_dict(), "checkpoint.pkl")
+            torch.save(model.state_dict(), settings_file.split()[0] + ".pkl")
 
         if(dict_train["early_stop"]):
             if stopper.step(val_acc):
