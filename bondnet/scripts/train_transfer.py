@@ -94,7 +94,7 @@ def train_transfer(
         optimizer, mode="min", factor=0.8, patience=50, verbose=True)
     scheduler_transfer = ReduceLROnPlateau(
         optimizer_transfer, mode="min", factor=0.6, patience=30, verbose=True)
-    stopper = EarlyStopping(patience=100)
+    stopper = EarlyStopping(patience=200)
     stopper_transfer = EarlyStopping(patience=100)
 
     if(dict_train['transfer']):

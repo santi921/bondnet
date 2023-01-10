@@ -84,7 +84,7 @@ def train_hydro(
 
     scheduler = ReduceLROnPlateau(
         optimizer, mode="min", factor=0.8, patience=50, verbose=True)
-    stopper = EarlyStopping(patience=100)
+    stopper = EarlyStopping(patience=200)
 
     t1 = time.time()
     if(dict_train["classifier"]):
