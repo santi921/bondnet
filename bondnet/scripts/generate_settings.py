@@ -110,17 +110,15 @@ def generate_and_write(options):
 
         if(options["hydro"] == True or options["old_dataset"] == True):
             featurizer_dict = {
-                '''
                 "choice_3":{
                     "extra_features": ["bond_length", 'Lagrangian_K', 'Hamiltonian_K', 'e_density', 'lap_e_density', 
                             'e_loc_func', 'ave_loc_ion_E', 'delta_g_promolecular', 'delta_g_hirsh', 'esp_nuc', 
                             'esp_e', 'esp_total', 'grad_norm', 'lap_norm', 'eig_hess', 
                             'det_hessian', 'ellip_e_dens', 'eta'],
                     "feature_filter": True
-                },'''
-
+                },
                 "choice_4":{
-                    "extra_features": ["bond_length", 'esp_total'], 
+                    "extra_features": ["bond_length", 'esp_total', 'Lagrangian_K', 'ellip_e_dens'], 
                     "feature_filter": True
                 },
                 "choice_5":{
@@ -130,6 +128,9 @@ def generate_and_write(options):
                 "choice_6":{
                     "extra_features": ["bond_length"], 
                     "feature_filter": True
+                },
+                "choice_7":{
+                    "feature_filter": False
                 },
             }
 
@@ -297,10 +298,11 @@ def main():
         raise ValueError("Must have 3 or 5 categories for classifier")
 
     if hydro:
-        dataset_loc = "../../../dataset/qm_9_hydro_qtaim_impute.json"
+        dataset_loc = "../../../dataset/qm_9_hydro_merged_3.json"
     
     elif old_dataset: 
         dataset_loc = "../../../dataset/mg_dataset/merged_mg.json"
+    
     else: 
         if not imputed:
             dataset_loc = "../../../dataset/mg_dataset/mg_qtaim_complete_nonimputed.json"
