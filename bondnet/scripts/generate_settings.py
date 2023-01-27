@@ -111,7 +111,7 @@ def generate_and_write(options):
         if(options["hydro"] == True or options["old_dataset"] == True):
             featurizer_dict = {
                 "choice_3":{
-                    "extra_features": ["bond_length", 'Lagrangian_K', 'Hamiltonian_K', 'e_density', 'lap_e_density', 
+                    "extra_features": ["bond_length", 'Lagrangian_K', 'e_density', 'lap_e_density', 
                             'e_loc_func', 'ave_loc_ion_E', 'delta_g_promolecular', 'delta_g_hirsh', 'esp_nuc', 
                             'esp_e', 'esp_total', 'grad_norm', 'lap_norm', 'eig_hess', 
                             'det_hessian', 'ellip_e_dens', 'eta'],
