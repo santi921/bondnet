@@ -1,5 +1,6 @@
 import torch
 import os 
+import logging
 from glob import glob
 from bondnet.scripts.train_hydro import train_hydro
 from bondnet.model.training_utils import get_grapher
@@ -46,12 +47,14 @@ def main():
     )
 
     for ind, file in enumerate(files):
-        try:
-            train_hydro(file, 
-                dataset = dataset, 
-                device = dict_train["gpu"]
+        #try:
+        train_hydro(file, 
+            dataset = dataset, 
+            device = dict_train["gpu"]
             )
-            os.rename(file, str(ind) + "_done.txt")
-        except: 
-            print("failed file {}".format(file))
+        os.rename(file, str(ind) + "_done.txt")
+        #except: 
+            # log out from stdio
+            
+        #    print("failed file {}".format(file))
 main()

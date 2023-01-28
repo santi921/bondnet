@@ -1,5 +1,5 @@
-import time, wandb
-
+import time, wandb, logging
+from copy import deepcopy
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import matplotlib.pyplot as plt 
 from bondnet.model.metric import EarlyStopping
@@ -68,6 +68,8 @@ def train_hydro(
     dict_train['in_feats'] = dataset.feature_size
     model, optimizer, optimizer_transfer = load_model(dict_train)
     model.to(device)
+    # create copy of model to load at the end of training
+    model_copy = deepcopy(model)
 
     trainset, valset, testset = train_validation_test_split(
         dataset, validation=0.15, test=0.15
@@ -180,13 +182,15 @@ def train_hydro(
 
                 break
         scheduler.step(val_acc)
-
-    checkpoint = torch.load("checkpoint.pkl")
-    model.load_state_dict(checkpoint)
+    
+    
+    #model_best = 
+    checkpoint = torch.load(settings_file.split(".")[0] + ".pt")
+    model_copy.load_state_dict(checkpoint)
     
     if(dict_train["classifier"]):
         test_acc, test_f1 = evaluate_classifier(
-            model, 
+            model_copy, 
             feature_names, 
             test_loader, 
             device = dict_train["gpu"]
@@ -200,7 +204,7 @@ def train_hydro(
 
     else: 
         test_acc = evaluate(
-            model, 
+            model_copy, 
             feature_names, 
             test_loader, 
             device = dict_train["gpu"], 
