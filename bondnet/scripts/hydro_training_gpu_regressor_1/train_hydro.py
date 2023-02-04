@@ -185,7 +185,7 @@ def train_hydro(
     
     
     #model_best = 
-    checkpoint = torch.load(settings_file.split(".")[0] + ".pkl")
+    checkpoint = torch.load(settings_file.split(".")[0] + ".pt")
     model_copy.load_state_dict(checkpoint)
     
     if(dict_train["classifier"]):

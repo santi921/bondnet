@@ -1,5 +1,5 @@
 import numpy as np 
-import torch
+import torch, os 
 from copy import deepcopy
 from torch.optim import Adam
 from torch.nn import CrossEntropyLoss
@@ -471,8 +471,10 @@ def load_model(dict_train):
     optimizer_transfer = Adam(model.parameters(), lr=dict_train['learning_rate'], weight_decay=dict_train['weight_decay'])
 
     if dict_train["restore"]: 
+        print(":::RESTORING MODEL FROM EXISTING FILE:::")
         # check if there is a file in the directory called settings.pkl
-        model.load_state_dict(torch.load(dict_train["settings_file_name"].split('.')[0] + '.pkl'))
+        if os.path.isfile(dict_train["settings_file_name"].split('.')[0] + '.pkl'):
+            model.load_state_dict(torch.load(dict_train["settings_file_name"].split('.')[0] + '.pkl'))
 
     return model, optimizer, optimizer_transfer
 

@@ -1,6 +1,7 @@
 build/
 bondnet/prediction/pretrained/mg/
 bondnet/prediction/pretrained/mg/
+/hydro_training_gpu_regressor/*/controller_train_hydro.py
 dist/
 .cache/
 *.egg-info/
