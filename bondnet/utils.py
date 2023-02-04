@@ -393,9 +393,6 @@ def parse_settings(file="settings.txt"):
     augment = False
     distributed = False
     classifier = False
-    featurizer_xyz = False
-    featurizer_electronic = False
-    featurizer_electronic_bond = False
     featurizer_filter = False
     extra_features = []
 
@@ -550,7 +547,7 @@ def parse_settings(file="settings.txt"):
         if fc_layers == -1:
             fc_layers = len(fc_hidden_size)
 
-        print("using the following settings:")
+        print("using the following settings for file: {}:".format(file))
         print("--" * 20)
         print("dataset loc:                     {}".format(dataset_loc))
         print("Small Dataset?:                  {}".format(str(test)))
@@ -653,6 +650,7 @@ def parse_settings(file="settings.txt"):
         dict_ret["gated_residual"] = gated_residual
         dict_ret["num_lstm_iters"] = num_lstm_iters
         dict_ret["num_lstm_layers"] = num_lstm_layers
+        dict_ret["settings_file_name"] = file
 
         return dict_ret
 

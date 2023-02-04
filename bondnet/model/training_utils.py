@@ -470,6 +470,10 @@ def load_model(dict_train):
     optimizer = Adam(model.parameters(), lr=dict_train['learning_rate'], weight_decay=dict_train['weight_decay'])
     optimizer_transfer = Adam(model.parameters(), lr=dict_train['learning_rate'], weight_decay=dict_train['weight_decay'])
 
+    if dict_train["restore"]: 
+        # check if there is a file in the directory called settings.pkl
+        model.load_state_dict(torch.load(dict_train["settings_file_name"].split('.')[0] + '.pkl'))
+
     return model, optimizer, optimizer_transfer
 
 
