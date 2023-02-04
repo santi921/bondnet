@@ -48,6 +48,7 @@ def main():
 
     for ind, file in enumerate(files):
         try:
+            print("starting file {}".format(file))
             train_hydro(file, 
             dataset = dataset, 
             device = dict_train["gpu"]

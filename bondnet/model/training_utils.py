@@ -562,9 +562,15 @@ def get_grapher(features):
                 keys_selected_atoms.append(key)
         
             
-    atom_featurizer = AtomFeaturizerGraphGeneral(selected_keys = keys_selected_atoms)
-    bond_featurizer = BondAsNodeGraphFeaturizerGeneral(selected_keys = keys_selected_bonds)
-    global_featurizer = GlobalFeaturizerGraph(allowed_charges=[-2, -1, 0, 1])
+    atom_featurizer = AtomFeaturizerGraphGeneral(
+        selected_keys = keys_selected_atoms
+        )
+    bond_featurizer = BondAsNodeGraphFeaturizerGeneral(
+        selected_keys = keys_selected_bonds
+        )
+    global_featurizer = GlobalFeaturizerGraph(
+        allowed_charges=[-2, -1, 0, 1]
+        )
 
     grapher = HeteroCompleteGraphFromMolWrapper(
         atom_featurizer, bond_featurizer, global_featurizer

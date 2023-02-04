@@ -700,7 +700,8 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         debug = False,
         classif_categories = None,
         device = None,
-        extra_keys = None
+        extra_keys = None,
+        dataset_atom_types = None,
     ):
         
 
@@ -742,6 +743,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         self._label_scaler_mean = None
         self._label_scaler_std = None
         self._species = None
+        self._elements =  dataset_atom_types
         self._failed = None
         self.classifier = classifier
         self.classif_categories = classif_categories
@@ -775,13 +777,15 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
             system_species.update(species)
 
         self._species = sorted(system_species)
+        
+        self._species = ['C', 'F', 'H', 'N', 'O'] # this is hard coded and should be adjusted for other datasets
 
         # create dgl graphs
         print("constructing graphs & features....")
-
+        
         graphs = self.build_graphs(
-            self.grapher, self.molecules, extra_features, self._species
-        )
+                self.grapher, self.molecules, extra_features, self._species
+            )
         graphs_not_none_indices = [i for i, g in enumerate(graphs) if g is not None]
         print("number of graphs valid: " + str(len(graphs_not_none_indices)))
         print("number of graphs: " + str(len(graphs)))

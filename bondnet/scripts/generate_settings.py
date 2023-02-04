@@ -110,17 +110,17 @@ def generate_and_write(options):
 
         if(options["hydro"] == True or options["old_dataset"] == True):
             featurizer_dict = {
-                "choice_3":{
-                    "extra_features": ["bond_length", 'Lagrangian_K', 'e_density', 'lap_e_density', 
-                            'e_loc_func', 'ave_loc_ion_E', 'delta_g_promolecular', 'delta_g_hirsh', 'esp_nuc', 
-                            'esp_e', 'esp_total', 'grad_norm', 'lap_norm', 'eig_hess', 
-                            'det_hessian', 'ellip_e_dens', 'eta'],
-                    "feature_filter": True
-                },
-                "choice_4":{
-                    "extra_features": ["bond_length", 'esp_total', 'Lagrangian_K', 'ellip_e_dens'], 
-                    "feature_filter": True
-                },
+                #"choice_3":{
+                #    "extra_features": ["bond_length", 'Lagrangian_K', 'e_density', 'lap_e_density', 
+                #            'e_loc_func', 'ave_loc_ion_E', 'delta_g_promolecular', 'delta_g_hirsh', 'esp_nuc', 
+                #            'esp_e', 'esp_total', 'grad_norm', 'lap_norm', 'eig_hess', 
+                #            'det_hessian', 'ellip_e_dens', 'eta'],
+                #    "feature_filter": True
+                #},
+                #"choice_4":{
+                #    "extra_features": ["bond_length", 'esp_total', 'Lagrangian_K', 'ellip_e_dens'], 
+                #    "feature_filter": True
+                #},
                 "choice_5":{
                     "extra_features": ['esp_total'], 
                     "feature_filter": True
@@ -129,9 +129,9 @@ def generate_and_write(options):
                     "extra_features": ["bond_length"], 
                     "feature_filter": True
                 },
-                "choice_7":{
-                    "feature_filter": False
-                },
+                #"choice_7":{
+                #    "feature_filter": False
+                #},
             }
 
         else: 
@@ -205,7 +205,8 @@ def generate_and_write(options):
         dictionary_write["dataset_loc"] = options["dataset_loc"]
         dictionary_write["on_gpu"] = options["gpu"]
         dictionary_write["classifier"] = options["classifier"]
-
+        dictionary_write["restore"] = True
+        
         for k, v in dictionary_values_options.items():
             dictionary_write[k] = choice(v)
 
@@ -298,7 +299,7 @@ def main():
         raise ValueError("Must have 3 or 5 categories for classifier")
 
     if hydro:
-        dataset_loc = "../../../dataset/qm_9_hydro_merged_3.json"
+        dataset_loc = "../../../dataset/qm_9_merge_3_qtaim.json"
     
     elif old_dataset: 
         dataset_loc = "../../../dataset/mg_dataset/merged_mg.json"
