@@ -1,6 +1,7 @@
 import torch
 import time, wandb
 import matplotlib.pyplot as plt 
+from copy import deepcopy
 
 import numpy as np 
 from tqdm import tqdm
@@ -267,7 +268,8 @@ def train_transfer(
         if is_best:
             best = val_acc
             #torch.save(model.state_dict(), "checkpoint.pkl")
-            torch.save(model.state_dict(), settings_file.split()[0] + ".pkl")
+            torch.save(model.state_dict(), settings_file.split(".")[0] + ".pkl")
+            torch.save(model, settings_file.split(".")[0] + ".pt")
 
         if(dict_train["early_stop"]):
             if stopper.step(val_acc):
@@ -277,8 +279,12 @@ def train_transfer(
                 break
         scheduler.step(val_acc)
 
-    checkpoint = torch.load("checkpoint.pkl")
-    model.load_state_dict(checkpoint)
+    #checkpoint = torch.load("checkpoint.pkl")
+    #model.load_state_dict(checkpoint)
+    model_copy = deepcopy(model)
+
+    checkpoint = torch.load(settings_file.split(".")[0] + ".pkl")
+    model_copy.load_state_dict(checkpoint)
     
     if(dict_train["classifier"]):
         test_acc, test_f1 = evaluate_classifier(
@@ -312,23 +318,3 @@ def train_transfer(
 
     run.finish()
 
-
-"""dict_train = {
-    "learning_rate": 0.0001,
-    "batch_size": 256,
-    "loss": "weighted_mse",
-    "embedding_size":24,
-    "gated_num_layers":3,
-    "gated_hidden_size":[64, 64, 64],
-    "gated_activation":"ReLU",
-    "fc_num_layers":2,
-    "fc_hidden_size":[128, 64],
-    "fc_activation":"ReLU",
-    "transfer": False,
-    "transfer_epochs": 100,
-    "epochs": 100,        
-    "scheduler": True,
-    "on_gpu": False,
-    "early_stop": True
-}
-"""

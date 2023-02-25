@@ -34,5 +34,8 @@ setup(
         "License :: OSI Approved :: Common Development and Distribution License 1.0 (CDDL-1.0)",
         "Operating System :: OS Independent",
     ],
+    scripts=['./bondnet/scripts/controller_train_hydro.py',
+            './bondnet/scripts/controller_train.py',
+             ],
     zip_safe=False,
 )

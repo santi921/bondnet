@@ -16,4 +16,4 @@ export OMP_PROC_BIND=true
 module load cudatoolkit/11.5
 module load pytorch/1.11
 # srun conda activate bondnet
-srun -n 1 -c 256 --cpu_bind=cores python controller_train.py
+srun -n 1 -c 256 --cpu_bind=cores controller_train.py

@@ -101,6 +101,7 @@ def generate_and_write(options):
 
     else: 
         dictionary_values_options["augment"] = [False, True]
+        dictionary_values_options["filter_sparse_rxns"] = [False]
 
 
     for i in range(options["num"]):
@@ -136,6 +137,7 @@ def generate_and_write(options):
 
         else: 
             featurizer_dict = {
+                '''
                 "choice_1":{
                     "extra_features": [
                         "1_s", "2_s", "1_p", "2_p", "1_d", "2_d", "1_f", "2_f", 
@@ -166,8 +168,9 @@ def generate_and_write(options):
                            "indices_nbo"], 
                     "feature_filter": True
                 },
+                '''
                 "choice_5":{
-                    "extra_features": [], 
+                    "extra_features": ["bond_length"], 
                     "feature_filter": False
                 }
             }
@@ -239,10 +242,6 @@ def generate_and_write(options):
         
         write_one(dictionary_write, target)
 
-    if(options["hydro"]):
-        controller_file = "controller_train_hydro.py"
-    else:
-        controller_file = "controller_train.py"
 
     if(options["perlmutter"] == False): 
         if(options["gpu"]):
@@ -264,7 +263,6 @@ def generate_and_write(options):
             if(options["hydro"]):
                 slurm_file = "./perlmutter_cpu_hydro.sh"
         
-    put_file_in_every_subfolder(folder, controller_file)
     put_file_in_every_subfolder(folder, slurm_file)
 
 def main():

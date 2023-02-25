@@ -17,4 +17,4 @@ export OMP_PROC_BIND=true
 #applications may performance better with --gpu-bind=none instead of --gpu-bind=single:1
 module load cudatoolkit/11.5
 module load pytorch/1.11
-srun -n 1 -c 128 --cpu_bind=cores -G 1 --gpu-bind=single:1  python controller_train.py
+srun -n 1 -c 128 --cpu_bind=cores -G 1 --gpu-bind=single:1  controller_train.py

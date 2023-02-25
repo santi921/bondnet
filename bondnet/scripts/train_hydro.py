@@ -69,7 +69,6 @@ def train_hydro(
     model, optimizer, optimizer_transfer = load_model(dict_train)
     model.to(device)
     # create copy of model to load at the end of training
-    model_copy = deepcopy(model)
 
     trainset, valset, testset = train_validation_test_split(
         dataset, validation=0.15, test=0.15
@@ -185,6 +184,7 @@ def train_hydro(
     
     
     #model_best = 
+    model_copy = deepcopy(model)
     checkpoint = torch.load(settings_file.split(".")[0] + ".pkl")
     model_copy.load_state_dict(checkpoint)
     
