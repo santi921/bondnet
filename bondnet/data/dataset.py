@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from collections import defaultdict, OrderedDict
-from bondnet.dataset.mg_barrier import create_reaction_network_files_and_valid_rows
+from bondnet.dataset.generalized import create_reaction_network_files_and_valid_rows
 from bondnet.data.reaction_network import ReactionInNetwork, ReactionNetwork
 from bondnet.data.transformers import HeteroGraphFeatureStandardScaler, StandardScaler
 from bondnet.data.utils import get_dataset_species

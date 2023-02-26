@@ -6,7 +6,7 @@ from bondnet.core.molwrapper import rdkit_mol_to_wrapper_mol
 from bondnet.core.reaction import Reaction
 from bondnet.core.reaction_collection import ReactionCollection
 from bondnet.utils import yaml_load
-from bondnet.dataset.mg_barrier import process_data
+from bondnet.dataset.generalized import process_data
 
 logger = logging.getLogger(__name__)
 

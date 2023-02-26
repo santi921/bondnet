@@ -1204,5 +1204,4 @@ def process_data():
     return all_mols, all_labels, features
 
 
-# if __name__ == "__main__":
-#    process_data()
+
