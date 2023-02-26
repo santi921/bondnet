@@ -5,7 +5,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from torch.nn import SmoothL1Loss
-
+from torchmetrics import Metric
+from torch import Tensor, tensor
 
 class WeightedMSELoss(nn.Module):
     """
@@ -254,3 +255,79 @@ class ProgressMeter:
         num_digits = len(str(num_batches // 1))
         fmt = "{:" + str(num_digits) + "d}"
         return "[" + fmt + "/" + fmt.format(num_batches) + "]"
+
+
+
+class Metrics_WeightedMAE(Metric):
+    def __init__(self):
+        super().__init__()
+        # to count the correct predictions
+        is_differentiable: bool = True
+        higher_is_better: bool = False
+        full_state_update: bool = False
+        sum_abs_error: Tensor
+        total: Tensor
+
+        self.add_state("sum_abs_error", default=tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("total", default=tensor(0), dist_reduce_fx="sum")
+
+
+    def update(self, preds: Tensor, target: Tensor, weight: Tensor, reduction: str = "sum")-> None:
+        preds = preds if preds.is_floating_point else preds.float()
+        target = target if target.is_floating_point else target.float()
+        sum_abs_error = torch.abs(preds - target) * weight
+        if reduction != "none":
+            if reduction == "mean":
+                sum_abs_error = torch.sum(sum_abs_error) / torch.sum(weight)
+            else:
+                sum_abs_error = torch.sum(sum_abs_error)
+        n_obs = target.numel()
+
+
+        self.sum_abs_error += sum_abs_error
+        self.total += n_obs
+
+    def compute(self):
+        return self.sum_abs_error / self.total
+    
+
+class Metrics_WeightedMSE(Metric):
+    def __init__(self):
+        super().__init__()
+        # to count the correct predictions
+        is_differentiable: bool = True
+        higher_is_better: bool = False
+        full_state_update: bool = False
+        sum_abs_error: Tensor
+        total: Tensor
+
+        self.add_state("sum_abs_error", default=tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("total", default=tensor(0), dist_reduce_fx="sum")
+
+
+    def update(self, preds: Tensor, target: Tensor, weight: Tensor, reduction: str = "sum")-> None:
+
+        preds = preds if preds.is_floating_point else preds.float()
+        target = target if target.is_floating_point else target.float()
+        
+        if weight is None:
+            return F.l1_loss(preds, target, reduction=reduction)
+        
+        else:
+                    
+            sum_abs_error = ((preds - target) ** 2)
+            sum_abs_error *= weight
+            if reduction != "none":
+                if reduction == "mean":
+                    sum_abs_error = torch.sum(sum_abs_error) / torch.sum(weight)
+                else:
+                    sum_abs_error = torch.sum(sum_abs_error)
+
+        n_obs = target.numel()
+
+
+        self.sum_abs_error += sum_abs_error
+        self.total += n_obs
+
+    def compute(self):
+        return self.sum_abs_error / self.total

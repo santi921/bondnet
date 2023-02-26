@@ -435,7 +435,6 @@ def parse_settings(file="settings.txt"):
 
     num_lstm_layers = 3
     num_lstm_iters = 5
-
     with open(file) as f:
         lines = f.readlines()
 
