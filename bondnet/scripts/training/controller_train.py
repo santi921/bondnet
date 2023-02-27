@@ -1,14 +1,13 @@
 import torch
 import os 
-import logging
 from glob import glob
-from bondnet.scripts.train_hydro import train_hydro
+from bondnet.scripts.training.train_transfer import train_transfer
 from bondnet.model.training_utils import get_grapher
 from bondnet.data.dataset import ReactionNetworkDatasetGraphs
 from bondnet.utils import parse_settings
 
 def main():
-
+    
     #path_mg_data = "../dataset/mg_dataset/20220826_mpreact_reactions.json"
     files = glob("settings*.txt")
     #print(files)
@@ -30,12 +29,12 @@ def main():
     # NOTE YOU WANT TO USE SAME FEATURIZER/DEVICE ON ALL RUNS
     # IN THIS FOLDER B/C THIS MAKES IT SO YOU ONLY HAVE TO GEN 
     # DATASET ONCE
-    
+
     dataset = ReactionNetworkDatasetGraphs(
         grapher=get_grapher(dict_train["extra_features"]), 
         file=dict_train["dataset_loc"], 
         out_file="./", 
-        target = 'dG_sp', 
+        target = 'ts', 
         classifier = dict_train["classifier"], 
         classif_categories=classif_categories, 
         filter_species = dict_train["filter_species"],
@@ -43,17 +42,34 @@ def main():
         filter_outliers=dict_train["filter_outliers"],
         debug = dict_train["debug"],
         device = dict_train["gpu"],
+        feature_filter = dict_train["featurizer_filter"],
+        extra_keys = dict_train["extra_features"]
+    )
+    
+    dataset_transfer = ReactionNetworkDatasetGraphs(
+        grapher=get_grapher(dict_train["extra_features"]), 
+        file=dict_train["dataset_loc"], 
+        out_file="./", 
+        target = 'diff', 
+        classifier = dict_train["classifier"], 
+        classif_categories=classif_categories, 
+        filter_species = dict_train["filter_species"],
+        filter_sparse_rxns=dict_train["filter_sparse_rxns"],
+        filter_outliers=dict_train["filter_outliers"],
+        debug = dict_train["debug"],
+        device = dict_train["gpu"],
+        feature_filter = dict_train["featurizer_filter"],
         extra_keys = dict_train["extra_features"]
     )
 
     for ind, file in enumerate(files):
         try:
-            print("starting file {}".format(file))
-            train_hydro(file, 
+            train_transfer(file, 
             dataset = dataset, 
+            dataset_transfer = dataset_transfer, 
             device = dict_train["gpu"]
             )
             os.rename(file, str(ind) + "_done.txt")
-        except:     
-            print("failed file {}".format(file))
+        except: 
+            print("failed on file {}".format(file))
 main()

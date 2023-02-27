@@ -214,13 +214,13 @@ def generate_and_write(options):
             dictionary_write[k] = choice(v)
 
         if(options["hydro"]):
-            folder = "./hydro_training"
+            folder = "../hydro_training"
 
         elif(options["old_dataset"]):
-            folder = "./old_mg_training"
+            folder = "../old_mg_training"
         
         else: 
-            folder = "./mg_training"
+            folder = "../mg_training"
 
         if(options["gpu"]): folder += "_gpu"
         else: folder += "_cpu"
@@ -297,16 +297,16 @@ def main():
         raise ValueError("Must have 3 or 5 categories for classifier")
 
     if hydro:
-        dataset_loc = "../../../dataset/qm_9_merge_3_qtaim.json"
+        dataset_loc = "../../../../dataset/qm_9_merge_3_qtaim.json"
     
     elif old_dataset: 
-        dataset_loc = "../../../dataset/mg_dataset/merged_mg.json"
+        dataset_loc = "../../../../dataset/mg_dataset/merged_mg.json"
     
     else: 
         if not imputed:
-            dataset_loc = "../../../dataset/mg_dataset/mg_qtaim_complete_nonimputed.json"
+            dataset_loc = "../../../../dataset/mg_dataset/mg_qtaim_complete_nonimputed.json"
         else:
-            dataset_loc = "../../../dataset/mg_dataset/mg_qtaim_complete.json"
+            dataset_loc = "../../../../dataset/mg_dataset/mg_qtaim_complete.json"
 
     options_dict = {
         "dataset_loc": dataset_loc,

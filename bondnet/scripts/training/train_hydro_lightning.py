@@ -17,7 +17,9 @@ torch.set_float32_matmul_precision("high") # might have to disable on older GPUs
 def main():
 
     dataset = None
-    settings_file = "./settings_lightning.txt" 
+    settings_file = "settings_lightning.txt" 
+    log_save_dir = "./logs_lightning/" + settings_file.split(".")[0]
+
     dict_train = parse_settings(settings_file)
     if dict_train["on_gpu"]:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -51,15 +53,12 @@ def main():
     
     dict_train['in_feats'] = dataset.feature_size
 
-    model  = load_model_lightning(dict_train)
-    model.to(device)
-    # create copy of model to load at the end of training
+    model = load_model_lightning(dict_train, device=device, load_dir=log_save_dir)
 
     trainset, valset, testset = train_validation_test_split(
         dataset, validation=0.15, test=0.15
     )
     
-    log_save_dir = "./logs_lightning/"
     train_loader = DataLoaderReactionNetwork(trainset, batch_size=dict_train['batch_size'], shuffle=True)
     val_loader = DataLoaderReactionNetwork(valset, batch_size=len(valset), shuffle=False)
     test_loader = DataLoaderReactionNetwork(testset, batch_size=len(testset), shuffle=False)
@@ -75,12 +74,13 @@ def main():
         monitor='val_l1',
         mode='min',
         auto_insert_metric_name=True,
+        save_last=True
     )
 
     early_stopping_callback = EarlyStopping(
         monitor='val_loss',
         min_delta=0.00,
-        patience=200,
+        patience=20,
         verbose=False,
         mode='min'
         )
@@ -100,6 +100,7 @@ def main():
         enable_checkpointing=True,
         default_root_dir=log_save_dir,
         logger=[logger_tb, logger_wb],
+        precision="bf16"
     )
 
     trainer.fit(
@@ -108,11 +109,8 @@ def main():
         val_loader,
         )
 
-    #model.eval()
     trainer.test(model, test_loader)
-    # save state dict
-    torch.save(model.state_dict(), log_save_dir + "/model_lightning_1.ckpt")
-
+        
     if dict_train["wandb"]:
         run.finish()
 

@@ -478,7 +478,7 @@ def load_model(dict_train):
     return model, optimizer, optimizer_transfer
 
 
-def load_model_lightning(dict_train, device=None): 
+def load_model_lightning(dict_train, device=None, load_dir=None): 
     """
     returns model and optimizer from dict of parameters
         
@@ -498,6 +498,26 @@ def load_model_lightning(dict_train, device=None):
             dict_train["gpu"] = "cpu"
     else: dict_train["gpu"] = device
 
+    if dict_train["restore"]: 
+        print(":::RESTORING MODEL FROM EXISTING FILE:::")
+        # check if there is a file in the directory called settings.pkl
+        #if os.path.isfile(dict_train["settings_file_name"].split('.')[0] + '.pkl'):
+        #    model.load_state_dict(torch.load(dict_train["settings_file_name"].split('.')[0] + '.pkl'))
+        if load_dir == None:
+            load_dir = "./"
+        
+        try: 
+            
+            model = GatedGCNReactionNetworkLightning.load_from_checkpoint(
+                checkpoint_path=load_dir + "/last.ckpt")
+            model.to(device)
+            print(":::MODEL LOADED:::")
+            return model
+        
+        except: 
+            print(":::NO MODEL FOUND LOADING FRESH MODEL:::")
+
+    
     model = GatedGCNReactionNetworkLightning(
             in_feats=dict_train['in_feats'],
             embedding_size=dict_train['embedding_size'],
@@ -524,18 +544,10 @@ def load_model_lightning(dict_train, device=None):
             eta_min=1e-6,
             loss_fn=dict_train["loss"],
             device=device
-        )
+    )
+    model.to(device)
     
-    #optimizer = Adam(model.parameters(), lr=dict_train['learning_rate'], weight_decay=dict_train['weight_decay'])
-    #optimizer_transfer = Adam(model.parameters(), lr=dict_train['learning_rate'], weight_decay=dict_train['weight_decay'])
-
-    if dict_train["restore"]: 
-        print(":::RESTORING MODEL FROM EXISTING FILE:::")
-        # check if there is a file in the directory called settings.pkl
-        if os.path.isfile(dict_train["settings_file_name"].split('.')[0] + '.pkl'):
-            model.load_state_dict(torch.load(dict_train["settings_file_name"].split('.')[0] + '.pkl'))
-
-    return model#, optimizer, optimizer_transfer
+    return model
 
 
 
