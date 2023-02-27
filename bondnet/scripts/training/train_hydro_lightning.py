@@ -86,7 +86,8 @@ def main():
         )
     
     trainer = pl.Trainer(
-        max_epochs=dict_train["epochs"], 
+        #max_epochs=dict_train["epochs"], 
+        max_epochs = 20, 
         accelerator='gpu', 
         devices = [0],
         accumulate_grad_batches=5, 
@@ -106,10 +107,19 @@ def main():
     trainer.fit(
         model, 
         train_loader, 
-        val_loader,
+        val_loader
         )
-
-    trainer.test(model, test_loader)
+    print(dataset.labels[0].keys())
+    for i in dataset.labels: 
+        print(i["value"], i["value_rev"])
+    
+    trainer.test(
+        model, 
+        test_loader)
+    trainer.test(
+        model, 
+        train_loader
+    )
         
     if dict_train["wandb"]:
         run.finish()

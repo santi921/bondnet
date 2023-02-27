@@ -19,6 +19,7 @@ from bondnet.model.metric import (
     Metrics_WeightedMSE
 )
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
+import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
 
@@ -203,8 +204,6 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         self.fc_layers.append(nn.Linear(in_size, outdim))
         self.loss = self.loss_function()
         
-        #self.MSE = WeightedMSELoss(reduction="mean")
-        #self.L1 = WeightedL1Loss(reduction="mean")
         self.train_l1 = Metrics_WeightedMAE()
         self.train_mse = Metrics_WeightedMSE()
         self.train_r2 = torchmetrics.R2Score()
@@ -217,7 +216,6 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         self.test_mse = Metrics_WeightedMSE()
         self.test_r2 = torchmetrics.R2Score()
         
-
 
     def forward(self, graph, feats, reactions, norm_atom=None, norm_bond=None, device=None, reverse = False):
         """
@@ -307,6 +305,52 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         return all_feats
 
 
+    def shared_step(self, batch, mode):
+
+        # ========== compute predictions ==========
+        batched_graph, label = batch
+        nodes = ["atom", "bond", "global"]
+        feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
+        target = label["value"].view(-1)
+        target_aug = label["value_rev"].view(-1)       
+        empty_aug = torch.isnan(target_aug).tolist()
+        empty_aug = True in empty_aug
+        norm_atom = label["norm_atom"]
+        norm_bond = label["norm_bond"]
+        
+        stdev = label["scaler_stdev"]
+        if self.device is not None:
+            feats = {k: v.to(self.device) for k, v in feats.items()}
+            target = target.to(self.device)
+            norm_atom = norm_atom.to(self.device)
+            norm_bond = norm_bond.to(self.device)   
+            stdev = stdev.to(self.device)
+            #if(self.augment and not empty_aug): 
+            #    target_aug = target_aug.to(self.device)
+
+        pred = self(
+            batched_graph, 
+            feats, 
+            label["reaction"], 
+            device=self.device, 
+            norm_bond = norm_bond, 
+            norm_atom=norm_atom)
+        
+        pred = pred.view(-1)
+
+        #feats, reaction_feats = self(mol_graphs, rxn_graphs, feats, metadata)
+        #preds = self.decode(feats, reaction_feats, metadata)
+
+        # ========== compute losses ==========
+        all_loss = self.compute_loss(pred, target, stdev)
+        # ========== logger the loss ==========
+
+        self.log(f"{mode}_loss", all_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=len(label))
+        self.update_metrics(target, pred, stdev, mode)
+
+        return all_loss
+
+    
     def loss_function(self): 
         """
         Initialize loss function
@@ -390,41 +434,6 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         """
         Test step
         """
-        return self.shared_step(batch, mode="test")
-
-
-    def training_epoch_end(self, outputs):
-        """
-        Training epoch end
-        """
-        l1, rmse, r2 =  self.compute_metrics(mode = "train")
-        self.log("train_l1", l1, prog_bar=True)
-        self.log("train_rmse", rmse)
-        self.log("train_r2", r2, prog_bar=True)
-
-
-    def validation_epoch_end(self, outputs):
-        """
-        Validation epoch end
-        """
-        l1, rmse, r2 =  self.compute_metrics(mode = "val")
-        self.log("val_l1", l1, prog_bar=True)
-        self.log("val_rmse", rmse)
-        self.log("val_r2", r2, prog_bar=True)
-
-
-    def test_epoch_end(self, outputs):
-        """
-        Test epoch end
-        """
-        l1, rmse, r2 =  self.compute_metrics(mode = "test")
-        self.log("test_l1", l1, prog_bar=True)
-        self.log("test_rmse", rmse, prog_bar=True)
-        self.log("test_r2", r2, prog_bar=True)
-
-
-    def shared_step(self, batch, mode):
-
         # ========== compute predictions ==========
         batched_graph, label = batch
         nodes = ["atom", "bond", "global"]
@@ -456,19 +465,58 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         
         pred = pred.view(-1)
 
-        #feats, reaction_feats = self(mol_graphs, rxn_graphs, feats, metadata)
-        #preds = self.decode(feats, reaction_feats, metadata)
+        # convert bf16 to fp32
+        
+        pred = pred.to(torch.float32)
+        target = target.to(torch.float32)
+        stdev = stdev.to(torch.float32)
+        pred_np = pred.detach().cpu().numpy()
+        target_np = target.detach().cpu().numpy()  
+        stdev_np = stdev.detach().cpu().numpy()
+        plt.scatter(pred_np * stdev_np, target_np * stdev_np)
+        min_val = np.min([np.min(pred_np), np.min(target_np)]) - 0.5
+        max_val = np.max([np.max(pred_np), np.max(target_np)]) + 0.5
+        #plt.ylim(min_val,max_val)
+        #plt.xlim(min_val,max_val)
+        plt.title("Predicted vs. True")
+        plt.xlabel("Predicted")
+        plt.ylabel("True")
+        plt.savefig("./{}.png".format("./test"))
 
-        # ========== compute losses ==========
-        all_loss = self.compute_loss(pred, target, stdev)
-        # ========== logger the loss ==========
 
-        self.log(f"{mode}_loss", all_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=len(label))
-        self.update_metrics(target, pred, stdev, mode)
+        return self.shared_step(batch, mode="test")
 
-        return all_loss
 
-    
+    def training_epoch_end(self, outputs):
+        """
+        Training epoch end
+        """
+        l1, rmse, r2 =  self.compute_metrics(mode = "train")
+        self.log("train_l1", l1, prog_bar=True)
+        self.log("train_rmse", rmse, prog_bar=True)
+        self.log("train_r2", r2, prog_bar=True)
+
+
+    def validation_epoch_end(self, outputs):
+        """
+        Validation epoch end
+        """
+        l1, rmse, r2 =  self.compute_metrics(mode = "val")
+        self.log("val_l1", l1, prog_bar=True)
+        self.log("val_rmse", rmse)
+        self.log("val_r2", r2, prog_bar=True)
+
+
+    def test_epoch_end(self, outputs):
+        """
+        Test epoch end
+        """
+        l1, rmse, r2 =  self.compute_metrics(mode = "test")
+        self.log("test_l1", l1, prog_bar=True)
+        self.log("test_rmse", rmse, prog_bar=True)
+        self.log("test_r2", r2, prog_bar=True)
+
+
     def update_metrics(self, label, pred, weight, mode):
 
         if mode == 'train': 
@@ -480,6 +528,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             self.val_l1.update(pred, label, weight, reduction='sum')
             self.val_mse.update(pred, label, weight, reduction='sum')
             self.val_r2.update(pred, label) 
+        
         elif mode == 'test':
             self.test_l1.update(pred, label, weight, reduction='sum')
             self.test_mse.update(pred, label, weight, reduction='sum')
@@ -510,6 +559,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             self.test_r2.reset()
             self.test_mse.reset()
             self.test_l1.reset()
+        
         return l1, torch.sqrt(mse), r2
 
 

@@ -550,7 +550,6 @@ def load_model_lightning(dict_train, device=None, load_dir=None):
     return model
 
 
-
 def evaluate_r2(model, nodes, data_loader, device = None):
     model.eval()
     with torch.no_grad():
@@ -655,27 +654,6 @@ def get_grapher(features):
     )
     return grapher
 
-
-class LogParameters(pl.Callback):
-    # weight and biases to tensorbard
-    def __init__(self):
-        super().__init__()
-
-    def on_fit_start(self, trainer, pl_module):
-        self.d_parameters = {}
-        for n,p in pl_module.named_parameters():
-            self.d_parameters[n] = []
-
-    def on_validation_epoch_end(self, trainer, pl_module):
-        if not trainer.sanity_checking: # WARN: sanity_check is turned on by default
-            lp = []
-            for n,p in pl_module.named_parameters():
-                trainer.logger.experiment.add_histogram(n, p.data, trainer.current_epoch)
-                self.d_parameters[n].append(p.ravel().cpu().numpy())
-                lp.append(p.ravel().cpu().numpy())
-            p = np.concatenate(lp)
-            trainer.logger.experiment.add_histogram('Parameters', p, trainer.current_epoch)
-            
 
 class LogParameters(pl.Callback):
     # weight and biases to tensorbard

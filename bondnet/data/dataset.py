@@ -797,7 +797,6 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
 
         # feature transformers
         if self.feature_transformer:
-
             if self.state_dict_filename is None:
                 feature_scaler = HeteroGraphFeatureStandardScaler(mean=None, std=None)
             else:
@@ -867,9 +866,9 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                     lab_temp = torch.zeros(self.classif_categories)
                     lab_temp[int(lb['value'][0])] = 1
 
-                    if(lb['rev_value']!= None):
+                    if(lb['value_rev']!= None):
                         lab_temp_rev = torch.zeros(self.classif_categories)
-                        lab_temp[int(lb['rev_value'][0])] = 1
+                        lab_temp[int(lb['value_rev'][0])] = 1
                     else: lab_temp_rev = None
                         
                     label = {
@@ -890,7 +889,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                             lb["value"], dtype=getattr(torch, self.dtype)
                         ),
                         "value_rev":  torch.tensor(
-                            lb["rev_value"], dtype=getattr(torch, self.dtype)
+                            lb["value_rev"], dtype=getattr(torch, self.dtype)
                         ),
                         "id": lb["id"],
                         "environment": environemnt,
@@ -914,6 +913,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
 
             # normalization
             values = torch.stack([lb["value"] for lb in self.labels])  # 1D tensor
+            values_rev = torch.stack([lb["value_rev"] for lb in self.labels])
 
             if self.state_dict_filename is None:
                 mean = torch.mean(values)
@@ -931,12 +931,14 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                 std = self._label_scaler_std
 
             values = (values - mean) / std
+            value_rev_scaled = (values_rev - mean) / std
 
             # update label
             for i, lb in enumerate(values):
                 self.labels[i]["value"] = lb
                 self.labels[i]["scaler_mean"] = mean
                 self.labels[i]["scaler_stdev"] = std
+                self.labels[i]["value_rev"] = value_rev_scaled[i]
 
             logger.info(f"Label scaler mean: {mean}")
             logger.info(f"Label scaler std: {std}")

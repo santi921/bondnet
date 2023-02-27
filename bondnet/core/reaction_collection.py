@@ -1195,7 +1195,7 @@ class ReactionCollection:
                     mapping = rxn.bond_mapping_by_int_index()
                 data = {
                     "value":[energy],
-                    "rev_value": [rev_value],
+                    "value_rev": [rev_value],
                     "num_mols":len(reactant_id + product_ids),
                     "products":[all_mol_ids.index(prod_id) for prod_id in product_ids],
                     "reactants":[all_mol_ids.index(react_id) for react_id in reactant_id],
