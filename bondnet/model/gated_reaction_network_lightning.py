@@ -202,18 +202,19 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
 
         # final output layer, mapping feature to the corresponding shape
         self.fc_layers.append(nn.Linear(in_size, outdim))
+        
         self.loss = self.loss_function()
         
         self.train_l1 = Metrics_WeightedMAE()
-        self.train_mse = Metrics_WeightedMSE()
+        #self.train_mse = Metrics_WeightedMSE()
         self.train_r2 = torchmetrics.R2Score()
 
         self.val_l1 = Metrics_WeightedMAE()
-        self.val_mse = Metrics_WeightedMSE()
+        #self.val_mse = Metrics_WeightedMSE()
         self.val_r2 = torchmetrics.R2Score()
 
         self.test_l1 = Metrics_WeightedMAE()
-        self.test_mse = Metrics_WeightedMSE()
+        #self.test_mse = Metrics_WeightedMSE()
         self.test_r2 = torchmetrics.R2Score()
         
 
@@ -325,8 +326,6 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             norm_atom = norm_atom.to(self.device)
             norm_bond = norm_bond.to(self.device)   
             stdev = stdev.to(self.device)
-            #if(self.augment and not empty_aug): 
-            #    target_aug = target_aug.to(self.device)
 
         pred = self(
             batched_graph, 
@@ -337,9 +336,6 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             norm_atom=norm_atom)
         
         pred = pred.view(-1)
-
-        #feats, reaction_feats = self(mol_graphs, rxn_graphs, feats, metadata)
-        #preds = self.decode(feats, reaction_feats, metadata)
 
         # ========== compute losses ==========
         all_loss = self.compute_loss(pred, target, stdev)
@@ -368,11 +364,11 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         return loss_fn 
     
 
-    def compute_loss(self, pred, labels, weight): 
+    def compute_loss(self, target, pred, weight): 
         """
         Compute loss
         """
-        return self.loss(pred, labels, weight)
+        return self.loss(target, pred, weight)
 
 
     def configure_optimizers(self):
@@ -464,8 +460,6 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             norm_atom=norm_atom)
         
         pred = pred.view(-1)
-
-        # convert bf16 to fp32
         
         pred = pred.to(torch.float32)
         target = target.to(torch.float32)
@@ -491,9 +485,10 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         """
         Training epoch end
         """
-        l1, rmse, r2 =  self.compute_metrics(mode = "train")
+
+        l1, r2 =  self.compute_metrics(mode = "train")
         self.log("train_l1", l1, prog_bar=True)
-        self.log("train_rmse", rmse, prog_bar=True)
+        #self.log("train_rmse", rmse, prog_bar=True)
         self.log("train_r2", r2, prog_bar=True)
 
 
@@ -501,9 +496,9 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         """
         Validation epoch end
         """
-        l1, rmse, r2 =  self.compute_metrics(mode = "val")
+        l1, r2 =  self.compute_metrics(mode = "val")
         self.log("val_l1", l1, prog_bar=True)
-        self.log("val_rmse", rmse)
+        #self.log("val_rmse", rmse)
         self.log("val_r2", r2, prog_bar=True)
 
 
@@ -511,56 +506,56 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         """
         Test epoch end
         """
-        l1, rmse, r2 =  self.compute_metrics(mode = "test")
+        l1, r2 =  self.compute_metrics(mode = "test")
         self.log("test_l1", l1, prog_bar=True)
-        self.log("test_rmse", rmse, prog_bar=True)
+        #self.log("test_rmse", rmse, prog_bar=True)
         self.log("test_r2", r2, prog_bar=True)
 
 
-    def update_metrics(self, label, pred, weight, mode):
-
+    def update_metrics(self, pred, target, weight, mode):
         if mode == 'train': 
-            self.train_l1.update(pred, label, weight, reduction='sum')
-            self.train_mse.update(pred, label, weight, reduction='sum')
-            self.train_r2.update(pred, label)
+            self.train_l1.update(pred, target, weight, reduction='sum')
+            #self.train_mse.update(pred, target, weight, reduction='sum')
+            self.train_r2.update(pred, target)
         
         elif mode == 'val':
-            self.val_l1.update(pred, label, weight, reduction='sum')
-            self.val_mse.update(pred, label, weight, reduction='sum')
-            self.val_r2.update(pred, label) 
+            self.val_l1.update(pred, target, weight, reduction='sum')
+            #self.val_mse.update(pred, target, weight, reduction='sum')
+            self.val_r2.update(pred, target) 
         
         elif mode == 'test':
-            self.test_l1.update(pred, label, weight, reduction='sum')
-            self.test_mse.update(pred, label, weight, reduction='sum')
-            self.test_r2.update(pred, label) 
+            
+            self.test_l1.update(pred, target, weight, reduction='sum')
+            #self.test_mse.update(pred, target, weight, reduction='sum')
+            self.test_r2.update(pred, target) 
 
 
     def compute_metrics(self, mode):
         if mode == 'train': 
             l1 = self.train_l1.compute()
-            mse = self.train_mse.compute()
+            #mse = self.train_mse.compute()
             r2 = self.train_r2.compute()
             self.train_r2.reset()
-            self.train_mse.reset()
+            #self.train_mse.reset()
             self.train_l1.reset()
 
         elif mode == 'val':
             l1 = self.val_l1.compute()
-            mse = self.val_mse.compute()
+            #mse = self.val_mse.compute()
             r2 = self.val_r2.compute()
             self.val_r2.reset()
-            self.val_mse.reset()
+            #self.val_mse.reset()
             self.val_l1.reset()
 
         elif mode == 'test':
             l1 = self.test_l1.compute()
-            mse = self.test_mse.compute()
+            #mse = self.test_mse.compute()
             r2 = self.test_r2.compute()
             self.test_r2.reset()
-            self.test_mse.reset()
+            #self.test_mse.reset()
             self.test_l1.reset()
         
-        return l1, torch.sqrt(mse), r2
+        return l1, r2
 
 
 def _split_batched_output(graph, value):

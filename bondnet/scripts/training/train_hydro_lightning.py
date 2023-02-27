@@ -109,13 +109,11 @@ def main():
         train_loader, 
         val_loader
         )
-    print(dataset.labels[0].keys())
-    for i in dataset.labels: 
-        print(i["value"], i["value_rev"])
-    
+
     trainer.test(
         model, 
         test_loader)
+    
     trainer.test(
         model, 
         train_loader

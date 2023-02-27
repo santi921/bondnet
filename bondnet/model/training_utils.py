@@ -500,9 +500,7 @@ def load_model_lightning(dict_train, device=None, load_dir=None):
 
     if dict_train["restore"]: 
         print(":::RESTORING MODEL FROM EXISTING FILE:::")
-        # check if there is a file in the directory called settings.pkl
-        #if os.path.isfile(dict_train["settings_file_name"].split('.')[0] + '.pkl'):
-        #    model.load_state_dict(torch.load(dict_train["settings_file_name"].split('.')[0] + '.pkl'))
+        
         if load_dir == None:
             load_dir = "./"
         

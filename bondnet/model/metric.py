@@ -92,7 +92,6 @@ class WeightedL1Loss(nn.Module):
                         input.size(), target.size(), weight.size()
                     )
                 )
-            
             rst = torch.abs(input - target) * weight
 
             if self.reduction != "none":
@@ -149,27 +148,27 @@ class Metrics_WeightedMAE(Metric):
 
 
     def update(self, preds: Tensor, target: Tensor, weight: Tensor, reduction: str = "sum")-> None:
-        
+        if preds.size() != target.size() != weight.size():
+            warnings.warn(
+                "Input size ({}) is different from the target size ({}) or weight "
+                "size ({}). This will likely lead to incorrect results due "
+                "to broadcasting. Please ensure they have the same size.".format(
+                    input.size(), target.size(), weight.size()
+                )
+            )
 
         preds = preds if preds.is_floating_point else preds.float()
         target = target if target.is_floating_point else target.float()
         
-
-        if weight is None:
-            return F.l1_loss(preds, target, reduction=reduction)
-
-        preds = preds if preds.is_floating_point else preds.float()
-        target = target if target.is_floating_point else target.float()
-        sum_abs_error = torch.abs(preds - target) * weight
-        
+        sum_abs_error = torch.abs(preds - target)
+        sum_abs_error *= weight
         if reduction != "none":
             if reduction == "mean":
                 sum_abs_error = torch.sum(sum_abs_error) / torch.sum(weight)
             else:
                 sum_abs_error = torch.sum(sum_abs_error)
-        
-        n_obs = target.numel()
 
+        n_obs = target.numel()
         self.sum_abs_error += sum_abs_error
         self.total += n_obs
 
@@ -192,24 +191,25 @@ class Metrics_WeightedMSE(Metric):
 
 
     def update(self, preds: Tensor, target: Tensor, weight: Tensor, reduction: str = "sum")-> None:
-
+        if preds.size() != target.size() != weight.size():
+            warnings.warn(
+                "Input size ({}) is different from the target size ({}) or weight "
+                "size ({}). This will likely lead to incorrect results due "
+                "to broadcasting. Please ensure they have the same size.".format(
+                    input.size(), target.size(), weight.size()
+                )
+            )
 
         preds = preds if preds.is_floating_point else preds.float()
         target = target if target.is_floating_point else target.float()
-        
-
-        if weight is None:
-            return F.mse_loss(preds, target, reduction=reduction)
-        
-        else:
-                    
-            sum_abs_error = ((preds - target) ** 2)
-            sum_abs_error *= weight
-            if reduction != "none":
-                if reduction == "mean":
-                    sum_abs_error = torch.sum(sum_abs_error) / torch.sum(weight)
-                else:
-                    sum_abs_error = torch.sum(sum_abs_error)
+    
+        sum_abs_error = ((preds - target) ** 2)
+        sum_abs_error *= weight
+        if reduction != "none":
+            if reduction == "mean":
+                sum_abs_error = torch.sum(sum_abs_error) / torch.sum(weight)
+            else:
+                sum_abs_error = torch.sum(sum_abs_error)
 
         n_obs = target.numel()
         self.sum_abs_error += sum_abs_error
