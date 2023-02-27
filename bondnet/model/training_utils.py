@@ -1,24 +1,22 @@
-import numpy as np 
 import torch, os 
-from copy import deepcopy
+import numpy as np
 from torch.optim import Adam
+import matplotlib.pyplot as plt
 from torch.nn import CrossEntropyLoss
 from sklearn.metrics import f1_score
 from torch.nn import MSELoss
-import matplotlib.pyplot as plt
+import pytorch_lightning as pl
+
 from bondnet.model.metric import WeightedL1Loss, WeightedMSELoss, WeightedSmoothL1Loss
 from bondnet.model.gated_reaction_network_graph import GatedGCNReactionNetwork
 from bondnet.model.gated_reaction_classifier_graph import GatedGCNReactionNetworkClassifier
 from bondnet.model.gated_reaction_network_lightning import GatedGCNReactionNetworkLightning
-
+from bondnet.data.grapher import HeteroCompleteGraphFromMolWrapper
 from bondnet.data.featurizer import (
     AtomFeaturizerGraphGeneral, 
     BondAsNodeGraphFeaturizerGeneral,
     GlobalFeaturizerGraph,
     
-)
-from bondnet.data.grapher import (
-    HeteroCompleteGraphFromMolWrapper,
 )
 
 def train_classifier(
@@ -644,3 +642,46 @@ def get_grapher(features):
         atom_featurizer, bond_featurizer, global_featurizer
     )
     return grapher
+
+
+class LogParameters(pl.Callback):
+    # weight and biases to tensorbard
+    def __init__(self):
+        super().__init__()
+
+    def on_fit_start(self, trainer, pl_module):
+        self.d_parameters = {}
+        for n,p in pl_module.named_parameters():
+            self.d_parameters[n] = []
+
+    def on_validation_epoch_end(self, trainer, pl_module):
+        if not trainer.sanity_checking: # WARN: sanity_check is turned on by default
+            lp = []
+            for n,p in pl_module.named_parameters():
+                trainer.logger.experiment.add_histogram(n, p.data, trainer.current_epoch)
+                self.d_parameters[n].append(p.ravel().cpu().numpy())
+                lp.append(p.ravel().cpu().numpy())
+            p = np.concatenate(lp)
+            trainer.logger.experiment.add_histogram('Parameters', p, trainer.current_epoch)
+            
+
+class LogParameters(pl.Callback):
+    # weight and biases to tensorbard
+    def __init__(self):
+        super().__init__()
+
+    def on_fit_start(self, trainer, pl_module):
+        self.d_parameters = {}
+        for n,p in pl_module.named_parameters():
+            self.d_parameters[n] = []
+
+    def on_validation_epoch_end(self, trainer, pl_module):
+        if not trainer.sanity_checking: # WARN: sanity_check is turned on by default
+            lp = []
+            for n,p in pl_module.named_parameters():
+                trainer.logger.experiment.add_histogram(n, p.data, trainer.current_epoch)
+                self.d_parameters[n].append(p.ravel().cpu().numpy())
+                lp.append(p.ravel().cpu().numpy())
+            p = np.concatenate(lp)
+            trainer.logger.experiment.add_histogram('Parameters', p, trainer.current_epoch)
+            

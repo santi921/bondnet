@@ -11,8 +11,13 @@ import torchmetrics
 from bondnet.layer.gatedconv import GatedGCNConv, GatedGCNConv1, GatedGCNConv2
 from bondnet.layer.readout import Set2SetThenCat
 from bondnet.layer.utils import UnifySize
-from bondnet.model.metric import WeightedL1Loss, WeightedMSELoss, Metrics_WeightedMAE, Metrics_WeightedMSE
-
+from bondnet.model.metric import (
+    WeightedL1Loss, 
+    WeightedMSELoss, 
+    WeightedSmoothL1Loss,   
+    Metrics_WeightedMAE, 
+    Metrics_WeightedMSE
+)
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 
 logger = logging.getLogger(__name__)
@@ -78,6 +83,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         eta_min=1e-6,
         loss_fn="MSELoss",
         device="cpu",
+        wandb=True
     ):
         super().__init__()
         self.learning_rate = learning_rate
@@ -110,6 +116,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             "eta_min": eta_min,
             "loss_fn": loss_fn,
             "device": device,
+            "wandb": wandb
         }
         self.hparams.update(params)
         self.save_hyperparameters()
@@ -317,11 +324,11 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         return loss_fn 
     
 
-    def compute_loss(self, pred, labels): 
+    def compute_loss(self, pred, labels, weight): 
         """
         Compute loss
         """
-        return self.loss(pred, labels)
+        return self.loss(pred, labels, weight)
 
 
     def configure_optimizers(self):
@@ -385,6 +392,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         """
         return self.shared_step(batch, mode="test")
 
+
     def training_epoch_end(self, outputs):
         """
         Training epoch end
@@ -393,6 +401,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         self.log("train_l1", l1, prog_bar=True)
         self.log("train_rmse", rmse)
         self.log("train_r2", r2, prog_bar=True)
+
 
     def validation_epoch_end(self, outputs):
         """
@@ -451,7 +460,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         #preds = self.decode(feats, reaction_feats, metadata)
 
         # ========== compute losses ==========
-        all_loss = self.compute_loss(pred, target)
+        all_loss = self.compute_loss(pred, target, stdev)
         # ========== logger the loss ==========
 
         self.log(f"{mode}_loss", all_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=len(label))
@@ -461,7 +470,6 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
 
     
     def update_metrics(self, label, pred, weight, mode):
-
 
         if mode == 'train': 
             self.train_l1.update(pred, label, weight, reduction='sum')
@@ -502,7 +510,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             self.test_r2.reset()
             self.test_mse.reset()
             self.test_l1.reset()
-        return l1, mse, torch.sqrt(r2)
+        return l1, torch.sqrt(mse), r2
 
 
 def _split_batched_output(graph, value):

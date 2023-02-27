@@ -1,40 +1,38 @@
-import time, wandb, argparse
-from copy import deepcopy
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+import wandb
                                  
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import LearningRateMonitor
+from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
+from pytorch_lightning.callbacks import LearningRateMonitor, EarlyStopping, ModelCheckpoint
 
-from bondnet.model.metric import EarlyStopping
 from bondnet.data.dataset import ReactionNetworkDatasetGraphs
 from bondnet.data.dataloader import DataLoaderReactionNetwork
 from bondnet.data.dataset import train_validation_test_split
-from bondnet.utils import seed_torch, pickle_dump, parse_settings
-from bondnet.model.training_utils import get_grapher, load_model_lightning
+from bondnet.utils import seed_torch, parse_settings
+from bondnet.model.training_utils import get_grapher, load_model_lightning, LogParameters
 
 seed_torch()
 import torch
-torch.set_float32_matmul_precision("high")
-
+torch.set_float32_matmul_precision("high") # might have to disable on older GPUs
 
 def main():
-    best = 1e10
-    dataset = None
-    run = wandb.init(project="hydro_lightning", reinit=True)
-    settings_file = "./settings_lightning.txt" 
-    feature_names = ["atom", "bond", "global"]
-    dict_train = parse_settings(settings_file)
 
+    dataset = None
+    settings_file = "./settings_lightning.txt" 
+    dict_train = parse_settings(settings_file)
     if dict_train["on_gpu"]:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         dict_train["gpu"] = device
     else:
         device = torch.device("cpu")
         dict_train["gpu"] = "cpu"
-        
-    wandb.config.update(dict_train)
+
     print("train on device: {}".format(dict_train["gpu"]))
 
+    if dict_train["wandb"]:
+        run = wandb.init(project="hydro_lightning", reinit=True)
+        wandb.config.update(dict_train)
+    
+        
     if(dataset == None):
         dataset = ReactionNetworkDatasetGraphs(
             grapher=get_grapher(dict_train["extra_features"]), 
@@ -61,12 +59,32 @@ def main():
         dataset, validation=0.15, test=0.15
     )
     
-    train_loader = DataLoaderReactionNetwork(trainset, batch_size=dict_train['batch_size'], 
-    shuffle=True)
+    log_save_dir = "./logs_lightning/"
+    train_loader = DataLoaderReactionNetwork(trainset, batch_size=dict_train['batch_size'], shuffle=True)
     val_loader = DataLoaderReactionNetwork(valset, batch_size=len(valset), shuffle=False)
     test_loader = DataLoaderReactionNetwork(testset, batch_size=len(testset), shuffle=False)
-
+    log_parameters = LogParameters()
+    logger_tb = TensorBoardLogger(log_save_dir, name="test_logs")
+    logger_wb = WandbLogger(project="hydro_lightning", name="test_logs")
+    
     lr_monitor = LearningRateMonitor(logging_interval='step')
+    
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=log_save_dir, 
+        filename='model_lightning_{epoch:02d}-{val_l1:.2f}',
+        monitor='val_l1',
+        mode='min',
+        auto_insert_metric_name=True,
+    )
+
+    early_stopping_callback = EarlyStopping(
+        monitor='val_loss',
+        min_delta=0.00,
+        patience=200,
+        verbose=False,
+        mode='min'
+        )
+    
     trainer = pl.Trainer(
         max_epochs=dict_train["epochs"], 
         accelerator='gpu', 
@@ -75,10 +93,13 @@ def main():
         enable_progress_bar=True,
         gradient_clip_val=1.0,
         callbacks=[
-            pl.callbacks.EarlyStopping(monitor='val_loss', patience=200, verbose = False),
-            lr_monitor],
+            early_stopping_callback,
+            lr_monitor, 
+            log_parameters, 
+            checkpoint_callback],
         enable_checkpointing=True,
-        default_root_dir="./"
+        default_root_dir=log_save_dir,
+        logger=[logger_tb, logger_wb],
     )
 
     trainer.fit(
@@ -90,8 +111,9 @@ def main():
     #model.eval()
     trainer.test(model, test_loader)
     # save state dict
-    torch.save(model.state_dict(), "./" + "/model_1.ckpt")
-    #torch.save(model, log_save_dir + "/model_1.pt")
-    run.finish()
+    torch.save(model.state_dict(), log_save_dir + "/model_lightning_1.ckpt")
+
+    if dict_train["wandb"]:
+        run.finish()
 
 main()

@@ -435,6 +435,9 @@ def parse_settings(file="settings.txt"):
 
     num_lstm_layers = 3
     num_lstm_iters = 5
+
+    wandb = True
+
     with open(file) as f:
         lines = f.readlines()
 
@@ -595,6 +598,7 @@ def parse_settings(file="settings.txt"):
         print("gated batch norm:                {}".format(str(gated_batch_norm)))
         print("gated graph norm:                {}".format(str(gated_graph_norm)))
         print("gated resid:                     {}".format(str(gated_residual)))
+        print("wandb:                           {}".format(str(wandb)))
         print("--" * 20)
 
         dict_ret = {}
@@ -650,6 +654,7 @@ def parse_settings(file="settings.txt"):
         dict_ret["num_lstm_iters"] = num_lstm_iters
         dict_ret["num_lstm_layers"] = num_lstm_layers
         dict_ret["settings_file_name"] = file
+        dict_ret["wandb"] = wandb
 
         return dict_ret
 

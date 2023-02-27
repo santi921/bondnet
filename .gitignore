@@ -5,6 +5,7 @@ bondnet/prediction/pretrained/mg/
 dist/
 .cache/
 lightning_logs/
+logs_lightning/
 *.egg-info/
 *ipynb
 *.o
