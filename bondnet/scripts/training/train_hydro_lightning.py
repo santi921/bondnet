@@ -114,10 +114,6 @@ def main():
         model, 
         test_loader)
     
-    trainer.test(
-        model, 
-        train_loader
-    )
         
     if dict_train["wandb"]:
         run.finish()

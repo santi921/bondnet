@@ -521,8 +521,7 @@ def load_model_lightning(dict_train, device=None, load_dir=None):
         
         except: 
             print(":::NO MODEL FOUND LOADING FRESH MODEL:::")
-
-    
+            
     model = GatedGCNReactionNetworkLightning(
             in_feats=dict_train['in_feats'],
             embedding_size=dict_train['embedding_size'],

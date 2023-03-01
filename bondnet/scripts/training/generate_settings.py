@@ -53,7 +53,7 @@ def generate_and_write(options):
     dictionary_archi = \
     {
         "gated_num_layers": [1,2,3,4,5],
-        "fc_num_layers": [1,2,3, 4],
+        "fc_num_layers": [1,2,3,4],
         "gated_hidden_size_1": [512, 1024, 2048],
         "gated_hidden_size_shape": ["flat", "cone"],
         "fc_hidden_size_1": [512, 1024],
