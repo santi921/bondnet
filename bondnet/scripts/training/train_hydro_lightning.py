@@ -80,14 +80,14 @@ def main():
     early_stopping_callback = EarlyStopping(
         monitor='val_loss',
         min_delta=0.00,
-        patience=20,
+        patience=500,
         verbose=False,
         mode='min'
         )
     
     trainer = pl.Trainer(
-        #max_epochs=dict_train["epochs"], 
-        max_epochs = 20, 
+        max_epochs=2000, 
+        #max_epochs = 20, 
         accelerator='gpu', 
         devices = [0],
         accumulate_grad_batches=5, 
