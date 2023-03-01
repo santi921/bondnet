@@ -170,7 +170,14 @@ def train(model, nodes, data_loader, optimizer,loss_fn ='mse', device=None, augm
         
         #target_new_shape = (len(target), 1)
         #target = target.view(target_new_shape) 
-        pred = model(batched_graph, feats, label["reaction"], device=device, norm_bond = norm_bond, norm_atom=norm_atom)
+        pred = model(
+            batched_graph, 
+            feats, 
+            label["reaction"], 
+            device=device, 
+            norm_bond = norm_bond, 
+            norm_atom=norm_atom)
+
         pred = pred.view(-1)
         #pred_new_shape = (len(pred), 1)
         #pred = pred.view(pred_new_shape)
@@ -541,6 +548,7 @@ def load_model_lightning(dict_train, device=None, load_dir=None):
             max_epochs = dict_train["epochs"],
             eta_min=1e-6,
             loss_fn=dict_train["loss"],
+            augment=dict_train["augment"],
             device=device
     )
     model.to(device)

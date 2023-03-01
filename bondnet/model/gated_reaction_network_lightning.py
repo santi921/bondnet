@@ -84,7 +84,8 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         eta_min=1e-6,
         loss_fn="MSELoss",
         device="cpu",
-        wandb=True
+        wandb=True,
+        augment=False,
     ):
         super().__init__()
         self.learning_rate = learning_rate
@@ -117,7 +118,8 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             "eta_min": eta_min,
             "loss_fn": loss_fn,
             "device": device,
-            "wandb": wandb
+            "wandb": wandb,
+            "augment": augment
         }
         self.hparams.update(params)
         self.save_hyperparameters()
@@ -326,6 +328,8 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             norm_atom = norm_atom.to(self.device)
             norm_bond = norm_bond.to(self.device)   
             stdev = stdev.to(self.device)
+            if(self.hparams.augment and not empty_aug): 
+                target_aug = target_aug.to(self.device)
 
         pred = self(
             batched_graph, 
@@ -337,9 +341,29 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         
         pred = pred.view(-1)
 
-        # ========== compute losses ==========
-        all_loss = self.compute_loss(pred, target, stdev)
-        # ========== logger the loss ==========
+        if(self.hparams.augment and not empty_aug):
+            #target_aug_new_shape = (len(target_aug), 1)
+            #target_aug = target_aug.view(target_aug_new_shape) 
+            pred_aug = self(
+                batched_graph, 
+                feats,
+                label["reaction"],
+                device=self.device, 
+                reverse=True, 
+                norm_bond = norm_bond, 
+                norm_atom=norm_atom)
+            pred_aug = pred_aug.view(-1)
+
+            all_loss = self.compute_loss(
+                torch.cat((pred, pred_aug), axis=0),
+                torch.cat((target, target_aug), axis=0),
+                torch.cat((stdev, stdev), axis=0)
+            )
+            
+        else:
+            # ========== compute losses ==========
+            all_loss = self.compute_loss(pred, target, stdev)
+            # ========== logger the loss ==========
 
         self.log(f"{mode}_loss", all_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=len(label))
         self.update_metrics(target, pred, stdev, mode)
