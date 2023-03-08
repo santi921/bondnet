@@ -36,6 +36,7 @@ setup(
     ],
     scripts=['./bondnet/scripts/controller_train_hydro.py',
             './bondnet/scripts/controller_train.py',
+            './bondnet/scripts/training/bayes_opt_hydro_lightning.py',
              ],
     zip_safe=False,
 )

@@ -14,7 +14,7 @@ seed_torch()
 import torch
 torch.set_float32_matmul_precision("high") # might have to disable on older GPUs
 
-dictionary_params = {
+sweep_params = {
     "batch_size": {"values": [128, 256]}, 
     "weight_decay": {"values": [0.0001, 0.00]},
     "augment": {"values": [False]},
@@ -39,7 +39,6 @@ dictionary_params = {
     #"fc_hidden_size": {"values": [64, 128, 256]},
     "fc_activation": {"values": ["ReLU"]},
     "loss": {"values": ["mse", "huber", "mae"]},
-    "augment": {"values": [True, False]},
     "extra_features": {"values": [["bond_length"]]},
     "gated_hidden_size_1": {"values":[512, 1024]},
     "gated_hidden_size_shape": {"values":["flat", "cone"]},
@@ -218,11 +217,16 @@ class TrainingObject:
 
 
 if __name__ == "__main__": 
+    
     method = "bayes"
     sweep_config = {}
     on_gpu = True
     debug = True
+    project_name = "hydro_lightning"
+    extra_features = ["bond_length"]
+    dataset_loc = "../../dataset/qm_9_merge_3_qtaim.json"
     log_save_dir = "./logs_lightning/"
+
     if on_gpu:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     else:
@@ -230,8 +234,8 @@ if __name__ == "__main__":
         
 
     dataset = ReactionNetworkDatasetGraphs(
-        grapher=get_grapher(["bond_length"]), 
-        file="../../dataset/qm_9_merge_3_qtaim.json", 
+        grapher=get_grapher(extra_features), 
+        file=dataset_loc, 
         out_file="./", 
         target = 'dG_sp', 
         classifier = False, 
@@ -241,10 +245,10 @@ if __name__ == "__main__":
         filter_sparse_rxns=False,
         debug = debug,
         device = device,
-        extra_keys=["bond_length"],
+        extra_keys=extra_features,
         )
     
-    sweep_config["parameters"] = dictionary_params
+    sweep_config["parameters"] = sweep_params
     dict_for_model = {
         "extra_features": ["bond_length"],
         "classifier": False,
@@ -259,6 +263,6 @@ if __name__ == "__main__":
         sweep_config["method"] = method
         sweep_config["metric"] = {"name": "val_l1", "goal": "minimize"}
     
-    sweep_id = wandb.sweep(sweep_config, project="hydro_lightning")
+    sweep_id = wandb.sweep(sweep_config, project="project_name")
     training_obj = TrainingObject(dataset, device, dict_for_model, log_save_dir)
     wandb.agent(sweep_id, function=training_obj.train, count=300)

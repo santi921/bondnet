@@ -36,3 +36,6 @@ prediction.png
 *.txt
 latest-run
 settings*
+bondnet/scripts/test_best.png
+bondnet/dataset/generalized_backup.py
+bondnet/model/gated_reaction_network_lightning_backup.py
