@@ -1,4 +1,5 @@
-import wandb
+import wandb, argparse, torch
+
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from pytorch_lightning.callbacks import LearningRateMonitor, EarlyStopping, ModelCheckpoint
@@ -6,12 +7,11 @@ from pytorch_lightning.callbacks import LearningRateMonitor, EarlyStopping, Mode
 from bondnet.data.dataset import ReactionNetworkDatasetGraphs
 from bondnet.data.dataloader import DataLoaderReactionNetwork
 from bondnet.data.dataset import train_validation_test_split
-from bondnet.utils import seed_torch, parse_settings
-from bondnet.model.training_utils import get_grapher, LogParameters
+from bondnet.utils import seed_torch
+from bondnet.model.training_utils import get_grapher, LogParameters, load_model_lightning
 from bondnet.model.gated_reaction_network_lightning import GatedGCNReactionNetworkLightning
 
 seed_torch()
-import torch
 torch.set_float32_matmul_precision("high") # might have to disable on older GPUs
 
 sweep_params = {
@@ -36,7 +36,6 @@ sweep_params = {
     "fc_batch_norm": {"values": [True, False]},
     "fc_num_layers": {"values": [1, 2, 3]},
     "epochs": {"values": [100]},
-    #"fc_hidden_size": {"values": [64, 128, 256]},
     "fc_activation": {"values": ["ReLU"]},
     "loss": {"values": ["mse", "huber", "mae"]},
     "extra_features": {"values": [["bond_length"]]},
@@ -47,90 +46,6 @@ sweep_params = {
     "learning_rate": {"values": [0.0001, 0.00001, 0.000001]},
 }
 
-
-def load_model_lightning(dict_train, device=None, load_dir=None): 
-    """
-    returns model and optimizer from dict of parameters
-        
-    Args:
-        dict_train(dict): dictionary
-    Returns: 
-        model (pytorch model): model to train
-        optimizer (pytorch optimizer obj): optimizer
-    """
-
-    if(device == None):
-        if dict_train["on_gpu"]:
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            dict_train["gpu"] = device
-        else:
-            device = torch.device("cpu")
-            dict_train["gpu"] = "cpu"
-    else: dict_train["gpu"] = device
-
-    if dict_train["restore"]: 
-        print(":::RESTORING MODEL FROM EXISTING FILE:::")
-        
-        if load_dir == None:
-            load_dir = "./"
-        
-        try: 
-            
-            model = GatedGCNReactionNetworkLightning.load_from_checkpoint(
-                checkpoint_path=load_dir + "/last.ckpt")
-            model.to(device)
-            print(":::MODEL LOADED:::")
-            return model
-        
-        except: 
-            print(":::NO MODEL FOUND LOADING FRESH MODEL:::")
-    
-    shape_fc = dict_train["fc_hidden_size_shape"]
-    shape_gat = dict_train["gated_hidden_size_shape"]
-    base_fc = dict_train["fc_hidden_size_1"]
-    base_gat = dict_train["gated_hidden_size_1"]
-
-    if(shape_fc == "flat"):
-        fc_layers = [base_fc for i in range(dict_train["fc_num_layers"])]
-    else:
-        fc_layers = [int(base_fc/(2**i)) for i in range(dict_train["fc_num_layers"])]
-
-    if(shape_gat == "flat"):
-        gat_layers = [base_gat for i in range(dict_train["gated_num_layers"])]
-    else:
-        gat_layers = [int(base_gat/(2**i)) for i in range(dict_train["gated_num_layers"])]
-
-    model = GatedGCNReactionNetworkLightning(
-            in_feats=dict_train['in_feats'],
-            embedding_size=dict_train['embedding_size'],
-            gated_dropout=dict_train["gated_dropout"],
-            gated_num_layers=len(gat_layers),
-            gated_hidden_size=gat_layers,
-            gated_activation=dict_train['gated_activation'],
-            gated_batch_norm=dict_train["gated_batch_norm"],
-            gated_graph_norm=dict_train["gated_graph_norm"],
-            gated_num_fc_layers=dict_train["gated_num_fc_layers"],
-            gated_residual=dict_train["gated_residual"],
-            num_lstm_iters=dict_train["num_lstm_iters"],
-            num_lstm_layers=dict_train["num_lstm_layers"],
-            fc_dropout=dict_train["fc_dropout"],
-            fc_batch_norm=dict_train['fc_batch_norm'],
-            fc_num_layers=len(fc_layers),
-            fc_hidden_size=fc_layers,
-            fc_activation=dict_train['fc_activation'],
-            learning_rate=dict_train['learning_rate'],
-            weight_decay=dict_train['weight_decay'],
-            scheduler_name="reduce_on_plateau",
-            warmup_epochs=10, 
-            max_epochs = dict_train["epochs"],
-            eta_min=1e-6,
-            loss_fn=dict_train["loss"],
-            augment=dict_train["augment"],
-            device=device
-    )
-    model.to(device)
-    
-    return model
 
 class TrainingObject:
     def __init__(self, dataset, device, dict_for_model, log_save_dir): 
@@ -217,15 +132,25 @@ class TrainingObject:
 
 
 if __name__ == "__main__": 
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-method', type=str, default="bayes")
+    parser.add_argument('-on_gpu', type=bool, default=True)
+    parser.add_argument('-debug', type=bool, default=True)
+    parser.add_argument('-project_name', type=str, default="hydro_lightning")
+    parser.add_argument('-dataset_loc', type=str, default="../../dataset/qm_9_merge_3_qtaim.json")
+    parser.add_argument('-log_save_dir', type=str, default="./logs_lightning/")
+    args = parser.parse_args()
+
+    method = args.method
+    on_gpu = args.on_gpu
+    debug = args.debug
+    project_name = args.project_name
+    dataset_loc = args.dataset_loc
+    log_save_dir = args.log_save_dir
     
-    method = "bayes"
-    sweep_config = {}
-    on_gpu = True
-    debug = True
-    project_name = "hydro_lightning"
     extra_features = ["bond_length"]
-    dataset_loc = "../../dataset/qm_9_merge_3_qtaim.json"
-    log_save_dir = "./logs_lightning/"
+
+    sweep_config = {}
 
     if on_gpu:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

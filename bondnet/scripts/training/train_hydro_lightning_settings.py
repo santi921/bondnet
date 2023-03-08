@@ -1,4 +1,4 @@
-import wandb
+import wandb, argparse
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from pytorch_lightning.callbacks import LearningRateMonitor, EarlyStopping, ModelCheckpoint
@@ -46,14 +46,23 @@ config = {
 
 
 if __name__ == "__main__": 
-    
-    method = "bayes"
-    sweep_config = {}
-    on_gpu = True
-    debug = True
-    project_name = "hydro_lightning"
-    dataset_loc = "../../dataset/qm_9_merge_3_qtaim.json"
-    log_save_dir = "./logs_lightning/"
+    # add argparse to get these parameters
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-method', type=str, default="bayes")
+    parser.add_argument('-on_gpu', type=bool, default=True)
+    parser.add_argument('-debug', type=bool, default=True)
+    parser.add_argument('-project_name', type=str, default="hydro_lightning")
+    parser.add_argument('-dataset_loc', type=str, default="../../dataset/qm_9_merge_3_qtaim.json")
+    parser.add_argument('-log_save_dir', type=str, default="./logs_lightning/")
+    args = parser.parse_args()
+
+    method = args.method
+    on_gpu = args.on_gpu
+    debug = args.debug
+    project_name = args.project_name
+    dataset_loc = args.dataset_loc
+    log_save_dir = args.log_save_dir
 
     if on_gpu:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
