@@ -606,14 +606,28 @@ def load_model_lightning(dict_train, device=None, load_dir=None):
         
         except: 
             print(":::NO MODEL FOUND LOADING FRESH MODEL:::")
-            
+
+    shape_fc = dict_train["fc_hidden_size_shape"]
+    shape_gat = dict_train["gated_hidden_size_shape"]
+    base_fc = dict_train["fc_hidden_size_1"]
+    base_gat = dict_train["gated_hidden_size_1"]
+
+    if(shape_fc == "flat"):
+        fc_layers = [base_fc for i in range(dict_train["fc_num_layers"])]
+    else:
+        fc_layers = [int(base_fc/(2**i)) for i in range(dict_train["fc_num_layers"])]
+
+    if(shape_gat == "flat"):
+        gat_layers = [base_gat for i in range(dict_train["gated_num_layers"])]
+    else:
+        gat_layers = [int(base_gat/(2**i)) for i in range(dict_train["gated_num_layers"])]
+
     model = GatedGCNReactionNetworkLightning(
             in_feats=dict_train['in_feats'],
             embedding_size=dict_train['embedding_size'],
             gated_dropout=dict_train["gated_dropout"],
-            gated_num_layers=dict_train['gated_num_layers'],
-            gated_hidden_size=dict_train['gated_hidden_size'],
-            gated_activation=dict_train['gated_activation'],
+            gated_num_layers=len(gat_layers),
+            gated_hidden_size=gat_layers,gated_activation=dict_train['gated_activation'],
             gated_batch_norm=dict_train["gated_batch_norm"],
             gated_graph_norm=dict_train["gated_graph_norm"],
             gated_num_fc_layers=dict_train["gated_num_fc_layers"],
@@ -622,9 +636,8 @@ def load_model_lightning(dict_train, device=None, load_dir=None):
             num_lstm_layers=dict_train["num_lstm_layers"],
             fc_dropout=dict_train["fc_dropout"],
             fc_batch_norm=dict_train['fc_batch_norm'],
-            fc_num_layers=dict_train['fc_num_layers'],
-            fc_hidden_size=dict_train['fc_hidden_size'],
-            fc_activation=dict_train['fc_activation'],
+            fc_num_layers=len(fc_layers),
+            fc_hidden_size=fc_layers,fc_activation=dict_train['fc_activation'],
             learning_rate=dict_train['learning_rate'],
             weight_decay=dict_train['weight_decay'],
             scheduler_name="reduce_on_plateau",
