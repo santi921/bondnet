@@ -209,15 +209,15 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         
         self.train_l1 = Metrics_WeightedMAE()
         #self.train_mse = Metrics_WeightedMSE()
-        self.train_r2 = torchmetrics.R2Score()
+        self.train_r2 = torchmetrics.R2Score(num_outputs=1, multioutput = "variance_weighted")
 
         self.val_l1 = Metrics_WeightedMAE()
         #self.val_mse = Metrics_WeightedMSE()
-        self.val_r2 = torchmetrics.R2Score()
+        self.val_r2 = torchmetrics.R2Score(num_outputs=1, multioutput = "variance_weighted")
 
         self.test_l1 = Metrics_WeightedMAE()
         #self.test_mse = Metrics_WeightedMSE()
-        self.test_r2 = torchmetrics.R2Score()
+        self.test_r2 = torchmetrics.R2Score(num_outputs=1, multioutput = "variance_weighted")
         
 
     def forward(self, graph, feats, reactions, norm_atom=None, norm_bond=None, device=None, reverse = False):
