@@ -139,6 +139,9 @@ if __name__ == "__main__":
     parser.add_argument('-project_name', type=str, default="hydro_lightning")
     parser.add_argument('-dataset_loc', type=str, default="../../dataset/qm_9_merge_3_qtaim.json")
     parser.add_argument('-log_save_dir', type=str, default="./logs_lightning/")
+    parser.add_argument('-precision', type=str, default="16")
+    parser.add_argument('-target_var', type=str, default="dG_sp")
+
     args = parser.parse_args()
 
     method = args.method
@@ -147,9 +150,12 @@ if __name__ == "__main__":
     project_name = args.project_name
     dataset_loc = args.dataset_loc
     log_save_dir = args.log_save_dir
-    
-    extra_features = ["bond_length"]
+    target_var = args.target_var
+    precision = args.precision
+    if precision == "16" or precision == "32":
+        precision = int(precision)
 
+    extra_features = ["bond_length"]
     sweep_config = {}
 
     if on_gpu:
@@ -162,7 +168,7 @@ if __name__ == "__main__":
         grapher=get_grapher(extra_features), 
         file=dataset_loc, 
         out_file="./", 
-        target = 'dG_sp', 
+        target = target_var, 
         classifier = False, 
         classif_categories=3, 
         filter_species = [3, 5],

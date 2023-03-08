@@ -570,6 +570,7 @@ def load_model_lightning(dict_train, device=None, load_dir=None):
     
     return model
 
+
 def load_model_lightning(dict_train, device=None, load_dir=None): 
     """
     returns model and optimizer from dict of parameters

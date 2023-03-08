@@ -1,4 +1,4 @@
-import wandb, argparse
+import wandb, argparse, json
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from pytorch_lightning.callbacks import LearningRateMonitor, EarlyStopping, ModelCheckpoint
@@ -13,36 +13,6 @@ seed_torch()
 import torch
 torch.set_float32_matmul_precision("high") # might have to disable on older GPUs
 
-config = {
-    "batch_size": 128, 
-    "weight_decay": 0.000,
-    "augment": False,
-    "restore": False,
-    "on_gpu": True,
-    "restore": False,
-    "embedding_size": 12,
-    "gated_dropout": 0.1,
-    "gated_num_layers": 2,
-    "gated_activation": "ReLU",
-    "gated_batch_norm": False,
-    "gated_graph_norm": False,
-    "gated_num_fc_layers": 1,
-    "gated_residual": True,
-    "num_lstm_iters": 3,
-    "num_lstm_layers": 1,
-    "fc_dropout": 0.2,
-    "fc_batch_norm": False,
-    "fc_num_layers": 1,
-    "epochs": 100,
-    "fc_activation": "ReLU",
-    "loss": "mae",
-    "extra_features": ["bond_length"],
-    "gated_hidden_size_1": 512,
-    "gated_hidden_size_shape": "flat",
-    "fc_hidden_size_1": 256,
-    "fc_hidden_size_shape": "flat",
-    "learning_rate": 0.001,
-}
 
 
 if __name__ == "__main__": 
@@ -52,9 +22,13 @@ if __name__ == "__main__":
     parser.add_argument('-method', type=str, default="bayes")
     parser.add_argument('-on_gpu', type=bool, default=True)
     parser.add_argument('-debug', type=bool, default=True)
+    parser.add_argument('-precision', type=str, default=16)
     parser.add_argument('-project_name', type=str, default="hydro_lightning")
     parser.add_argument('-dataset_loc', type=str, default="../../dataset/qm_9_merge_3_qtaim.json")
     parser.add_argument('-log_save_dir', type=str, default="./logs_lightning/")
+    parser.add_argument('-target_var', type=str, default="dG_sp")
+    parser.add_argument("-config", type=str, default="./settings.json")
+
     args = parser.parse_args()
 
     method = args.method
@@ -63,6 +37,13 @@ if __name__ == "__main__":
     project_name = args.project_name
     dataset_loc = args.dataset_loc
     log_save_dir = args.log_save_dir
+    precision = args.precision
+    config = args.config
+    config = json.load(open(config, "r"))
+    target_var = args.target_var
+
+    if precision == "16" or precision == "32":
+        precision = int(precision)
 
     if on_gpu:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -74,7 +55,7 @@ if __name__ == "__main__":
         grapher=get_grapher(["bond_length"]), 
         file=dataset_loc, 
         out_file="./", 
-        target = 'dG_sp', 
+        target = target_var, 
         classifier = False, 
         classif_categories=3, 
         filter_species = [3, 5],
@@ -155,7 +136,7 @@ if __name__ == "__main__":
                 enable_checkpointing=True,
                 default_root_dir=log_save_dir,
                 logger=[logger_tb, logger_wb],
-                precision="bf16"
+                precision=precision
             )
             trainer.fit(
                 model, 

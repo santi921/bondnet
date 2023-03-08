@@ -1,0 +1,31 @@
+{
+    "augment": false,
+    "batch_size": 128,
+    "embedding_size": 12,
+    "epochs": 100,
+    "extra_features": [
+        "bond_length"
+    ],
+    "fc_activation": "ReLU",
+    "fc_batch_norm": false,
+    "fc_dropout": 0.2,
+    "fc_hidden_size_1": 256,
+    "fc_hidden_size_shape": "flat",
+    "fc_num_layers": 1,
+    "gated_activation": "ReLU",
+    "gated_batch_norm": false,
+    "gated_dropout": 0.1,
+    "gated_graph_norm": false,
+    "gated_hidden_size_1": 512,
+    "gated_hidden_size_shape": "flat",
+    "gated_num_fc_layers": 1,
+    "gated_num_layers": 2,
+    "gated_residual": true,
+    "learning_rate": 0.001,
+    "loss": "mae",
+    "num_lstm_iters": 3,
+    "num_lstm_layers": 1,
+    "on_gpu": true,
+    "restore": false,
+    "weight_decay": 0.0
+}
