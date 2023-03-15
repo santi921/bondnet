@@ -1184,7 +1184,7 @@ def create_reaction_network_files_and_valid_rows(
     print("sdf map fail count: \t\t{}".format(fail_sdf_map))
     print("product bond fail count: \t{}".format(fail_prod_len))
     print("about to group and organize")
-    
+    extra_info = False
     if extra_info is not None: 
         extra_info_tf = True
     
