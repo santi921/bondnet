@@ -14,7 +14,6 @@ import torch
 torch.set_float32_matmul_precision("high") # might have to disable on older GPUs
 
 
-
 if __name__ == "__main__": 
     # add argparse to get these parameters
 
@@ -24,9 +23,9 @@ if __name__ == "__main__":
     parser.add_argument('-debug', type=bool, default=True)
     parser.add_argument('-precision', type=str, default=16)
     parser.add_argument('-project_name', type=str, default="hydro_lightning")
-    parser.add_argument('-dataset_loc', type=str, default="../../dataset/qm_9_merge_3_qtaim.json")
+    parser.add_argument('-dataset_loc', type=str, default="../../dataset/mg_dataset/merged_mg.json")
     parser.add_argument('-log_save_dir', type=str, default="./logs_lightning/")
-    parser.add_argument('-target_var', type=str, default="dG_sp")
+    parser.add_argument('-target_var', type=str, default="ts")
     parser.add_argument("-config", type=str, default="./settings.json")
 
     args = parser.parse_args()
@@ -64,7 +63,7 @@ if __name__ == "__main__":
         debug = debug,
         device = device,
         extra_keys=["bond_length"],
-        extra_info=["functional_group_reacted"]
+        extra_info=None
         )
     
     dict_for_model = {
