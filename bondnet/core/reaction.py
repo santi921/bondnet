@@ -49,7 +49,7 @@ class Reaction:
         self.len_reactants = len(reactants)
         self.total_bonds = total_bonds
         self.reaction_type = reaction_type
-        self.extra_info_dict = extra_info
+        self._extra_info = extra_info
 
         if(total_atoms != None):
             self.total_atoms = total_atoms
@@ -177,6 +177,12 @@ class Reaction:
         species = (reactant.species[u], reactant.species[v])
 
         return {"species": species}
+
+    def get_extra_info(self):
+        return self._extra_info
+    
+    def set_extra_info(self, info):
+        self._extra_info = info
 
     def atom_mapping(self):
         """

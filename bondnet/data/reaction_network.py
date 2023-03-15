@@ -10,7 +10,8 @@ class ReactionInNetwork:
         bond_mapping=None,
         total_bonds=None, 
         total_atoms=None,
-        id=None
+        id=None,
+        extra_info=None
     ):
         """
         A class to represent a chemical reaction in reaction network.
@@ -23,7 +24,7 @@ class ReactionInNetwork:
             bond_mapping (list of dict): each dict is a bond mapping from product to
                 reactant
             id (int or str): unique identifier of the reaction
-
+            extra_info (dict): extra information of the reaction
         Attrs:
             init_reactants (list): reactants indices in the global molecule pool. Not
                 supposed to be changed.
@@ -41,7 +42,7 @@ class ReactionInNetwork:
         self._init_products = self._products = products
         self.len_products = len(products)
         self.len_reactants = len(reactants)
-
+        self.extra_info = extra_info
         self.atom_mapping = atom_mapping
         self.bond_mapping = bond_mapping
 

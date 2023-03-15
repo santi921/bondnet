@@ -1120,6 +1120,7 @@ class ReactionCollection:
         group_mode="all",
         one_per_iso_bond_group=True,
         sdf_mapping=False,
+        extra_info=False
     ):
         """
         Write the reaction
@@ -1208,8 +1209,10 @@ class ReactionCollection:
                     "broken_bonds":rxn.get_broken_bond(),
                     "formed_bonds":rxn.get_formed_bond(),
                     "id": [rxn.get_id()],
-                    "reaction_type": rxn.get_type()
+                    "reaction_type": rxn.get_type(),
                 }
+                if extra_info:
+                    data["extra_info"] = rxn.get_extra_info()
                 all_labels.append(data)
 
         # write sdf - should be the same but we might need to get indeces again

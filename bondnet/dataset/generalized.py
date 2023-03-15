@@ -1184,7 +1184,10 @@ def create_reaction_network_files_and_valid_rows(
     print("sdf map fail count: \t\t{}".format(fail_sdf_map))
     print("product bond fail count: \t{}".format(fail_prod_len))
     print("about to group and organize")
-
+    
+    if extra_info is not None: 
+        extra_info_tf = True
+    
     extractor = ReactionCollection(reactions)
     (
         all_mols,
@@ -1196,6 +1199,7 @@ def create_reaction_network_files_and_valid_rows(
         feature_file=path_json + "mg_feature_bond_rgrn_classify.yaml",
         group_mode="charge_0",
         sdf_mapping=False,
+        extra_info=extra_info_tf,
     )
 
     return all_mols, all_labels, features

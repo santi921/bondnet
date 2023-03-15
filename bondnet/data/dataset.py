@@ -758,7 +758,6 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         # get molecules, labels, and extra features
         molecules = self.get_molecules(self.molecules)
         raw_labels = self.get_labels(self.raw_labels)
-
         if self.extra_features is not None:
             extra_features = self.get_features(self.extra_features)
         else:
@@ -855,6 +854,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                     total_bonds=lb["total_bonds"],
                     total_atoms=lb['total_atoms'],
                     id=lb["id"],
+                    extra_info=lb['extra_info']
                 )
 
                 reactions.append(rxn)
@@ -881,7 +881,8 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                         "bond_map":lb["bond_mapping"],
                         "total_bonds":lb["total_bonds"],
                         "total_atoms":lb["total_atoms"],
-                        "reaction_type": lb["reaction_type"]
+                        "reaction_type": lb["reaction_type"],
+                        "extra_info": lb["extra_info"]
                     }
                     self.labels.append(label)
                 else:
@@ -898,7 +899,8 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                         "bond_map":lb["bond_mapping"], 
                         "total_bonds":lb["total_bonds"],
                         "total_atoms":lb["total_atoms"],
-                        "reaction_type": lb["reaction_type"]
+                        "reaction_type": lb["reaction_type"],
+                        "extra_info": lb["extra_info"]
                     }
                     self.labels.append(label)
 
