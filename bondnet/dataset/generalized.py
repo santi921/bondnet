@@ -299,7 +299,8 @@ def process_species_graph(
     upper_bound=100,
     feature_filter=False,
     categories=5,
-    extra_keys = None
+    extra_keys = None,
+    extra_info = None,
 ):
     """
     Takes a row and processes the products/reactants - entirely defined by graphs from row
@@ -330,12 +331,6 @@ def process_species_graph(
     formed_bonds = [tuple(i) for i in row["bonds_formed"]]
     check_list_len = broken_len + formed_len
 
-    #if check_list_len == 0:
-    #    if verbose:
-    #        print("no bond changes detected")
-    #    return []
-
-    #else:
     if reverse_rxn:
         reactant_key = "product"
         product_key = "reactant"
@@ -499,6 +494,7 @@ def process_species_graph(
         ), "atoms in reactant and products are not equal"
 
     if products != [] and reactants != []:
+        
         rxn_type = []
 
         if filter_prod != -99:
@@ -661,6 +657,13 @@ def process_species_graph(
                 print("filtering rxn")
                 return []
 
+
+        extra_info_dict = {}
+        if extra_info != None:
+            for key in extra_info:
+                if key in row.keys():
+                    extra_info_dict[key] = row[key]
+                
         rxn = Reaction(
             reactants=reactants,
             products=products,
@@ -672,6 +675,7 @@ def process_species_graph(
             reverse_energy_target=reverse_energy,
             identifier=id,
             reaction_type=rxn_type,
+            extra_info = extra_info_dict
         )
         atom_mapping_check = []
         for i in atoms_reactants:
@@ -1054,7 +1058,8 @@ def create_reaction_network_files_and_valid_rows(
     filter_sparse_rxn=False,
     feature_filter=False,
     categories=5,
-    extra_keys = None
+    extra_keys = None,
+    extra_info = None
 ):
     """
     Processes json file from emmet to use in training bondnet
@@ -1116,7 +1121,8 @@ def create_reaction_network_files_and_valid_rows(
                     "lower_bound": lower_bound,
                     "filter_sparse_rxns": filter_sparse_rxn,
                     "feature_filter": feature_filter,
-                    "extra_keys": extra_keys
+                    "extra_keys": extra_keys,
+                    "extra_info": extra_info
                 },
                 timeout=30,
             )

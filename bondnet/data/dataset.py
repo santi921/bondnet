@@ -702,12 +702,12 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         device = None,
         extra_keys = None,
         dataset_atom_types = None,
+        extra_info = None,
     ):
         
 
         if dtype not in ["float32", "float64"]:
             raise ValueError(f"`dtype {dtype}` should be `float32` or `float64`.")
-        
         self.grapher = grapher
         (
             all_mols,
@@ -722,7 +722,8 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
             categories=classif_categories,
             filter_sparse_rxn=filter_sparse_rxns,
             feature_filter=feature_filter,
-            extra_keys=extra_keys
+            extra_keys=extra_keys,
+            extra_info=extra_info
         )
 
         self.molecules = all_mols

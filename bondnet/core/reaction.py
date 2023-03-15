@@ -39,7 +39,8 @@ class Reaction:
         free_energy=None, identifier=None, 
         total_bonds=None, total_atoms=None,
         reverse_energy_target = None,
-        reaction_type = None
+        reaction_type = None,
+        extra_info = {}
     ):
 
         self.reactants = reactants
@@ -48,6 +49,7 @@ class Reaction:
         self.len_reactants = len(reactants)
         self.total_bonds = total_bonds
         self.reaction_type = reaction_type
+        self.extra_info_dict = extra_info
 
         if(total_atoms != None):
             self.total_atoms = total_atoms
@@ -67,6 +69,7 @@ class Reaction:
         self._formed_bond = formed_bond
         self._free_energy = free_energy
         self._reverse_energy_target = reverse_energy_target
+        self._extra_info = extra_info
         self._id = identifier
         self._atom_mapping = None
         self._bond_mapping_by_int_index = None

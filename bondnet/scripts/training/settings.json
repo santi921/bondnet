@@ -1,10 +1,14 @@
 {
     "augment": false,
     "batch_size": 128,
+    "debug": true, 
     "embedding_size": 12,
     "epochs": 100,
     "extra_features": [
         "bond_length"
+    ],
+    "extra_info":[
+        "functional_group_reacted"
     ],
     "fc_activation": "ReLU",
     "fc_batch_norm": false,

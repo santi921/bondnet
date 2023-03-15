@@ -64,6 +64,7 @@ if __name__ == "__main__":
         debug = debug,
         device = device,
         extra_keys=["bond_length"],
+        extra_info=["functional_group_reacted"]
         )
     
     dict_for_model = {
