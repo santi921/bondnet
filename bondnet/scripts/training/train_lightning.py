@@ -86,12 +86,8 @@ if __name__ == "__main__":
     
     print(">"*40 + "config_settings" + "<"*40)
     for k, v in config.items():
-        if len(str(k)) > 16:
-            print("{}\t\t\t{}".format(k, v))
-        elif len(str(k)) > 8 and len(str(k))<=16:
-            print("{}\t\t\t\t{}".format(k, v))
-        else:
-            print("{}\t\t\t\t\t{}".format(k, v))
+        print("{}\t\t\t{}".format(str(k).ljust(20), str(v).ljust(20)))
+
     print(">"*40 + "config_settings" + "<"*40)
 
     val_loader = DataLoaderReactionNetwork(valset, batch_size=len(valset), shuffle=False)
