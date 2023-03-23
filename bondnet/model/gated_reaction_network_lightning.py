@@ -129,7 +129,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         if isinstance(fc_activation, str):
             fc_activation = getattr(nn, fc_activation)()
 
-        # embedding layer
+        # embedding layer 
         self.embedding = UnifySize(in_feats, embedding_size)
 
         # gated layer
@@ -501,7 +501,6 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         plt.ylabel("True")
         plt.savefig("./{}.png".format("./test"))
 
-
         return self.shared_step(batch, mode="test")
 
 
@@ -509,10 +508,8 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         """
         Training epoch end
         """
-
         l1, r2 =  self.compute_metrics(mode = "train")
         self.log("train_l1", l1, prog_bar=True)
-        #self.log("train_rmse", rmse, prog_bar=True)
         self.log("train_r2", r2, prog_bar=True)
 
 
@@ -522,7 +519,6 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         """
         l1, r2 =  self.compute_metrics(mode = "val")
         self.log("val_l1", l1, prog_bar=True)
-        #self.log("val_rmse", rmse)
         self.log("val_r2", r2, prog_bar=True)
 
 
@@ -532,51 +528,41 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         """
         l1, r2 =  self.compute_metrics(mode = "test")
         self.log("test_l1", l1, prog_bar=True)
-        #self.log("test_rmse", rmse, prog_bar=True)
         self.log("test_r2", r2, prog_bar=True)
 
 
     def update_metrics(self, pred, target, weight, mode):
+
         if mode == 'train': 
             self.train_l1.update(pred, target, weight, reduction='sum')
-            #self.train_mse.update(pred, target, weight, reduction='sum')
             self.train_r2.update(pred, target)
         
         elif mode == 'val':
             self.val_l1.update(pred, target, weight, reduction='sum')
-            #self.val_mse.update(pred, target, weight, reduction='sum')
             self.val_r2.update(pred, target) 
         
-        elif mode == 'test':
-            
+        elif mode == 'test':            
             self.test_l1.update(pred, target, weight, reduction='sum')
-            #self.test_mse.update(pred, target, weight, reduction='sum')
             self.test_r2.update(pred, target) 
 
 
     def compute_metrics(self, mode):
         if mode == 'train': 
             l1 = self.train_l1.compute()
-            #mse = self.train_mse.compute()
             r2 = self.train_r2.compute()
             self.train_r2.reset()
-            #self.train_mse.reset()
             self.train_l1.reset()
 
         elif mode == 'val':
             l1 = self.val_l1.compute()
-            #mse = self.val_mse.compute()
             r2 = self.val_r2.compute()
             self.val_r2.reset()
-            #self.val_mse.reset()
             self.val_l1.reset()
 
         elif mode == 'test':
             l1 = self.test_l1.compute()
-            #mse = self.test_mse.compute()
             r2 = self.test_r2.compute()
             self.test_r2.reset()
-            #self.test_mse.reset()
             self.test_l1.reset()
         
         return l1, r2

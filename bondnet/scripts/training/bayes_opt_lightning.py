@@ -1,4 +1,4 @@
-import wandb, argparse, torch
+import wandb, argparse, torch, json
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
@@ -13,38 +13,6 @@ from bondnet.model.gated_reaction_network_lightning import GatedGCNReactionNetwo
 
 seed_torch()
 torch.set_float32_matmul_precision("high") # might have to disable on older GPUs
-
-sweep_params = {
-    "batch_size": {"values": [128, 256]}, 
-    "weight_decay": {"values": [0.0001, 0.00]},
-    "augment": {"values": [False]},
-    "restore": {"values": [False]},
-    "on_gpu": {"values": [True]},
-    "restore": {"values": [False]},
-    "embedding_size": {"values": [8, 12, 16]},
-    "gated_dropout": {"values": [0.0, 0.1, 0.2]},
-    "gated_num_layers": {"values": [1, 2, 3]},
-    #"gated_hidden_size": {"values": [64, 128, 256]},
-    "gated_activation": {"values": ["ReLU"]},
-    "gated_batch_norm": {"values": [True, False]},
-    "gated_graph_norm": {"values": [True, False]},
-    "gated_num_fc_layers": {"values": [1, 2, 3]},
-    "gated_residual": {"values": [True, False]},
-    "num_lstm_iters": {"values": [9, 11, 13, 15]},
-    "num_lstm_layers": {"values": [1, 2, 3]},
-    "fc_dropout": {"values": [0.0, 0.1, 0.2]},
-    "fc_batch_norm": {"values": [True, False]},
-    "fc_num_layers": {"values": [1, 2, 3]},
-    "epochs": {"values": [100]},
-    "fc_activation": {"values": ["ReLU"]},
-    "loss": {"values": ["mse", "huber", "mae"]},
-    "extra_features": {"values": [["bond_length"]]},
-    "gated_hidden_size_1": {"values":[512, 1024]},
-    "gated_hidden_size_shape": {"values":["flat", "cone"]},
-    "fc_hidden_size_1": {"values":[512, 1024]},
-    "fc_hidden_size_shape": {"values":["flat", "cone"]},
-    "learning_rate": {"values": [0.0001, 0.00001, 0.000001]},
-}
 
 
 class TrainingObject:
@@ -136,27 +104,27 @@ if __name__ == "__main__":
     parser.add_argument('-method', type=str, default="bayes")
     parser.add_argument('-on_gpu', type=bool, default=True)
     parser.add_argument('-debug', type=bool, default=True)
-    parser.add_argument('-project_name', type=str, default="hydro_lightning")
+    parser.add_argument('-project_name', type=str, default="bayes_hydro_lightning")
     parser.add_argument('-dataset_loc', type=str, default="../../dataset/qm_9_merge_3_qtaim.json")
     parser.add_argument('-log_save_dir', type=str, default="./logs_lightning/")
-    parser.add_argument('-precision', type=str, default="16")
-    parser.add_argument('-target_var', type=str, default="dG_sp")
+    parser.add_argument('-project_name', type=str, default="hydro_lightning")
+    parser.add_argument('-sweep_config', type=str, default='sweep_config.yaml')
 
     args = parser.parse_args()
 
     method = args.method
     on_gpu = args.on_gpu
     debug = args.debug
+    augment = args.augment
     project_name = args.project_name
     dataset_loc = args.dataset_loc
     log_save_dir = args.log_save_dir
-    target_var = args.target_var
-    precision = args.precision
-    if precision == "16" or precision == "32":
-        precision = int(precision)
+    wandb_project_name = args.wandb_project
+    sweep_config = args.sweep_config
 
-    extra_features = ["bond_length"]
-    sweep_config = {}
+    config = json.load(open(sweep_config, "r"))
+    extra_keys = config["extra_features"]
+    sweep_params = json.load(open(sweep_config, "r"))["parameters"]
 
     if on_gpu:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -165,10 +133,10 @@ if __name__ == "__main__":
         
 
     dataset = ReactionNetworkDatasetGraphs(
-        grapher=get_grapher(extra_features), 
+        grapher=get_grapher(extra_keys), 
         file=dataset_loc, 
         out_file="./", 
-        target = target_var, 
+        target = config["target_var"], 
         classifier = False, 
         classif_categories=3, 
         filter_species = [3, 5],
@@ -176,12 +144,12 @@ if __name__ == "__main__":
         filter_sparse_rxns=False,
         debug = debug,
         device = device,
-        extra_keys=extra_features,
+        extra_keys=extra_keys,
         )
     
     sweep_config["parameters"] = sweep_params
     dict_for_model = {
-        "extra_features": ["bond_length"],
+        "extra_features": extra_keys,
         "classifier": False,
         "classif_categories": 3,
         "filter_species": [3, 5],
@@ -194,6 +162,11 @@ if __name__ == "__main__":
         sweep_config["method"] = method
         sweep_config["metric"] = {"name": "val_l1", "goal": "minimize"}
     
-    sweep_id = wandb.sweep(sweep_config, project="project_name")
-    training_obj = TrainingObject(dataset, device, dict_for_model, log_save_dir)
+    sweep_id = wandb.sweep(sweep_config, project=wandb_project_name)
+    training_obj = TrainingObject(
+        dataset, 
+        device, 
+        dict_for_model, 
+        log_save_dir,
+        project_name=wandb_project_name)
     wandb.agent(sweep_id, function=training_obj.train, count=300)

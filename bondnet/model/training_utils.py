@@ -7,6 +7,9 @@ from sklearn.metrics import f1_score
 from torch.nn import MSELoss
 import pytorch_lightning as pl
 
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning) 
+
 from bondnet.model.metric import WeightedL1Loss, WeightedMSELoss, WeightedSmoothL1Loss
 from bondnet.model.gated_reaction_network_graph import GatedGCNReactionNetwork
 from bondnet.model.gated_reaction_classifier_graph import GatedGCNReactionNetworkClassifier
@@ -485,7 +488,6 @@ def load_model(dict_train):
     return model, optimizer, optimizer_transfer
 
 
-
 def load_model_lightning(dict_train, device=None, load_dir=None): 
     """
     returns model and optimizer from dict of parameters
@@ -643,7 +645,7 @@ def load_model_lightning(dict_train, device=None, load_dir=None):
             weight_decay=dict_train['weight_decay'],
             scheduler_name="reduce_on_plateau",
             warmup_epochs=10, 
-            max_epochs = dict_train["epochs"],
+            max_epochs = dict_train["max_epochs"],
             eta_min=1e-6,
             loss_fn=dict_train["loss"],
             augment=dict_train["augment"],
@@ -772,10 +774,11 @@ class LogParameters(pl.Callback):
     def on_validation_epoch_end(self, trainer, pl_module):
         if not trainer.sanity_checking: # WARN: sanity_check is turned on by default
             lp = []
+            tensorboard_logger_index = 0
             for n,p in pl_module.named_parameters():
-                trainer.logger.experiment.add_histogram(n, p.data, trainer.current_epoch)
+                trainer.logger.experiment[tensorboard_logger_index].add_histogram(n, p.data, trainer.current_epoch)
                 self.d_parameters[n].append(p.ravel().cpu().numpy())
                 lp.append(p.ravel().cpu().numpy())
             p = np.concatenate(lp)
-            trainer.logger.experiment.add_histogram('Parameters', p, trainer.current_epoch)
+            trainer.logger.experiment[tensorboard_logger_index].add_histogram('Parameters', p, trainer.current_epoch)
             
