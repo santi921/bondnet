@@ -25,7 +25,7 @@
     "gated_num_layers": 2,
     "gated_residual": true,
     "learning_rate": 0.001,
-    "loss": "mae",
+    "loss": "mse",
     "max_epochs": 10,
     "max_epochs_transfer":10, 
     "num_lstm_iters": 3,

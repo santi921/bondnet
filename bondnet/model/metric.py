@@ -32,7 +32,7 @@ class WeightedMSELoss(nn.Module):
         self.reduction = reduction
         super(WeightedMSELoss, self).__init__()
 
-    def forward(self, input, target, weight):
+    def forward(self, input, target, weight=None):
 
         if weight is None:
             return F.l1_loss(input, target, reduction=self.reduction)

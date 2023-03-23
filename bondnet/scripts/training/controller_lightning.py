@@ -86,12 +86,7 @@ if __name__ == "__main__":
     
     print(">"*30 + "config_settings" + "<"*30)
     for k, v in config.items():
-        if len(str(k)) > 8:
-            print("{}\t\t{}".format(k, v))
-        elif len(str(k)) > 4 and len(str(k))<8:
-            print("{}\t\t\t{}".format(k, v))
-        else:
-            print("{}\t\t\t\t{}".format(k, v))
+        print("{}\t\t{}".format(k, v))
     print(">"*30 + "config_settings" + "<"*30)
 
     val_loader = DataLoaderReactionNetwork(valset, batch_size=len(valset), shuffle=False)
@@ -134,7 +129,6 @@ if __name__ == "__main__":
             logger_tb_transfer = TensorBoardLogger(log_save_dir, name="test_logs_transfer")
             logger_wb_transfer = WandbLogger(project=project_name, name="test_logs_transfer")
             lr_monitor_transfer = LearningRateMonitor(logging_interval='step')
-            
             checkpoint_callback_transfer = ModelCheckpoint(
                 dirpath=log_save_dir, 
                 filename='model_lightning_transfer_{epoch:02d}-{val_l1:.2f}',
@@ -178,15 +172,10 @@ if __name__ == "__main__":
                 val_transfer_loader 
                 )
             
-            # freezing logic
-            model_parameters_prior = filter(lambda p: p.requires_grad, model.parameters())
-            params_prior = sum([np.prod(p.size()) for p in model_parameters_prior])    
             if(config["freeze"]): model.gated_layers.requires_grad_(False)
             model_parameters = filter(lambda p: p.requires_grad, model.parameters())
             params = sum([np.prod(p.size()) for p in model_parameters])
-            print(">"*25 + "Freezing Module" + "<"*25)
             print("Freezing Gated Layers....")
-            print("Number of Trainable Model Params Prior: {}".format(params_prior))
             print("Number of Trainable Model Params: {}".format(params))
 
         run_transfer.finish()
@@ -197,7 +186,6 @@ if __name__ == "__main__":
         logger_tb = TensorBoardLogger(log_save_dir, name="test_logs")
         logger_wb = WandbLogger(project=project_name, name="test_logs")
         lr_monitor = LearningRateMonitor(logging_interval='step')
-        
         checkpoint_callback = ModelCheckpoint(
             dirpath=log_save_dir, 
             filename='model_lightning_{epoch:02d}-{val_l1:.2f}',
@@ -205,8 +193,7 @@ if __name__ == "__main__":
             mode='min',
             auto_insert_metric_name=True,
             save_last=True
-        ) 
-
+        )            
         early_stopping_callback = EarlyStopping(
             monitor='val_loss',
             min_delta=0.00,
@@ -244,3 +231,82 @@ if __name__ == "__main__":
             test_loader)
             
     run.finish()
+
+
+
+
+import torch
+import os 
+from glob import glob
+from bondnet.scripts.training.train_transfer import train_transfer
+from bondnet.model.training_utils import get_grapher
+from bondnet.data.dataset import ReactionNetworkDatasetGraphs
+from bondnet.utils import parse_settings
+
+def main():
+    
+    #path_mg_data = "../dataset/mg_dataset/20220826_mpreact_reactions.json"
+    files = glob("settings*.txt")
+    #print(files)
+    first_setting = files[0]
+    dict_train = parse_settings(first_setting)
+    
+    if(dict_train["classifier"]):
+        classif_categories = dict_train["categories"]
+    else:classif_categories = None
+    
+    #if(device == None):
+    if dict_train["on_gpu"]:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        dict_train["gpu"] = device
+    else:
+        device = torch.device("cpu")
+        dict_train["gpu"] = "cpu"
+    
+    # NOTE YOU WANT TO USE SAME FEATURIZER/DEVICE ON ALL RUNS
+    # IN THIS FOLDER B/C THIS MAKES IT SO YOU ONLY HAVE TO GEN 
+    # DATASET ONCE
+
+    dataset = ReactionNetworkDatasetGraphs(
+        grapher=get_grapher(dict_train["extra_features"]), 
+        file=dict_train["dataset_loc"], 
+        out_file="./", 
+        target = 'ts', 
+        classifier = dict_train["classifier"], 
+        classif_categories=classif_categories, 
+        filter_species = dict_train["filter_species"],
+        filter_sparse_rxns=dict_train["filter_sparse_rxns"],
+        filter_outliers=dict_train["filter_outliers"],
+        debug = dict_train["debug"],
+        device = dict_train["gpu"],
+        feature_filter = dict_train["featurizer_filter"],
+        extra_keys = dict_train["extra_features"]
+    )
+    
+    dataset_transfer = ReactionNetworkDatasetGraphs(
+        grapher=get_grapher(dict_train["extra_features"]), 
+        file=dict_train["dataset_loc"], 
+        out_file="./", 
+        target = 'diff', 
+        classifier = dict_train["classifier"], 
+        classif_categories=classif_categories, 
+        filter_species = dict_train["filter_species"],
+        filter_sparse_rxns=dict_train["filter_sparse_rxns"],
+        filter_outliers=dict_train["filter_outliers"],
+        debug = dict_train["debug"],
+        device = dict_train["gpu"],
+        feature_filter = dict_train["featurizer_filter"],
+        extra_keys = dict_train["extra_features"]
+    )
+
+    for ind, file in enumerate(files):
+        try:
+            train_transfer(file, 
+            dataset = dataset, 
+            dataset_transfer = dataset_transfer, 
+            device = dict_train["gpu"]
+            )
+            os.rename(file, str(ind) + "_done.txt")
+        except: 
+            print("failed on file {}".format(file))
+main()

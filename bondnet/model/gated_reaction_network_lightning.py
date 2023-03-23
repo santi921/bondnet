@@ -377,7 +377,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         """
 
         if(self.hparams.loss_fn == 'mse'):
-            loss_fn = MSELoss(reduction="mean")
+            loss_fn = WeightedMSELoss(reduction="mean")
         elif(self.hparams.loss_fn == 'huber'):
             loss_fn = WeightedSmoothL1Loss(reduction='mean')
         elif(self.hparams.loss_fn == 'mae'):
