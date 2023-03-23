@@ -353,7 +353,6 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
                 norm_bond = norm_bond, 
                 norm_atom=norm_atom)
             pred_aug = pred_aug.view(-1)
-
             all_loss = self.compute_loss(
                 torch.cat((pred, pred_aug), axis=0),
                 torch.cat((target, target_aug), axis=0),

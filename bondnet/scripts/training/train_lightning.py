@@ -84,15 +84,15 @@ if __name__ == "__main__":
         dataset, validation=0.15, test=0.15
     )
     
-    print(">"*30 + "config_settings" + "<"*30)
+    print(">"*40 + "config_settings" + "<"*40)
     for k, v in config.items():
-        if len(str(k)) > 8:
-            print("{}\t\t{}".format(k, v))
-        elif len(str(k)) > 4 and len(str(k))<8:
+        if len(str(k)) > 16:
             print("{}\t\t\t{}".format(k, v))
-        else:
+        elif len(str(k)) > 8 and len(str(k))<=16:
             print("{}\t\t\t\t{}".format(k, v))
-    print(">"*30 + "config_settings" + "<"*30)
+        else:
+            print("{}\t\t\t\t\t{}".format(k, v))
+    print(">"*40 + "config_settings" + "<"*40)
 
     val_loader = DataLoaderReactionNetwork(valset, batch_size=len(valset), shuffle=False)
     test_loader = DataLoaderReactionNetwork(testset, batch_size=len(testset), shuffle=False)
