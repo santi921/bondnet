@@ -596,6 +596,13 @@ def load_model_lightning(dict_train, device=None, load_dir=None):
     if dict_train["restore"]: 
         print(":::RESTORING MODEL FROM EXISTING FILE:::")
         
+        if dict_train["restore_path"]!=None:
+            model = GatedGCNReactionNetworkLightning.load_from_checkpoint(
+                checkpoint_path=dict_train["restore_path"])
+            model.to(device)
+            print(":::MODEL LOADED:::")
+            return model
+        
         if load_dir == None:
             load_dir = "./"
         

@@ -31,7 +31,7 @@ class TrainingObject:
 
         self.extra_keys = self.config["parameters"]["extra_features"]["values"][0]
         print("extra keys: ", self.extra_keys)
-        
+        print("debug value: ", self.config["parameters"]["debug"]["values"])
         self.dataset = ReactionNetworkDatasetGraphs(
             grapher=get_grapher(self.extra_keys), 
             file=self.dataset_loc, 
@@ -42,7 +42,7 @@ class TrainingObject:
             filter_species = self.config["parameters"]["filter_species"]["values"][0],
             filter_outliers=self.config["parameters"]["filter_outliers"]["values"][0],
             filter_sparse_rxns=self.config["parameters"]["filter_sparse_rxns"]["values"][0],
-            debug = self.config["parameters"]["debug"]["values"],
+            debug = self.config["parameters"]["debug"]["values"][0],
             device = self.device,
             extra_keys=self.extra_keys,
             extra_info=None,
@@ -68,7 +68,7 @@ class TrainingObject:
                 filter_species = self.config["parameters"]["filter_species"]["values"][0],
                 filter_outliers=self.config["parameters"]["filter_outliers"]["values"][0],
                 filter_sparse_rxns=self.config["parameters"]["filter_sparse_rxns"]["values"][0],
-                debug = self.config["parameters"]["debug"]["values"],
+                debug = self.config["parameters"]["debug"]["values"][0],
                 device = self.device,
                 extra_keys=self.extra_keys,
             )
@@ -229,9 +229,9 @@ class TrainingObject:
 if __name__ == "__main__": 
     parser = argparse.ArgumentParser()
     parser.add_argument('-method', type=str, default="bayes")
-    parser.add_argument('-on_gpu', type=bool, default=True)
-    parser.add_argument('-debug', type=bool, default=True)
-    parser.add_argument('-augment', type=bool, default=True)
+    parser.add_argument('--on_gpu', default=False, action='store_true')
+    parser.add_argument('--debug',  default=False, action='store_true')
+    parser.add_argument('--augment', default=False, action='store_true')
 
     parser.add_argument('-dataset_loc', type=str, default="../../dataset/qm_9_merge_3_qtaim.json")
     parser.add_argument('-log_save_dir', type=str, default="./logs_lightning/")
@@ -240,10 +240,11 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    method = args.method
-    on_gpu = args.on_gpu
-    debug = args.debug
-    augment = args.augment
+    method = str(args.method)
+    on_gpu = bool(args.on_gpu)
+    debug = bool(args.debug)
+    
+    augment = bool(args.augment)
     dataset_loc = args.dataset_loc
     log_save_dir = args.log_save_dir
     wandb_project_name =  args.project_name
@@ -253,6 +254,15 @@ if __name__ == "__main__":
     sweep_params["debug"] = {"values": [debug]}
     sweep_config["parameters"] = sweep_params
     
+    print("method: {}".format(method))
+    print("on_gpu: {}".format(on_gpu))
+    print("debug: {}".format(debug))
+    print("augment: {}".format(augment))
+    print("dataset_loc: {}".format(dataset_loc))
+    print("log_save_dir: {}".format(log_save_dir))
+    print("wandb_project_name: {}".format(wandb_project_name))
+    print("sweep_config_loc: {}".format(sweep_config_loc))
+        
     
     if method == "bayes":
         sweep_config["method"] = method
@@ -260,7 +270,7 @@ if __name__ == "__main__":
     
     # wandb loop
     sweep_id = wandb.sweep(sweep_config, project=wandb_project_name)
-    
+    #print(sweep_config)
     training_obj = TrainingObject(  
         sweep_config,
         log_save_dir,

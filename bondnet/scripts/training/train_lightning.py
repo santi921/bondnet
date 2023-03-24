@@ -22,8 +22,8 @@ torch.set_float32_matmul_precision("high") # might have to disable on older GPUs
 if __name__ == "__main__": 
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-on_gpu', type=bool, default=True)
-    parser.add_argument('-debug', type=bool, default=False)
+    parser.add_argument('--on_gpu', default=False, action='store_true')
+    parser.add_argument('--debug',  default=False, action='store_true')    
     parser.add_argument('-project_name', type=str, default="hydro_lightning")
     parser.add_argument('-dataset_loc', type=str, default="../../dataset/dataset/qm_9_merge_3_qtaim.json")
     parser.add_argument('-log_save_dir', type=str, default="./logs_lightning/")
@@ -31,8 +31,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    on_gpu = args.on_gpu
-    debug = args.debug
+    on_gpu = bool(args.on_gpu)
+    debug = bool(args.debug)
     project_name = args.project_name
     dataset_loc = args.dataset_loc
     log_save_dir = args.log_save_dir
