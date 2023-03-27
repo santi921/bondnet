@@ -93,7 +93,7 @@ def train_single(
         config["restore"] = True
         # get all files 
         config["restore_dir"] = log_save_dir
-        print("extracting latest checkpoint from {}".format(log_save_dir))
+        print("\n extracting latest checkpoint from {}\n".format(log_save_dir + run_name + ".ckpt"))
         files_ckpt = glob(log_save_dir + "/" + run_name + "*ckpt")
         # get latest file
         files_ckpt.sort(key=os.path.getmtime)
