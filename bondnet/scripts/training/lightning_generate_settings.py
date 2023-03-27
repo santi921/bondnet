@@ -104,7 +104,7 @@ def generate_and_write(options):
         "max_epochs_transfer": [250, 500, 1000],
         "transfer": [False, True],
         "freeze" : [True, False],
-        "loss": ["huber"],
+        "loss": ["huber", "mse"],
         "weight_decay": [0.0, 0.0001, 0.00001],
         "num_lstm_iters": [9, 11, 13, 15],
         "num_lstm_layers": [1, 2, 3],

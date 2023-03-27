@@ -587,11 +587,11 @@ def load_model_lightning(dict_train, device=None, load_dir=None):
     if(device == None):
         if dict_train["on_gpu"]:
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            dict_train["gpu"] = device
+            dict_train["gpu"] = "gpu"
         else:
             device = torch.device("cpu")
             dict_train["gpu"] = "cpu"
-    else: dict_train["gpu"] = device
+    else: dict_train["gpu"] = "gpu"
 
     if dict_train["restore"]: 
         print(":::RESTORING MODEL FROM EXISTING FILE:::")

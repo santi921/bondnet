@@ -71,12 +71,14 @@ def train_single(
             extra_info=config["extra_info"]
         )   
 
+
     if device is None: 
         if config["on_gpu"]:
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         else:
             device = torch.device("cpu")
-        
+
+
     trainset, valset, testset = train_validation_test_split(
         dataset, validation=0.15, test=0.15
     )
@@ -165,7 +167,8 @@ def train_single(
                 val_transfer_loader 
                 )
             
-            if(config["freeze"]): model.gated_layers.requires_grad_(False)
+            if(config["freeze"]): 
+                model.gated_layers.requires_grad_(False)
             model_parameters = filter(lambda p: p.requires_grad, model.parameters())
             params = sum([np.prod(p.size()) for p in model_parameters])
             print("Freezing Gated Layers....")
@@ -303,7 +306,7 @@ def controller_main(project_name, log_save_dir):
             restore=True
         )
         print("finished file {}".format(file))
-        os.rename(file, str(ind) + "_done.json")
+        os.rename(file, str(file.split(".")[0].split("_")[-1]) + "_done.json")
 
         #except: 
         #    print("failed on file {}".format(file))
