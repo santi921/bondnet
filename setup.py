@@ -22,8 +22,8 @@ setup(
     packages=find_packages(),
     entry_points={"console_scripts": ["bondnet = bondnet.scripts.predict_cli:cli"]},
     install_requires=["numpy", "pyyaml", "scikit-learn", "click"],
-    author="Mingjian Wen",
-    author_email="wenxx151@gmail.com",
+    author="Mingjian Wen, Santiago Vargas",
+    author_email="wenxx151@gmail.com, santiagovargas921@gmail.com",
     url="https://github.com/mjwen/bondnet",
     description="short description",
     long_description="long description",
@@ -40,6 +40,7 @@ setup(
             './bondnet/scripts/training/train_lightning.py',
             './bondnet/scripts/training/generate_settings_lightning.py',
             './bondnet/scripts/training/generate_settings.py',
+            './bondnet/scripts/training/launch_sbatch.py',
              ],
     zip_safe=False,
 )

@@ -7,15 +7,40 @@ def write_one(dictionary_in, target):
     """
     write all key-value pairs of a dictionary to a json file
     """
-    json.dump(dictionary_in, open(target, "w"))
+    # write write to json file
+    with open(target, "w") as f:
+        json.dump(dictionary_in, f, indent=4)
 
+    
 
-def put_file_in_every_subfolder(folder, file):
+def put_file_slurm_in_every_subfolder(folder, project_name, file_loc, gpu=True):
     """
     put a file in every subfolder of a folder
     """
     for subfolder in os.listdir(folder):
-        copy_file(file, os.path.join(folder, subfolder, file))
+        with open(os.path.join(folder, subfolder, "submit.sh"), "w") as f:
+            f.write("#!/bin/bash\n")
+            f.write("#SBATCH -N=1\n")
+            f.write("#SBATCH -C gpu\n")
+            f.write("#SBATCH -G 1\n")
+            f.write("#SBATCH -q regular\n")
+            f.write("#SBATCH --mail-user=santiagovargas921@gmail.com\n")
+            f.write("#SBATCH --mail-type=ALL\n")
+            f.write("#SBATCH -t 12:00:00\n")
+            f.write("#SBATCH -A jcesr_g\n\n")
+
+            f.write("export OMP_NUM_THREADS=1\n")
+            f.write("export OMP_PLACES=threads\n")
+            f.write("export export OMP_PROC_BIND=true\n")
+
+            f.write("module load cudatoolkit/11.5\n")
+            f.write("module load pytorch/1.11\n")
+
+            script = "lightning_controller.py"
+
+            f.write("srun -n 1 -c 128 --cpu_bind=cores -G 1 --gpu-bind=single:1  {} --on_gpu -project_name {} -dataset_loc {}".format(script, project_name, file_loc))
+            
+
 
 def copy_file(src, dst):
     """
@@ -26,12 +51,14 @@ def copy_file(src, dst):
     with open(dst, "w") as f:
         f.write(content)
 
+
 def check_folder(folder):
     """
     check if folder exists, if not create it
     """
     if not os.path.exists(folder):
         os.makedirs(folder)
+
 
 def generate_and_write(options):
 
@@ -86,6 +113,7 @@ def generate_and_write(options):
         "gated_residual":[True],
         "fc_batch_norm":[False, True]
     }   
+    
     if(options["hydro"]):
         dictionary_values_options["augment"] = [False]
         dictionary_values_options["transfer"] = [False]
@@ -101,7 +129,7 @@ def generate_and_write(options):
         dictionary_write = {}
         
 
-        if(options["hydro"] == True or options["old_dataset"] == True):
+        if(options["hydro"] == True):
             featurizer_dict = {
                 #"choice_3":{
                 #    "extra_features": ["bond_length", 'Lagrangian_K', 'e_density', 'lap_e_density', 
@@ -151,20 +179,17 @@ def generate_and_write(options):
                         ],
                     "feature_filter": True
                 }, 
+                '''
 
                 "choice_4":{
-                    "extra_features": [
-                        "bond_length", "1_s", "2_s", "1_p", "2_p", "1_d", "2_d", "1_f", "2_f", 
-                        "1_polar", "2_polar", "occ_nbo", "valence_electrons", "total_electrons", 
-                        "partial_charges_nbo", "partial_charges_mulliken", "partial_charges_resp",
-                           "indices_nbo"], 
+                    "extra_features": ["bond_length", "esp_total"], 
                     "feature_filter": True
                 },
-                '''
                 "choice_5":{
                     "extra_features": ["bond_length"], 
                     "feature_filter": False
                 }
+
             }
         featurizer_settings = choice(list(featurizer_dict.keys()))
         featurizer_settings = featurizer_dict[featurizer_settings]
@@ -206,13 +231,10 @@ def generate_and_write(options):
             dictionary_write[k] = choice(v)
 
         if(options["hydro"]):
-            folder = "../hydro_training"
-
-        elif(options["old_dataset"]):
-            folder = "../old_mg_training"
+            folder = "./hydro_lightning"
         
         else: 
-            folder = "../mg_training"
+            folder = "./mg_lightning"
 
         if(options["gpu"]): folder += "_gpu"
         else: folder += "_cpu"
@@ -230,32 +252,17 @@ def generate_and_write(options):
     
         target += str(int(np.floor(i / options["per_folder"])))
         check_folder(target)
-        target += "/settings" + str(i) + ".json"
+        target += "/settings_" + str(i) + ".json"
         
         write_one(dictionary_write, target)
+            
+    put_file_slurm_in_every_subfolder(
+        folder=folder, 
+        project_name=options["project_name"],
+        file_loc=options["dataset_loc"], 
+        gpu=options["gpu"]
+    )
 
-
-    if(options["perlmutter"] == False): 
-        if(options["gpu"]):
-            slurm_file = "./xsede_gpu_lightning.sh"
-            #if(options["hydro"]):
-            #    slurm_file = "xsede_gpu_hydro_lightning.sh"
-        else: 
-            slurm_file = "./xsede_cpu_lightning.sh"
-            #if(options["hydro"]): 
-            #    slurm_file = "./xsede_cpu_hydro_lightning.sh"
-
-    else: 
-        if(options["gpu"]):
-            slurm_file = "./perlmutter_gpu_lightning.sh"
-            #if(options["hydro"]):
-            #    slurm_file = "./perlmutter_gpu_hydro.sh"
-        else: 
-            slurm_file = "./perlmutter_cpu_lightning.sh"
-            #if(options["hydro"]):
-            #    slurm_file = "./perlmutter_cpu_hydro.sh"
-        
-    put_file_in_every_subfolder(folder, slurm_file)
 
 def main():
     # create argparse 
@@ -263,15 +270,11 @@ def main():
     parser.add_argument('--perlmutter', action='store_true', help='Use perlmutter')
     parser.add_argument('--gpu', action='store_true', help='Use gpu')
     parser.add_argument('--hydro', action='store_true', help='Use hydro')
-    parser.add_argument('--old_dataset', action='store_true', help='Use old dataset')
-    parser.add_argument('--imputed_data', action='store_true', help='Use imputed data in training')
     parser.add_argument('--classifier', action='store_true', help='Use classifier')
     parser.add_argument('--class_cats', type=int, default=3, help='Number of categories')
-    # number of runs 
+    parser.add_argument('--project_name', type=str, default="mg_lightning", help='Project name')
     parser.add_argument('--num', type=int, default=50, help='Number of runs')
-    # number of runs per folder
     parser.add_argument('--per_folder', type=int, default=50, help='Number of runs per folder')
-    # parse arguments
     args = parser.parse_args()
     options = vars(args)
 
@@ -280,39 +283,22 @@ def main():
     gpu = options["gpu"]
     hydro = options["hydro"]
     perlmutter = options["perlmutter"]
-    old_dataset = options["old_dataset"]
     num = options["num"]
     per_folder = options["per_folder"]
-    imputed = options["imputed_data"]
+    project_name = options["project_name"]
+
     
     if(classifier and class_cats != 3 and class_cats != 5):
         raise ValueError("Must have 3 or 5 categories for classifier")
 
     if hydro:
-        dataset_loc = "../../../../dataset/qm_9_merge_3_qtaim.json"
-    
-    elif old_dataset: 
-        dataset_loc = "../../../../dataset/mg_dataset/merged_mg.json"
+        dataset_loc = "../../dataset/qm_9_merge_3_qtaim.json"
     
     else: 
-        if not imputed:
-            dataset_loc = "../../../../dataset/mg_dataset/mg_qtaim_complete_nonimputed.json"
-        else:
-            dataset_loc = "../../../../dataset/mg_dataset/mg_qtaim_complete.json"
-
-    options_dict = {
-        "dataset_loc": dataset_loc,
-        "classifier": classifier,
-        "class_cats": class_cats, 
-        "hydro": hydro, 
-        "old_dataset": old_dataset,
-        "num": num,  
-        "per_folder": per_folder,
-        "gpu": gpu,
-        "perlmutter": perlmutter
-    }
-
-    generate_and_write(options_dict)
+        dataset_loc = "/../../dataset/mg_dataset/mg_qtaim_complete.json"
+    options["dataset_loc"] = dataset_loc
+    
+    generate_and_write(options)
 
     
 main()
