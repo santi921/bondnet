@@ -3,6 +3,7 @@ from random import choice
 import numpy as np 
 import os, argparse, json
 
+
 def write_one(dictionary_in, target):
     """
     write all key-value pairs of a dictionary to a json file
@@ -11,7 +12,6 @@ def write_one(dictionary_in, target):
     with open(target, "w") as f:
         json.dump(dictionary_in, f, indent=4)
 
-    
 
 def put_file_slurm_in_every_subfolder(folder, project_name, file_loc, gpu=True):
     """
@@ -38,9 +38,8 @@ def put_file_slurm_in_every_subfolder(folder, project_name, file_loc, gpu=True):
 
             script = "lightning_controller.py"
 
-            f.write("srun -n 1 -c 128 --cpu_bind=cores -G 1 --gpu-bind=single:1  {} --on_gpu -project_name {} -dataset_loc {}".format(script, project_name, file_loc))
+            f.write("srun -n 1 -c 128 --cpu_bind=cores -G 1 --gpu-bind=single:1  {} -project_name {} -dataset_loc {}".format(script, project_name, file_loc))
             
-
 
 def copy_file(src, dst):
     """
@@ -89,19 +88,20 @@ def generate_and_write(options):
         "test": [False],
         "batch_size": [256, 512],
         "embedding_size": [12, 16, 18, 20, 22],
-        "epochs": [500,1000,1500],
+        "max_epochs": [500,1000,1500],
         "fc_activation": ["ReLU"],
         "fc_batch_norm": [False],
         "freeze": [False, True],
         "gated_activation": ["ReLU"],
         "gated_num_fc_layers": [1, 2, 3, 4],
-        "lr": [0.001],
-        "dropout": [0.1, 0.25],
+        "learning_rate": [0.02, 0.01, 0.001],
+        "fc_dropout": [0.0, 0.1, 0.25],
+        "gated_dropout": [0.0, 0.1, 0.25],
         "output_file": ["results.pkl"],
         "start_epoch": [0],
         "early_stop": [True],
         "scheduler": [False],
-        "transfer_epochs": [250, 500, 1000],
+        "max_epochs_transfer": [250, 500, 1000],
         "transfer": [False, True],
         "freeze" : [True, False],
         "loss": ["huber"],
@@ -118,6 +118,7 @@ def generate_and_write(options):
         dictionary_values_options["augment"] = [False]
         dictionary_values_options["transfer"] = [False]
         dictionary_values_options["freeze"] = [False]
+        dictionary_values_options["filter_sparse_rxns"] = [False]
 
     else: 
         dictionary_values_options["augment"] = [False, True]
@@ -128,7 +129,6 @@ def generate_and_write(options):
 
         dictionary_write = {}
         
-
         if(options["hydro"] == True):
             featurizer_dict = {
                 #"choice_3":{
@@ -191,6 +191,7 @@ def generate_and_write(options):
                 }
 
             }
+        
         featurizer_settings = choice(list(featurizer_dict.keys()))
         featurizer_settings = featurizer_dict[featurizer_settings]
         dictionary_write.update(featurizer_settings)
@@ -207,31 +208,34 @@ def generate_and_write(options):
         shape_fc = choice(dictionary_archi["fc_hidden_size_shape"])
         shape_gat = choice(dictionary_archi["gated_hidden_size_shape"])
 
-        if(shape_fc == "flat"):
-            fc_layers = [base_fc for i in range(choice(dictionary_archi["fc_num_layers"]))]
-        else:
-            fc_layers = [int(base_fc/(2**i)) for i in range(choice(dictionary_archi["fc_num_layers"]))]
 
-        if(shape_gat == "flat"):
-            gat_layers = [base_gat for i in range(choice(dictionary_archi["gated_num_layers"]))]
-        else:
-            gat_layers = [int(base_gat/(2**i)) for i in range(choice(dictionary_archi["gated_num_layers"]))]
-
-
-        dictionary_write["fc_num_layers"] = len(fc_layers)
-        dictionary_write["gated_num_layers"] = len(gat_layers)
-        dictionary_write["gated_hidden_size"] = gat_layers
-        dictionary_write["fc_hidden_size"] = fc_layers
+        dictionary_write["fc_num_layers"] = choice(dictionary_archi["fc_num_layers"])
+        dictionary_write["gated_num_layers"] = choice(dictionary_archi["gated_num_layers"])
+        dictionary_write["gated_hidden_size_1"] = base_gat
+        dictionary_write["fc_hidden_size_1"] = base_fc
+        dictionary_write["fc_hidden_size_shape"] = shape_fc
+        dictionary_write["gated_hidden_size_shape"] = shape_gat
         dictionary_write["dataset_loc"] = options["dataset_loc"]
         dictionary_write["on_gpu"] = options["gpu"]
         dictionary_write["classifier"] = options["classifier"]
-        dictionary_write["restore"] = True
+        dictionary_write["restore"] = False
+        dictionary_write["precision"] = "32"
+        dictionary_write["restore_path"] = None
         
+        if(options["hydro"]):
+            dictionary_write["target_var"] = "dG_sp"
+            dictionary_write["extra_info"] = ["functional_group_reacted"]
+        else:
+            dictionary_write["target_var"] = "ts"
+            dictionary_write["target_var_transfer"] = "diff"
+            dictionary_write["extra_info"] = []
+            
         for k, v in dictionary_values_options.items():
             dictionary_write[k] = choice(v)
 
         if(options["hydro"]):
             folder = "./hydro_lightning"
+            
         
         else: 
             folder = "./mg_lightning"
@@ -253,7 +257,8 @@ def generate_and_write(options):
         target += str(int(np.floor(i / options["per_folder"])))
         check_folder(target)
         target += "/settings_" + str(i) + ".json"
-        
+        # sort keys
+        dictionary_write = dict(sorted(dictionary_write.items()))
         write_one(dictionary_write, target)
             
     put_file_slurm_in_every_subfolder(
@@ -292,11 +297,10 @@ def main():
         raise ValueError("Must have 3 or 5 categories for classifier")
 
     if hydro:
-        dataset_loc = "../../dataset/qm_9_merge_3_qtaim.json"
+        options["dataset_loc"] = "../../../../dataset/qm_9_merge_3_qtaim.json"
     
     else: 
-        dataset_loc = "/../../dataset/mg_dataset/mg_qtaim_complete.json"
-    options["dataset_loc"] = dataset_loc
+        options["dataset_loc"] = "../../../../dataset/mg_dataset/mg_qtaim_complete.json"
     
     generate_and_write(options)
 
