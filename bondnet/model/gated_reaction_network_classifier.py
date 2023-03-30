@@ -1,10 +1,8 @@
 from copy import deepcopy
 import torch
 import itertools
-import numpy as np
 import dgl
 from bondnet.model.gated_mol import GatedGCNMol
-import torch.nn.functional as F
 import torch.nn as nn
 from bondnet.layer.gatedconv import GatedGCNConv, GatedGCNConv1, GatedGCNConv2
 from bondnet.layer.readout import Set2SetThenCat

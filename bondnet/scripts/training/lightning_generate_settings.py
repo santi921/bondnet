@@ -38,7 +38,7 @@ def put_file_slurm_in_every_subfolder(folder, project_name, file_loc, gpu=True):
 
             script = "lightning_controller.py"
 
-            f.write("srun -n 1 -c 128 --cpu_bind=cores -G 1 --gpu-bind=single:1  {} -project_name {} -dataset_loc {}".format(script, project_name, file_loc))
+            f.write("srun -n 1 -c 128 --cpu_bind=cores -G 1 --gpu-bind=single:1  {} -project_name {} ".format(script, project_name))
             
 
 def copy_file(src, dst):
@@ -70,8 +70,8 @@ def generate_and_write(options):
 
     dictionary_archi = \
     {
-        "gated_num_layers": [1,2,3,4,5],
-        "fc_num_layers": [1,2,3,4],
+        "gated_num_layers": [1,2,3],
+        "fc_num_layers": [1,2,3],
         "gated_hidden_size_1": [512, 1024, 2048],
         "gated_hidden_size_shape": ["flat", "cone"],
         "fc_hidden_size_1": [512, 1024],
@@ -86,14 +86,14 @@ def generate_and_write(options):
         "filter_species": [[3, 6]],
         "debug": [False],
         "test": [False],
-        "batch_size": [256, 512],
-        "embedding_size": [12, 16, 18, 20, 22],
+        "batch_size": [128, 256],
+        "embedding_size": [8, 10, 12],
         "max_epochs": [500,1000,1500],
         "fc_activation": ["ReLU"],
         "fc_batch_norm": [False],
         "freeze": [False, True],
         "gated_activation": ["ReLU"],
-        "gated_num_fc_layers": [1, 2, 3, 4],
+        "gated_num_fc_layers": [1, 2, 3],
         "learning_rate": [0.02, 0.01, 0.001],
         "fc_dropout": [0.0, 0.1, 0.25],
         "gated_dropout": [0.0, 0.1, 0.25],
@@ -106,8 +106,8 @@ def generate_and_write(options):
         "freeze" : [True, False],
         "loss": ["huber", "mse"],
         "weight_decay": [0.0, 0.0001, 0.00001],
-        "num_lstm_iters": [9, 11, 13, 15],
-        "num_lstm_layers": [1, 2, 3],
+        "num_lstm_iters": [7, 9, 11],
+        "num_lstm_layers": [1, 2],
         "gated_batch_norm": [0, 1],
         "gated_graph_norm":[0,1],
         "gated_residual":[True],
