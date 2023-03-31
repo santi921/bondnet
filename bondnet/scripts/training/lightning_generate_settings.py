@@ -20,7 +20,7 @@ def put_file_slurm_in_every_subfolder(folder, project_name, file_loc, gpu=True):
     for subfolder in os.listdir(folder):
         with open(os.path.join(folder, subfolder, "submit.sh"), "w") as f:
             f.write("#!/bin/bash\n")
-            f.write("#SBATCH -N=1\n")
+            f.write("#SBATCH -N 1\n")
             f.write("#SBATCH -C gpu\n")
             f.write("#SBATCH -G 1\n")
             f.write("#SBATCH -q regular\n")
@@ -260,19 +260,19 @@ def generate_and_write(options):
         # sort keys
         dictionary_write = dict(sorted(dictionary_write.items()))
         write_one(dictionary_write, target)
-            
-    put_file_slurm_in_every_subfolder(
-        folder=folder, 
-        project_name=options["project_name"],
-        file_loc=options["dataset_loc"], 
-        gpu=options["gpu"]
-    )
+    if options["perlmutter"]:    
+        put_file_slurm_in_every_subfolder(
+            folder=folder, 
+            project_name=options["project_name"],
+            file_loc=options["dataset_loc"], 
+            gpu=options["gpu"]
+        )
 
 
 def main():
     # create argparse 
     parser = argparse.ArgumentParser(description='Create settings files for training')
-    parser.add_argument('--perlmutter', action='store_true', help='Use perlmutter')
+    parser.add_argument('--perlmutter', action='store_true', help='write perlmutter sbatch')
     parser.add_argument('--gpu', action='store_true', help='Use gpu')
     parser.add_argument('--hydro', action='store_true', help='Use hydro')
     parser.add_argument('--classifier', action='store_true', help='Use classifier')
