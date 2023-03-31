@@ -35,7 +35,7 @@ def put_file_slurm_in_every_subfolder(folder, project_name, file_loc, gpu=True):
 
             f.write("module load cudatoolkit/11.5\n")
             f.write("module load pytorch/1.11\n")
-
+            f.write("conda activate bondnet\n")
             script = "lightning_controller.py"
 
             f.write("srun -n 1 -c 128 --cpu_bind=cores -G 1 --gpu-bind=single:1  {} -project_name {} ".format(script, project_name))
