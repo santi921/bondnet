@@ -32,6 +32,8 @@ class TrainingObject:
         self.extra_keys = self.config["parameters"]["extra_features"]["values"][0]
         print("extra keys: ", self.extra_keys)
         print("debug value: ", self.config["parameters"]["debug"]["values"])
+        print("target value: ", self.config["parameters"]["target_var"]["values"][0])
+
         self.dataset = ReactionNetworkDatasetGraphs(
             grapher=get_grapher(self.extra_keys), 
             file=self.dataset_loc, 
@@ -239,10 +241,10 @@ if __name__ == "__main__":
     parser.add_argument('-sweep_config', type=str, default="./sweep_config.json")
 
     args = parser.parse_args()
-
     method = str(args.method)
     on_gpu = bool(args.on_gpu)
     debug = bool(args.debug)
+    
     
     augment = bool(args.augment)
     dataset_loc = args.dataset_loc
@@ -254,16 +256,7 @@ if __name__ == "__main__":
     sweep_params["debug"] = {"values": [debug]}
     sweep_config["parameters"] = sweep_params
     
-    print("method: {}".format(method))
-    print("on_gpu: {}".format(on_gpu))
-    print("debug: {}".format(debug))
-    print("augment: {}".format(augment))
-    print("dataset_loc: {}".format(dataset_loc))
-    print("log_save_dir: {}".format(log_save_dir))
-    print("wandb_project_name: {}".format(wandb_project_name))
-    print("sweep_config_loc: {}".format(sweep_config_loc))
-        
-    
+
     if method == "bayes":
         sweep_config["method"] = method
         sweep_config["metric"] = {"name": "val_l1", "goal": "minimize"}
@@ -277,4 +270,13 @@ if __name__ == "__main__":
         dataset_loc=dataset_loc,
         project_name=wandb_project_name)
     
+    print("method: {}".format(method))
+    print("on_gpu: {}".format(on_gpu))
+    print("debug: {}".format(debug))
+    print("augment: {}".format(augment))
+    print("dataset_loc: {}".format(dataset_loc))
+    print("log_save_dir: {}".format(log_save_dir))
+    print("wandb_project_name: {}".format(wandb_project_name))
+    print("sweep_config_loc: {}".format(sweep_config_loc))
+
     wandb.agent(sweep_id, function=training_obj.train, count=300)

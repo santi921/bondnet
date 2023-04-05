@@ -1089,7 +1089,9 @@ def create_reaction_network_files_and_valid_rows(
     if filter_outliers:
         if target == "ts": 
             energy_dist = mg_df["transition_state_energy"] - mg_df["reactant_energy"]
+        
         elif target == "dG_sp": energy_dist = mg_df["dG_sp"]
+        
         else: 
             energy_dist = mg_df["product_energy"] - mg_df["reactant_energy"]
 
@@ -1101,8 +1103,8 @@ def create_reaction_network_files_and_valid_rows(
         # finding the iqr region
         iqr = q3 - q1
         # finding upper and lower whiskers
-        upper_bound = q3 + (1.5 * iqr)
-        lower_bound = q1 - (1.5 * iqr)
+        upper_bound = q3 + (2.0 * iqr)
+        lower_bound = q1 - (2.0 * iqr)
     
     with ProcessPool(max_workers=12, max_tasks=10) as pool:
         for ind, row in mg_df.iterrows():

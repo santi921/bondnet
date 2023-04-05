@@ -778,7 +778,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
 
         self._species = sorted(system_species)
         
-        self._species = ['C', 'F', 'H', 'N', 'O'] # this is hard coded and should be adjusted for other datasets
+        self._species = ['C', 'F', 'H', 'N', 'O'] # this is hard coded and potentially needs to be adjusted for other datasets
 
         # create dgl graphs
         print("constructing graphs & features....")
