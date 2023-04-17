@@ -28,12 +28,15 @@ class TrainingObject:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         else:
             self.device = torch.device("cpu")
-
-        self.extra_keys = self.config["parameters"]["extra_features"]["values"][0]
+        if "extra_features" in self.config["parameters"]:
+            self.extra_keys = self.config["parameters"]["extra_features"]["values"][0]
+        else: 
+            self.extra_keys = None
         print("extra keys: ", self.extra_keys)
         print("debug value: ", self.config["parameters"]["debug"]["values"])
         print("target value: ", self.config["parameters"]["target_var"]["values"][0])
-
+        print("tranfer learning?: ", bool(self.config["parameters"]["transfer"]["values"][0]))
+        
         self.dataset = ReactionNetworkDatasetGraphs(
             grapher=get_grapher(self.extra_keys), 
             file=self.dataset_loc, 
@@ -59,7 +62,7 @@ class TrainingObject:
         self.test_loader = DataLoaderReactionNetwork(testset, batch_size=len(testset), shuffle=False)
 
 
-        if self.config["parameters"]["transfer"]["values"]: 
+        if bool(self.config["parameters"]["transfer"]["values"][0]): 
             self.dataset_transfer = ReactionNetworkDatasetGraphs(
                 grapher=get_grapher(self.extra_keys), 
                 file=dataset_loc, 

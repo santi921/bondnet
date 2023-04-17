@@ -3,7 +3,7 @@ import ast, json
     
 def main():
         
-    path_df = "../../dataset/" + "qm_9_merge_3_qtaim.json"
+    path_df = "../../dataset/" + "protonated_reactions_1.json"
     hydro_df = pd.read_json(path_df)
 
     product_list, water_list, reac_list = [], [] , []
