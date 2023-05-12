@@ -1114,9 +1114,9 @@ class ReactionCollection:
 
     def create_struct_label_dataset_reaction_based_regression_general(
         self,
-        struct_file="sturct.sdf",
-        label_file="label.txt",
-        feature_file=None,
+        #struct_file="sturct.sdf",
+        #label_file="label.txt",
+        #feature_file=None,
         group_mode="all",
         one_per_iso_bond_group=True,
         sdf_mapping=False,
@@ -1131,9 +1131,9 @@ class ReactionCollection:
         result, a molecule is represented multiple times, which takes long time.
 
         Args:
-            struct_file (str): filename of the sdf structure file
-            label_file (str): filename of the label
-            feature_file (str): filename for the feature file, if `None`, do not write it
+            #struct_file (str): filename of the sdf structure file
+            #label_file (str): filename of the label
+            #feature_file (str): filename for the feature file, if `None`, do not write it
             group_mode (str): the method to group reactions, different mode result in
                 different reactions to be retained, e.g. `charge_0` keeps all charge 0
                 reactions.
@@ -1216,15 +1216,15 @@ class ReactionCollection:
                 all_labels.append(data)
 
         # write sdf - should be the same but we might need to get indeces again
-        self.write_sdf_custom(all_mols, struct_file)
+        #self.write_sdf_custom(all_mols, struct_file)
         # label file
-        yaml_dump(all_labels, label_file)
+        #yaml_dump(all_labels, label_file)
         # write feature - done
-        if feature_file is not None:
-            features = self.get_feature(all_mols, bond_indices=None)
-            # extra features (global) that could be included
-            features = [{"charge": i["charge"]} for i in features]
-            yaml_dump(features, feature_file)
+        #if feature_file is not None:
+        #    features = self.get_feature(all_mols, bond_indices=None)
+        #    # extra features (global) that could be included
+        #    features = [{"charge": i["charge"]} for i in features]
+        #    yaml_dump(features, feature_file)
 
         features = self.get_feature(all_mols, bond_indices=None)
         features = [{"charge": i["charge"]} for i in features]

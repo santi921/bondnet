@@ -192,6 +192,7 @@ class GatedGCNReactionNetworkClassifier(GatedGCNMol):
         # print(F.softmax(feats))
         return feats, ret_tensor, stdev_filtered
 
+
     def feature_before_fc(self, graph, feats, reactions, norm_atom, norm_bond):
         """
         Get the features before the final fully-connected.
@@ -215,6 +216,7 @@ class GatedGCNReactionNetworkClassifier(GatedGCNMol):
         feats = self.readout_layer(graph, feats)
 
         return feats
+
 
     def feature_at_each_layer(self, graph, feats, reactions, norm_atom, norm_bond):
         """

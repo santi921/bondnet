@@ -1,5 +1,5 @@
 from re import L
-import time, copy
+import time, copy, bson
 import pandas as pd
 import networkx as nx
 import numpy as np
@@ -1062,7 +1062,7 @@ def create_reaction_network_files_and_valid_rows(
     extra_info = None
 ):
     """
-    Processes json file from emmet to use in training bondnet
+    Processes json file or bson from emmet to use in training bondnet
 
     Args:
         filename: name of the json file to be used to gather data
@@ -1074,10 +1074,17 @@ def create_reaction_network_files_and_valid_rows(
     """
 
     # path_mg_data = "../../../dataset/mg_dataset/20220613_reaction_data.json"
-    path_json = filename
     
-    print("reading file from: {}".format(path_json))
-    mg_df = pd.read_json(path_json)
+    
+    print("reading file from: {}".format(filename))
+    if filename.endswith(".json"):
+        path_json = filename
+        mg_df = pd.read_json(path_json)
+    else:
+        path_bson = filename
+        with open(path_bson,'rb') as f:
+            data = bson.decode_all(f.read())
+        mg_df=pd.DataFrame(data)
 
     start_time = time.perf_counter()
     reactions, ind_val, rxn_raw, ind_final = [], [], [], []
@@ -1196,9 +1203,9 @@ def create_reaction_network_files_and_valid_rows(
         all_labels,
         features,
     ) = extractor.create_struct_label_dataset_reaction_based_regression_general(
-        struct_file=path_json + "mg_struct_bond_rgrn_classify.sdf",
-        label_file=path_json + "mg_label_bond_rgrn_classify.yaml",
-        feature_file=path_json + "mg_feature_bond_rgrn_classify.yaml",
+        #struct_file=path_json + "mg_struct_bond_rgrn_classify.sdf",
+        #label_file=path_json + "mg_label_bond_rgrn_classify.yaml",
+        #feature_file=path_json + "mg_feature_bond_rgrn_classify.yaml",
         group_mode="charge_0",
         sdf_mapping=False,
         extra_info=extra_info_tf,

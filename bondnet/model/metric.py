@@ -218,6 +218,76 @@ class Metrics_WeightedMSE(Metric):
     
 
 
+class Metrics_Accuracy_Weighted(Metric):
+    def __init__(self):
+        super().__init__()
+        # to count the correct predictions
+        is_differentiable: bool = False
+        higher_is_better: bool = True
+        full_state_update: bool = False
+        correct: Tensor
+        total: Tensor
+
+        self.add_state("correct", default=tensor(0), dist_reduce_fx="sum")
+        self.add_state("total", default=tensor(0), dist_reduce_fx="sum")
+
+    def update(self, preds: Tensor, target: Tensor, weight: Tensor, reduction: str = "sum")-> None:
+        if preds.size() != target.size() != weight.size():
+            warnings.warn(
+                "Input size ({}) is different from the target size ({}) or weight "
+                "size ({}). This will likely lead to incorrect results due "
+                "to broadcasting. Please ensure they have the same size.".format(
+                    input.size(), target.size(), weight.size()
+                )
+            )
+
+        preds = preds if preds.is_floating_point else preds.float()
+        target = target if target.is_floating_point else target.float()
+        preds = preds.argmax(dim=1)
+        correct = preds.eq(target).sum()
+        n_obs = target.numel()
+        self.correct += correct * weight
+        self.total += n_obs * weight
+
+    def compute(self):
+        return self.correct / self.total
+    
+
+class Metrics_Cross_Entropy(Metric):
+    def __init__(self):
+        super().__init__()
+        is_differentiable: bool = False
+        higher_is_better: bool = False
+        full_state_update: bool = False
+        cross_entropy: Tensor
+        total: Tensor
+        self.add_state("cross_entropy", default=tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("total", default=tensor(0), dist_reduce_fx="sum")
+    
+    def update(self, preds: Tensor, target: Tensor, weight: Tensor, reduction: str = "sum")-> None:
+        if preds.size() != target.size() != weight.size():
+            warnings.warn(
+                "Input size ({}) is different from the target size ({}) or weight "
+                "size ({}). This will likely lead to incorrect results due "
+                "to broadcasting. Please ensure they have the same size.".format(
+                    input.size(), target.size(), weight.size()
+                )
+            )
+        # compute cross entropy
+        cross_entropy = F.cross_entropy(preds, target, reduction=reduction)
+        cross_entropy *= weight
+        if reduction != "none":
+            if reduction == "mean":
+                cross_entropy = torch.sum(cross_entropy) / torch.sum(weight)
+            else:
+                cross_entropy = torch.sum(cross_entropy)
+        n_obs = target.numel()
+        self.cross_entropy += cross_entropy
+        self.total += n_obs
+
+    def compute(self):
+        return self.cross_entropy / self.total
+
 class OrderAccuracy:
     """
     Order energies of bonds from the same molecule and compute the first `max_n`
