@@ -1,6 +1,0 @@
-reactant,product1,product2,charge_reactant,charge_product1,charge_product2
-C,[H],[CH3],0,0,0
-C[C@H](O)C(=O)O,C[C@H](O)[C]=O,[OH],0,0,0
-C[C@H](O)C(=O)O,C[C@H](O)[C]=O,[OH],0,-1,1
-C[C@H](O)C(=O)O,[H],[CH2][C@H](O)C(=O)O,0,0,0
-C1=CC=CC=C1,[CH]=CC=CC=[CH],,0,0,
