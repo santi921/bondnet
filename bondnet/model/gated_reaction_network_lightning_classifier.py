@@ -86,9 +86,11 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
         device="cpu",
         wandb=True,
         augment=False,
+        cat_weights=torch.Tensor([1, 1, 1]),
     ):
         super().__init__()
         self.learning_rate = learning_rate
+        cat_weights = cat_weights.to(device)
         params = {
             "in_feats": in_feats,
             "embedding_size": embedding_size,
@@ -120,6 +122,7 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
             "device": device,
             "wandb": wandb,
             "augment": augment,
+            "cat_weights": cat_weights,
         }
         self.hparams.update(params)
         self.save_hyperparameters()
@@ -222,9 +225,15 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
         self.val_acc = Metrics_Accuracy_Weighted()
         self.test_acc = Metrics_Accuracy_Weighted()
 
-        self.val_cross = Metrics_Cross_Entropy()
-        self.test_cross = Metrics_Cross_Entropy()
-        self.train_cross = Metrics_Cross_Entropy()
+        self.val_cross = Metrics_Cross_Entropy(
+            n_categories=self.hparams.outdim, reduction="sum"
+        )
+        self.test_cross = Metrics_Cross_Entropy(
+            n_categories=self.hparams.outdim, reduction="sum"
+        )
+        self.train_cross = Metrics_Cross_Entropy(
+            n_categories=self.hparams.outdim, reduction="sum"
+        )
 
     def forward(
         self,
@@ -376,7 +385,7 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
             all_loss = self.compute_loss(
                 target=torch.cat((target, target_aug), axis=0),
                 pred=torch.cat((pred, pred_aug), axis=0),
-                weight=torch.cat((stdev, stdev), axis=0),
+                weight=self.hparams.cat_weights,
             )
 
         else:
@@ -385,7 +394,11 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
             # print(target)
             # print(stdev)
             # ========== compute losses ==========
-            all_loss = self.compute_loss(target=target, pred=pred, weight=stdev)
+            all_loss = self.compute_loss(
+                target=target,
+                pred=pred,
+                weight=self.hparams.cat_weights,
+            )
             # ========== logger the loss ==========
 
         self.log(
@@ -396,7 +409,9 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
             prog_bar=True,
             batch_size=len(label),
         )
-        self.update_metrics(target=target, pred=pred, weight=stdev, mode=mode)
+        self.update_metrics(
+            target=target, pred=pred, weight=self.hparams.cat_weights, mode=mode
+        )
 
         return all_loss
 
@@ -404,17 +419,10 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
         """
         Initialize loss function
         """
-        # if(self.hparams.loss_fn == 'acc'):
-        #    print("using acc")
-        #    loss_fn = Metrics_Accuracy_Weighted()
-
-        # elif(self.hparams.loss_fn == 'f1'):
-        #    print("using f1")
-        #    loss_fn = torchmetrics.classification.MulticlassF1Score(num_classes=self.hparams.outdim, average='micro')
-        # else: # cross entropy
         print("using cross entropy")
-        loss_fn = Metrics_Cross_Entropy()
-
+        loss_fn = Metrics_Cross_Entropy(
+            n_categories=self.hparams.outdim, reduction="sum"
+        )
         return loss_fn
 
     def compute_loss(self, target, pred, weight):
@@ -506,17 +514,17 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
         if mode == "train":
             self.train_f1(preds=pred, target=target)
             self.train_acc(preds=pred, target=target)
-            self.train_cross(preds=pred, target=target)
+            self.train_cross(preds=pred, target=target, weight=weight)
 
         elif mode == "val":
             self.val_f1(preds=pred, target=target)
             self.val_acc(preds=pred, target=target)
-            self.val_cross(preds=pred, target=target)
+            self.val_cross(preds=pred, target=target, weight=weight)
 
         elif mode == "test":
             self.test_f1(preds=pred, target=target)
             self.test_acc(preds=pred, target=target)
-            self.test_cross(preds=pred, target=target)
+            self.test_cross(preds=pred, target=target, weight=weight)
 
     def compute_metrics(self, mode):
         if mode == "train":

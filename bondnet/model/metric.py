@@ -249,9 +249,9 @@ class Metrics_Accuracy_Weighted(Metric):
 
         preds = preds if preds.is_floating_point else preds.float()
         target = target if target.is_floating_point else target.float()
-        preds = preds.argmax(dim=1)  # convert to class labels
-        target = target.argmax(dim=1)  # convert to class labels
-        correct = preds.eq(target).sum()
+        preds_one_hot = preds.argmax(dim=1)  # convert to class labels
+        target_one_hot = target.argmax(dim=1)  # convert to class labels
+        correct = preds_one_hot.eq(target_one_hot).sum()
         n_obs = target.numel()
 
         if weight.numel() == 0:
@@ -265,13 +265,15 @@ class Metrics_Accuracy_Weighted(Metric):
 
 
 class Metrics_Cross_Entropy(Metric):
-    def __init__(self):
+    def __init__(self, reduction="mean", n_categories=3):
         super().__init__()
         is_differentiable: bool = True
         higher_is_better: bool = False
         full_state_update: bool = False
         cross_entropy: Tensor
         total: Tensor
+        self.reduction = reduction
+        self.n_categories = n_categories
         self.add_state("cross_entropy", default=tensor(0.0), dist_reduce_fx="sum")
         self.add_state("total", default=tensor(0), dist_reduce_fx="sum")
 
@@ -280,7 +282,6 @@ class Metrics_Cross_Entropy(Metric):
         preds: Tensor,
         target: Tensor,
         weight: Tensor = torch.Tensor([]),
-        reduction: str = "sum",
     ) -> None:
         if preds.size() != target.size():
             warnings.warn(
@@ -290,18 +291,14 @@ class Metrics_Cross_Entropy(Metric):
                     input.size(), target.size()
                 )
             )
-        # compute cross entropy
-        cross_entropy = F.cross_entropy(preds, target, reduction=reduction)
 
         if weight.numel() == 0:
-            weight = torch.ones_like(target)
+            weight = torch.ones(self.n_categories)
 
-        cross_entropy = cross_entropy * weight
-        if reduction != "none":
-            if reduction == "mean":
-                cross_entropy = torch.sum(cross_entropy) / torch.sum(weight)
-            else:
-                cross_entropy = torch.sum(cross_entropy)
+        target_filtered = torch.argmax(target, axis=1)
+        cross_entropy = F.cross_entropy(
+            input=preds, target=target_filtered, reduction=self.reduction, weight=weight
+        )
 
         n_obs = target.numel()
         self.cross_entropy += cross_entropy
