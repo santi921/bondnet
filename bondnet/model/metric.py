@@ -8,6 +8,7 @@ from torchmetrics import Metric
 
 from torch import Tensor, tensor
 
+
 class WeightedMSELoss(nn.Module):
     """
     Weighted MSE Loss that weighs each element differently.
@@ -31,7 +32,6 @@ class WeightedMSELoss(nn.Module):
         super(WeightedMSELoss, self).__init__()
 
     def forward(self, input, target, weight=None):
-
         if weight is None:
             return F.l1_loss(input, target, reduction=self.reduction)
         else:
@@ -44,7 +44,7 @@ class WeightedMSELoss(nn.Module):
                     )
                 )
 
-            rst = ((input - target) ** 2)
+            rst = (input - target) ** 2
             rst *= weight
             if self.reduction != "none":
                 if self.reduction == "mean":
@@ -78,7 +78,6 @@ class WeightedL1Loss(nn.Module):
         super(WeightedL1Loss, self).__init__()
 
     def forward(self, input, target, weight):
-
         if weight is None:
             return F.l1_loss(input, target, reduction=self.reduction)
         else:
@@ -97,7 +96,7 @@ class WeightedL1Loss(nn.Module):
                     rst = torch.sum(rst) / torch.sum(weight)
                 else:
                     rst = torch.sum(rst)
-            
+
             return rst
 
 
@@ -107,8 +106,6 @@ class WeightedSmoothL1Loss(nn.Module):
         super(WeightedSmoothL1Loss, self).__init__()
 
     def forward(self, input, target, weight):
-
-        
         if weight is None:
             return F.smooth_l1_loss(input, target, reduction=self.reduction)
         else:
@@ -120,7 +117,7 @@ class WeightedSmoothL1Loss(nn.Module):
                         input.size(), target.size(), weight.size()
                     )
                 )
-            
+
             rst = F.smooth_l1_loss(input, target, reduction=self.reduction) * weight
             if self.reduction != "none":
                 if self.reduction == "mean":
@@ -144,8 +141,9 @@ class Metrics_WeightedMAE(Metric):
         self.add_state("sum_abs_error", default=tensor(0.0), dist_reduce_fx="sum")
         self.add_state("total", default=tensor(0), dist_reduce_fx="sum")
 
-
-    def update(self, preds: Tensor, target: Tensor, weight: Tensor, reduction: str = "sum")-> None:
+    def update(
+        self, preds: Tensor, target: Tensor, weight: Tensor, reduction: str = "sum"
+    ) -> None:
         if preds.size() != target.size() != weight.size():
             warnings.warn(
                 "Input size ({}) is different from the target size ({}) or weight "
@@ -157,7 +155,7 @@ class Metrics_WeightedMAE(Metric):
 
         preds = preds if preds.is_floating_point else preds.float()
         target = target if target.is_floating_point else target.float()
-        
+
         sum_abs_error = torch.abs(preds - target)
         sum_abs_error *= weight
         if reduction != "none":
@@ -172,7 +170,7 @@ class Metrics_WeightedMAE(Metric):
 
     def compute(self):
         return self.sum_abs_error / self.total
-    
+
 
 class Metrics_WeightedMSE(Metric):
     def __init__(self):
@@ -187,8 +185,9 @@ class Metrics_WeightedMSE(Metric):
         self.add_state("sum_abs_error", default=tensor(0.0), dist_reduce_fx="sum")
         self.add_state("total", default=tensor(0), dist_reduce_fx="sum")
 
-
-    def update(self, preds: Tensor, target: Tensor, weight: Tensor, reduction: str = "sum")-> None:
+    def update(
+        self, preds: Tensor, target: Tensor, weight: Tensor, reduction: str = "sum"
+    ) -> None:
         if preds.size() != target.size() != weight.size():
             warnings.warn(
                 "Input size ({}) is different from the target size ({}) or weight "
@@ -200,8 +199,8 @@ class Metrics_WeightedMSE(Metric):
 
         preds = preds if preds.is_floating_point else preds.float()
         target = target if target.is_floating_point else target.float()
-    
-        sum_abs_error = ((preds - target) ** 2)
+
+        sum_abs_error = (preds - target) ** 2
         sum_abs_error *= weight
         if reduction != "none":
             if reduction == "mean":
@@ -215,7 +214,6 @@ class Metrics_WeightedMSE(Metric):
 
     def compute(self):
         return self.sum_abs_error / self.total
-    
 
 
 class Metrics_Accuracy_Weighted(Metric):
@@ -231,62 +229,87 @@ class Metrics_Accuracy_Weighted(Metric):
         self.add_state("correct", default=tensor(0), dist_reduce_fx="sum")
         self.add_state("total", default=tensor(0), dist_reduce_fx="sum")
 
-    def update(self, preds: Tensor, target: Tensor, weight: Tensor, reduction: str = "sum")-> None:
-        if preds.size() != target.size() != weight.size():
+    def update(
+        self,
+        preds: Tensor,
+        target: Tensor,
+        weight: Tensor = torch.Tensor([]),
+        reduction: str = "sum",
+    ) -> None:
+        if preds.size() != target.size():
             warnings.warn(
                 "Input size ({}) is different from the target size ({}) or weight "
-                "size ({}). This will likely lead to incorrect results due "
+                ". This will likely lead to incorrect results due "
                 "to broadcasting. Please ensure they have the same size.".format(
-                    input.size(), target.size(), weight.size()
+                    input.size(), target.size()
                 )
             )
+        if weight.numel() == 0:
+            weight = torch.ones_like(target)
 
         preds = preds if preds.is_floating_point else preds.float()
         target = target if target.is_floating_point else target.float()
-        preds = preds.argmax(dim=1)
+        preds = preds.argmax(dim=1)  # convert to class labels
+        target = target.argmax(dim=1)  # convert to class labels
         correct = preds.eq(target).sum()
         n_obs = target.numel()
-        self.correct += correct * weight
-        self.total += n_obs * weight
+
+        if weight.numel() == 0:
+            weight = torch.ones_like(target)
+
+        self.correct += correct
+        self.total += n_obs
 
     def compute(self):
         return self.correct / self.total
-    
+
 
 class Metrics_Cross_Entropy(Metric):
     def __init__(self):
         super().__init__()
-        is_differentiable: bool = False
+        is_differentiable: bool = True
         higher_is_better: bool = False
         full_state_update: bool = False
         cross_entropy: Tensor
         total: Tensor
         self.add_state("cross_entropy", default=tensor(0.0), dist_reduce_fx="sum")
         self.add_state("total", default=tensor(0), dist_reduce_fx="sum")
-    
-    def update(self, preds: Tensor, target: Tensor, weight: Tensor, reduction: str = "sum")-> None:
-        if preds.size() != target.size() != weight.size():
+
+    def update(
+        self,
+        preds: Tensor,
+        target: Tensor,
+        weight: Tensor = torch.Tensor([]),
+        reduction: str = "sum",
+    ) -> None:
+        if preds.size() != target.size():
             warnings.warn(
                 "Input size ({}) is different from the target size ({}) or weight "
-                "size ({}). This will likely lead to incorrect results due "
+                ". This will likely lead to incorrect results due "
                 "to broadcasting. Please ensure they have the same size.".format(
-                    input.size(), target.size(), weight.size()
+                    input.size(), target.size()
                 )
             )
         # compute cross entropy
         cross_entropy = F.cross_entropy(preds, target, reduction=reduction)
-        cross_entropy *= weight
+
+        if weight.numel() == 0:
+            weight = torch.ones_like(target)
+
+        cross_entropy = cross_entropy * weight
         if reduction != "none":
             if reduction == "mean":
                 cross_entropy = torch.sum(cross_entropy) / torch.sum(weight)
             else:
                 cross_entropy = torch.sum(cross_entropy)
+
         n_obs = target.numel()
         self.cross_entropy += cross_entropy
         self.total += n_obs
 
     def compute(self):
         return self.cross_entropy / self.total
+
 
 class OrderAccuracy:
     """
@@ -413,4 +436,3 @@ class ProgressMeter:
         num_digits = len(str(num_batches // 1))
         fmt = "{:" + str(num_digits) + "d}"
         return "[" + fmt + "/" + fmt.format(num_batches) + "]"
-

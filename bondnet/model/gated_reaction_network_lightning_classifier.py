@@ -12,10 +12,10 @@ from bondnet.layer.gatedconv import GatedGCNConv, GatedGCNConv1, GatedGCNConv2
 from bondnet.layer.readout import Set2SetThenCat
 from bondnet.layer.utils import UnifySize
 from bondnet.model.metric import (
-    WeightedL1Loss, 
-    WeightedMSELoss, 
-    WeightedSmoothL1Loss,   
-    Metrics_Cross_Entropy, 
+    WeightedL1Loss,
+    WeightedMSELoss,
+    WeightedSmoothL1Loss,
+    Metrics_Cross_Entropy,
     Metrics_Accuracy_Weighted,
 )
 import matplotlib.pyplot as plt
@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 logger = logging.getLogger(__name__)
 
 
-class GatedGCNReactionNetworkLightning(pl.LightningModule):
+class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
     """
     Gated graph neural network model to predict molecular property.
 
@@ -53,6 +53,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         outdim (int): dimension of the output. For regression, choose 1 and for
             classification, set it to the number of classes.
     """
+
     def __init__(
         self,
         in_feats,
@@ -96,7 +97,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             "gated_num_fc_layers": gated_num_fc_layers,
             "gated_graph_norm": gated_graph_norm,
             "gated_batch_norm": gated_batch_norm,
-            "gated_activation": gated_activation, 
+            "gated_activation": gated_activation,
             "gated_residual": gated_residual,
             "gated_dropout": gated_dropout,
             "num_lstm_iters": num_lstm_iters,
@@ -118,7 +119,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             "loss_fn": loss_fn,
             "device": device,
             "wandb": wandb,
-            "augment": augment
+            "augment": augment,
         }
         self.hparams.update(params)
         self.save_hyperparameters()
@@ -128,7 +129,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         if isinstance(fc_activation, str):
             fc_activation = getattr(nn, fc_activation)()
 
-        # embedding layer 
+        # embedding layer
         self.embedding = UnifySize(in_feats, embedding_size)
 
         # gated layer
@@ -203,13 +204,19 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
 
         # final output layer, mapping feature to the corresponding shape
         self.fc_layers.append(nn.Linear(in_size, outdim))
-        self.fc_layers.append(nn.Softmax(dim=1)) # this makes it a classifier
+        self.fc_layers.append(nn.Softmax(dim=1))  # this makes it a classifier
 
         self.loss = self.loss_function()
-        
-        self.train_f1 = torchmetrics.F1(num_classes=self.outdim, average='macro')
-        self.val_f1 = torchmetrics.F1(num_classes=self.outdim, average='macro')
-        self.test_f1 = torchmetrics.F1(num_classes=self.outdim, average='macro')
+
+        self.train_f1 = torchmetrics.classification.MulticlassF1Score(
+            num_classes=self.hparams.outdim
+        )
+        self.val_f1 = torchmetrics.classification.MulticlassF1Score(
+            num_classes=self.hparams.outdim
+        )
+        self.test_f1 = torchmetrics.classification.MulticlassF1Score(
+            num_classes=self.hparams.outdim
+        )
 
         self.train_acc = Metrics_Accuracy_Weighted()
         self.val_acc = Metrics_Accuracy_Weighted()
@@ -218,8 +225,17 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         self.val_cross = Metrics_Cross_Entropy()
         self.test_cross = Metrics_Cross_Entropy()
         self.train_cross = Metrics_Cross_Entropy()
-        
-    def forward(self, graph, feats, reactions, norm_atom=None, norm_bond=None, device=None, reverse = False):
+
+    def forward(
+        self,
+        graph,
+        feats,
+        reactions,
+        norm_atom=None,
+        norm_bond=None,
+        device=None,
+        reverse=False,
+    ):
         """
         Args:
             graph (DGLHeteroGraph or BatchedDGLHeteroGraph): (batched) molecule graphs
@@ -236,23 +252,23 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         # embedding
         feats = self.embedding(feats)
         # gated layer
-        
+
         for layer in self.gated_layers:
             feats = layer(graph, feats, norm_atom, norm_bond)
-        
+
         # convert mol graphs to reaction graphs by subtracting reactant feats from
         # products feats
         # graph is actually batch graphs, not just a graph
         graph, feats = mol_graph_to_rxn_graph(graph, feats, reactions, device, reverse)
-        
+
         # readout layer
         feats = self.readout_layer(graph, feats)
-        
+
         for layer in self.fc_layers:
             feats = layer(feats)
-
+        # print("print statement to debug")
+        # print(feats)
         return feats
-
 
     def feature_before_fc(self, graph, feats, reactions, norm_atom, norm_bond):
         """
@@ -272,7 +288,6 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         # readout layer
         feats = self.readout_layer(graph, feats)
         return feats
-
 
     def feature_at_each_layer(self, graph, feats, reactions, norm_atom, norm_bond):
         """
@@ -306,96 +321,109 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
 
         return all_feats
 
-
     def shared_step(self, batch, mode):
-
         # ========== compute predictions ==========
         batched_graph, label = batch
         nodes = ["atom", "bond", "global"]
         feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
-        target = label["value"].view(-1)
-        target_aug = label["value_rev"].view(-1)       
+        # print("label raw")
+        # print(label["value"])
+        target = label["value"]
+        target_aug = label["value_rev"]
         empty_aug = torch.isnan(target_aug).tolist()
         empty_aug = True in empty_aug
         norm_atom = label["norm_atom"]
         norm_bond = label["norm_bond"]
-        
+
         stdev = label["scaler_stdev"]
         if self.device is not None:
             feats = {k: v.to(self.device) for k, v in feats.items()}
             target = target.to(self.device)
             norm_atom = norm_atom.to(self.device)
-            norm_bond = norm_bond.to(self.device)   
+            norm_bond = norm_bond.to(self.device)
             stdev = stdev.to(self.device)
-            if(self.hparams.augment and not empty_aug): 
+            if self.hparams.augment and not empty_aug:
                 target_aug = target_aug.to(self.device)
-
+        # print("number in batch")
+        # print(len(target))
         pred = self(
-            batched_graph, 
-            feats, 
-            label["reaction"], 
-            device=self.device, 
-            norm_bond = norm_bond, 
-            norm_atom=norm_atom)
-        
-        pred = pred.view(-1)
+            batched_graph,
+            feats,
+            label["reaction"],
+            device=self.device,
+            norm_bond=norm_bond,
+            norm_atom=norm_atom,
+        )
+        # print("preds raw")
+        # print(pred)
+        # print("len pred")
+        # print(len(pred))
+        pred = pred
 
-        if(self.hparams.augment and not empty_aug):
-            #target_aug_new_shape = (len(target_aug), 1)
-            #target_aug = target_aug.view(target_aug_new_shape) 
+        if self.hparams.augment and not empty_aug:
+            # target_aug_new_shape = (len(target_aug), 1)
+            # target_aug = target_aug.view(target_aug_new_shape)
             pred_aug = self(
-                batched_graph, 
+                batched_graph,
                 feats,
                 label["reaction"],
-                device=self.device, 
-                reverse=True, 
-                norm_bond = norm_bond, 
-                norm_atom=norm_atom)
+                device=self.device,
+                reverse=True,
+                norm_bond=norm_bond,
+                norm_atom=norm_atom,
+            )
             pred_aug = pred_aug.view(-1)
             all_loss = self.compute_loss(
-                torch.cat((pred, pred_aug), axis=0),
-                torch.cat((target, target_aug), axis=0),
-                torch.cat((stdev, stdev), axis=0)
+                target=torch.cat((target, target_aug), axis=0),
+                pred=torch.cat((pred, pred_aug), axis=0),
+                weight=torch.cat((stdev, stdev), axis=0),
             )
-            
+
         else:
+            # print("print statement to debug")
+            # print(pred)
+            # print(target)
+            # print(stdev)
             # ========== compute losses ==========
-            all_loss = self.compute_loss(pred, target, stdev)
+            all_loss = self.compute_loss(target=target, pred=pred, weight=stdev)
             # ========== logger the loss ==========
 
-        self.log(f"{mode}_loss", all_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=len(label))
-        self.update_metrics(target, pred, stdev, mode)
+        self.log(
+            f"{mode}_loss",
+            all_loss,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            batch_size=len(label),
+        )
+        self.update_metrics(target=target, pred=pred, weight=stdev, mode=mode)
 
         return all_loss
 
-    
-    def loss_function(self): 
+    def loss_function(self):
         """
         Initialize loss function
         """
-        # TODO: f1, acc, cross_entropy 
-        if(self.hparams.loss_fn == 'acc'):
-            loss_fn = Metrics_Accuracy_Weighted()
+        # if(self.hparams.loss_fn == 'acc'):
+        #    print("using acc")
+        #    loss_fn = Metrics_Accuracy_Weighted()
 
-        elif(self.hparams.loss_fn == 'f1'):
-            loss_fn = torchmetrics.F1Loss(task='multiclass', average='micro', num_classes=self.outdim)
-        
-        else: # cross entropy
-            loss_fn = Metrics_Cross_Entropy()
-        
-    
-        return loss_fn 
-    
+        # elif(self.hparams.loss_fn == 'f1'):
+        #    print("using f1")
+        #    loss_fn = torchmetrics.classification.MulticlassF1Score(num_classes=self.hparams.outdim, average='micro')
+        # else: # cross entropy
+        print("using cross entropy")
+        loss_fn = Metrics_Cross_Entropy()
 
-    def compute_loss(self, target, pred, weight): 
+        return loss_fn
+
+    def compute_loss(self, target, pred, weight):
         """
         Compute loss
         """
-        return self.loss(target, pred, weight)
-
+        return self.loss(target=target, preds=pred, weight=weight)
 
     def configure_optimizers(self):
-        
         optimizer = torch.optim.Adam(
             filter(lambda p: p.requires_grad, self.parameters()),
             lr=self.hparams.lr,
@@ -403,17 +431,12 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         )
 
         scheduler = self._config_lr_scheduler(optimizer)
-        
-        lr_scheduler = {
-            "scheduler": scheduler, 
-            "monitor": "val_loss"
-            }
-        
+
+        lr_scheduler = {"scheduler": scheduler, "monitor": "val_loss"}
+
         return [optimizer], [lr_scheduler]
 
-
     def _config_lr_scheduler(self, optimizer):
-
         scheduler_name = self.hparams["scheduler_name"].lower()
 
         if scheduler_name == "reduce_on_plateau":
@@ -434,13 +457,11 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
 
         return scheduler
 
-
     def training_step(self, batch, batch_idx):
         """
         Training step
         """
         return self.shared_step(batch, mode="train")
-
 
     def validation_step(self, batch, batch_idx):
         """
@@ -448,20 +469,17 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         """
         return self.shared_step(batch, mode="val")
 
-
     def test_step(self, batch, batch_idx):
         """
         Test step
         """
         return self.shared_step(batch, mode="test")
 
-
-
     def training_epoch_end(self, outputs):
         """
         Training epoch end
         """
-        f1, acc, cross =  self.compute_metrics(mode = "train")
+        f1, acc, cross = self.compute_metrics(mode="train")
         self.log("train_f1", f1, prog_bar=True)
         self.log("train_acc", acc, prog_bar=True)
         self.log("train_cross", cross, prog_bar=True)
@@ -470,42 +488,38 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         """
         Validation epoch end
         """
-        f1, acc, cross =  self.compute_metrics(mode = "val")
+        f1, acc, cross = self.compute_metrics(mode="val")
         self.log("val_f1", f1, prog_bar=True)
         self.log("val_acc", acc, prog_bar=True)
         self.log("val_cross", cross, prog_bar=True)
-
-
 
     def test_epoch_end(self, outputs):
         """
         Test epoch end
         """
-        f1, acc, cross =  self.compute_metrics(mode = "test")
+        f1, acc, cross = self.compute_metrics(mode="test")
         self.log("test_f1", f1, prog_bar=True)
         self.log("test_acc", acc, prog_bar=True)
         self.log("test_cross", cross, prog_bar=True)
 
     def update_metrics(self, pred, target, weight, mode):
+        if mode == "train":
+            self.train_f1(preds=pred, target=target)
+            self.train_acc(preds=pred, target=target)
+            self.train_cross(preds=pred, target=target)
 
-        if mode == 'train': 
-            self.train_f1(pred, target, weight)
-            self.train_acc(pred, target, weight)
-            self.train_cross(pred, target, weight)
-        
-        elif mode == 'val':
-            self.val_f1(pred, target, weight)
-            self.val_acc(pred, target, weight)
-            self.val_cross(pred, target, weight)
-        
-        elif mode == 'test':            
-            self.test_f1(pred, target, weight)
-            self.test_acc(pred, target, weight)
-            self.test_cross(pred, target, weight)
+        elif mode == "val":
+            self.val_f1(preds=pred, target=target)
+            self.val_acc(preds=pred, target=target)
+            self.val_cross(preds=pred, target=target)
 
+        elif mode == "test":
+            self.test_f1(preds=pred, target=target)
+            self.test_acc(preds=pred, target=target)
+            self.test_cross(preds=pred, target=target)
 
     def compute_metrics(self, mode):
-        if mode == 'train': 
+        if mode == "train":
             f1 = self.train_f1.compute()
             acc = self.train_acc.compute()
             cross = self.train_cross.compute()
@@ -513,7 +527,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             self.train_acc.reset()
             self.train_cross.reset()
 
-        elif mode == 'val':
+        elif mode == "val":
             f1 = self.val_f1.compute()
             acc = self.val_acc.compute()
             cross = self.val_cross.compute()
@@ -521,14 +535,14 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             self.val_acc.reset()
             self.val_cross.reset()
 
-        elif mode == 'test':
+        elif mode == "test":
             f1 = self.test_f1.compute()
             acc = self.test_acc.compute()
             cross = self.test_cross.compute()
             self.test_f1.reset()
             self.test_acc.reset()
             self.test_cross.reset()
-        
+
         return f1, acc, cross
 
 
@@ -545,7 +559,7 @@ def _split_batched_output(graph, value):
     return torch.split(value, nbonds)
 
 
-def mol_graph_to_rxn_graph(graph, feats, reactions, device=None, reverse = False):
+def mol_graph_to_rxn_graph(graph, feats, reactions, device=None, reverse=False):
     """
     Convert a batched molecule graph to a batched reaction graph.
 
@@ -564,10 +578,10 @@ def mol_graph_to_rxn_graph(graph, feats, reactions, device=None, reverse = False
             reactions.
         feats (dict): features for the batched graph
     """
-    #updates node features on batches
+    # updates node features on batches
     for nt, ft in feats.items():
-        graph.nodes[nt].data.update({"ft": ft}) 
-        #feats = {k: v.to(device) for k, v in feats.items()}
+        graph.nodes[nt].data.update({"ft": ft})
+        # feats = {k: v.to(device) for k, v in feats.items()}
     # unbatch molecule graph
     graphs = dgl.unbatch(graph)
     reaction_graphs, reaction_feats = [], []
@@ -578,63 +592,60 @@ def mol_graph_to_rxn_graph(graph, feats, reactions, device=None, reverse = False
         products = [graphs[i] for i in rxn.products]
         # might need to rewrite to create dynamics here
         mappings = {
-                    "bond_map": rxn.bond_mapping, 
-                    "atom_map": rxn.atom_mapping, 
-                    "total_bonds": rxn.total_bonds,
-                    "total_atoms": rxn.total_atoms,
-                    "num_bonds_total":rxn.num_bonds_total,
-                    "num_atoms_total":rxn.num_atoms_total
-                    }
-        has_bonds = {
-            "reactants": [True if len(mp) > 0 else False 
-                    for mp in rxn.bond_mapping[0]],
-            "products": [True if len(mp) > 0 else False 
-                    for mp in rxn.bond_mapping[1]],
+            "bond_map": rxn.bond_mapping,
+            "atom_map": rxn.atom_mapping,
+            "total_bonds": rxn.total_bonds,
+            "total_atoms": rxn.total_atoms,
+            "num_bonds_total": rxn.num_bonds_total,
+            "num_atoms_total": rxn.num_atoms_total,
         }
-        if(len(has_bonds["reactants"])!=len(reactants) or 
-            len(has_bonds["products"])!=len(products)): 
+        has_bonds = {
+            "reactants": [True if len(mp) > 0 else False for mp in rxn.bond_mapping[0]],
+            "products": [True if len(mp) > 0 else False for mp in rxn.bond_mapping[1]],
+        }
+        if len(has_bonds["reactants"]) != len(reactants) or len(
+            has_bonds["products"]
+        ) != len(products):
             print("unequal mapping & graph len")
-        
-        
+
         g, fts = create_rxn_graph(
-            reactants, products, mappings, has_bonds, device, reverse = reverse
+            reactants, products, mappings, has_bonds, device, reverse=reverse
         )
         reaction_graphs.append(g)
-        #if(device !=None):
+        # if(device !=None):
         #    fts = {k: v.to(device) for k, v in fts.items()}
         reaction_feats.append(fts)
         ##################################################
-    for i, g, ind in zip(reaction_feats, reaction_graphs, range(len(reaction_feats))): 
+    for i, g, ind in zip(reaction_feats, reaction_graphs, range(len(reaction_feats))):
         feat_len_dict = {}
-        total_feats = 0 
-        
+        total_feats = 0
+
         for nt in i.keys():
-            total_feats+=i[nt].shape[0]
+            total_feats += i[nt].shape[0]
             feat_len_dict[nt] = i[nt].shape[0]
 
-        if(total_feats!=g.number_of_nodes()): # error checking
+        if total_feats != g.number_of_nodes():  # error checking
             print(g)
             print(feat_len_dict)
             print(reactions[ind].atom_mapping)
             print(reactions[ind].bond_mapping)
             print(reactions[ind].total_bonds)
             print(reactions[ind].total_atoms)
-            print("--"*20)
+            print("--" * 20)
 
-    batched_graph = dgl.batch(reaction_graphs) # batch graphs
-    for nt in feats: # batch features
+    batched_graph = dgl.batch(reaction_graphs)  # batch graphs
+    for nt in feats:  # batch features
         batched_feats[nt] = torch.cat([ft[nt] for ft in reaction_feats])
     return batched_graph, batched_feats
 
 
-def construct_rxn_graph_empty(mappings, device=None, self_loop = True):
-
+def construct_rxn_graph_empty(mappings, device=None, self_loop=True):
     bonds_compile = mappings["total_bonds"]
     atoms_compile = mappings["total_atoms"]
     num_bonds = len(bonds_compile)
     num_atoms = len(atoms_compile)
     a2b, b2a = [], []
-    
+
     if num_bonds == 0:
         num_bonds = 1
         a2b, b2a = [(0, 0)], [(0, 0)]
@@ -672,9 +683,10 @@ def construct_rxn_graph_empty(mappings, device=None, self_loop = True):
                 ("global", "g2g", "global"): g2g,
             }
         )
-        
+
     rxn_graph_zeroed = dgl.heterograph(edges_dict)
-    if(device is not None): rxn_graph_zeroed = rxn_graph_zeroed.to(device)
+    if device is not None:
+        rxn_graph_zeroed = rxn_graph_zeroed.to(device)
     return rxn_graph_zeroed
 
 
@@ -683,10 +695,10 @@ def create_rxn_graph(
     products,
     mappings,
     has_bonds,
-    device=None, 
+    device=None,
     ntypes=("global", "atom", "bond"),
     ft_name="ft",
-    reverse = False
+    reverse=False,
 ):
     """
     A reaction is represented by:
@@ -711,82 +723,104 @@ def create_rxn_graph(
     verbose = False
     reactants_ft, products_ft = [], []
     feats = dict()
-    
+
     # note, this assumes we have one reactant
     num_products = int(len(products))
     num_reactants = int(len(reactants))
     graph = construct_rxn_graph_empty(mappings, device)
-    if(verbose):
-        print("# reactions: {}, # products: {}".format(int(len(reactants)), int(len(products))))
+    if verbose:
+        print(
+            "# reactions: {}, # products: {}".format(
+                int(len(reactants)), int(len(products))
+            )
+        )
 
     for nt in ntypes:
-        
         reactants_ft = [p.nodes[nt].data[ft_name] for p in reactants]
         products_ft = [p.nodes[nt].data[ft_name] for p in products]
-        
-        if(device is not None):
+
+        if device is not None:
             reactants_ft = [r.to(device) for r in reactants_ft]
             products_ft = [p.to(device) for p in products_ft]
 
-        if(nt=='bond'):
-            if(num_products>1):
-                products_ft = list(itertools.compress(products_ft, has_bonds["products"]))
-                filter_maps = list(itertools.compress(mappings[nt+"_map"][1], has_bonds["products"]))
-                mappings[nt+"_map"] = [mappings[nt+"_map"][0], filter_maps]
-                
-            if(num_reactants>1):      
-                reactants_ft = list(itertools.compress(reactants_ft, has_bonds["reactants"]))
-                filter_maps = list(itertools.compress(mappings[nt+"_map"][0], has_bonds["reactants"]))
-                mappings[nt+"_map"] = [filter_maps, mappings[nt+"_map"][1]]
+        if nt == "bond":
+            if num_products > 1:
+                products_ft = list(
+                    itertools.compress(products_ft, has_bonds["products"])
+                )
+                filter_maps = list(
+                    itertools.compress(mappings[nt + "_map"][1], has_bonds["products"])
+                )
+                mappings[nt + "_map"] = [mappings[nt + "_map"][0], filter_maps]
 
-        if(nt=='global'):
-            reactants_ft = [torch.sum(reactant_ft, dim=0, keepdim=True) for reactant_ft in reactants_ft]
-            products_ft = [torch.sum(product_ft, dim=0, keepdim=True) for product_ft in products_ft]
-            if(device is not None):
+            if num_reactants > 1:
+                reactants_ft = list(
+                    itertools.compress(reactants_ft, has_bonds["reactants"])
+                )
+                filter_maps = list(
+                    itertools.compress(mappings[nt + "_map"][0], has_bonds["reactants"])
+                )
+                mappings[nt + "_map"] = [filter_maps, mappings[nt + "_map"][1]]
+
+        if nt == "global":
+            reactants_ft = [
+                torch.sum(reactant_ft, dim=0, keepdim=True)
+                for reactant_ft in reactants_ft
+            ]
+            products_ft = [
+                torch.sum(product_ft, dim=0, keepdim=True) for product_ft in products_ft
+            ]
+            if device is not None:
                 reactants_ft = [r.to(device) for r in reactants_ft]
                 products_ft = [p.to(device) for p in products_ft]
-        
-        len_feature_nt = reactants_ft[0].shape[1]
-        #if(len_feature_nt!=64): print(mappings)
 
-        if(nt == 'global'):
+        len_feature_nt = reactants_ft[0].shape[1]
+        # if(len_feature_nt!=64): print(mappings)
+
+        if nt == "global":
             net_ft_full = torch.zeros(1, len_feature_nt)
-        elif(nt == 'bond'):
-            net_ft_full = torch.zeros(mappings['num_bonds_total'],len_feature_nt) 
-        else: 
-            net_ft_full = torch.zeros(mappings['num_atoms_total'], len_feature_nt) 
-        
-        if(device is not None):
+        elif nt == "bond":
+            net_ft_full = torch.zeros(mappings["num_bonds_total"], len_feature_nt)
+        else:
+            net_ft_full = torch.zeros(mappings["num_atoms_total"], len_feature_nt)
+
+        if device is not None:
             net_ft_full = net_ft_full.to(device)
-        
-        if nt == "global": 
+
+        if nt == "global":
             coef = 1
-            if(reverse==True): coef = -1
+            if reverse == True:
+                coef = -1
 
             for product_ft in products_ft:
-                net_ft_full += coef * torch.sum(product_ft, dim=0, keepdim=True)                
+                net_ft_full += coef * torch.sum(product_ft, dim=0, keepdim=True)
             for reactant_ft in reactants_ft:
-                net_ft_full -= coef * torch.sum(reactant_ft, dim=0, keepdim=True) 
+                net_ft_full -= coef * torch.sum(reactant_ft, dim=0, keepdim=True)
 
         else:
-            net_ft_full_temp = copy.deepcopy(net_ft_full) 
+            net_ft_full_temp = copy.deepcopy(net_ft_full)
             coef = 1
-            if(reverse==True): coef = -1
+            if reverse == True:
+                coef = -1
             for ind, reactant_ft in enumerate(reactants_ft):
-                mappings_raw = mappings[nt+"_map"][0][ind]
+                mappings_raw = mappings[nt + "_map"][0][ind]
                 mappings_react = list(mappings_raw.keys())
                 mappings_total = [mappings_raw[mapping] for mapping in mappings_react]
-                assert np.max(np.array(mappings_total)) < len(net_ft_full_temp), f"invalid index  {mappings}"
+                assert np.max(np.array(mappings_total)) < len(
+                    net_ft_full_temp
+                ), f"invalid index  {mappings}"
                 net_ft_full_temp[mappings_total] = reactant_ft[mappings_react]
                 net_ft_full -= coef * net_ft_full_temp
 
             for ind, product_ft in enumerate(products_ft):
-                mappings_raw = mappings[nt+"_map"][1][ind]
+                mappings_raw = mappings[nt + "_map"][1][ind]
                 mappings_prod = list(mappings_raw.keys())
                 mappings_total = [mappings_raw[mapping] for mapping in mappings_prod]
-                assert np.max(np.array(mappings_total)) < len(net_ft_full_temp), f"invalid index  {mappings}"
+                assert np.max(np.array(mappings_total)) < len(
+                    net_ft_full_temp
+                ), f"invalid index  {mappings}"
                 net_ft_full_temp[mappings_total] = product_ft[mappings_prod]
                 net_ft_full += coef * net_ft_full_temp
-            
+
         feats[nt] = net_ft_full
     return graph, feats

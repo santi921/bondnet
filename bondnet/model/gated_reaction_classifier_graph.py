@@ -151,6 +151,7 @@ class GatedGCNReactionNetworkClassifier(GatedGCNMol):
 
         return feats, target, stdev
 
+
     def feature_before_fc(self, graph, feats, reactions, norm_atom, norm_bond):
         """
         Get the features before the final fully-connected.
@@ -169,6 +170,7 @@ class GatedGCNReactionNetworkClassifier(GatedGCNMol):
         # readout layer
         feats = self.readout_layer(graph, feats)
         return feats
+
 
     def feature_at_each_layer(self, graph, feats, reactions, norm_atom, norm_bond):
         """

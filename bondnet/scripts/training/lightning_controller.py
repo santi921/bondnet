@@ -40,7 +40,6 @@ def train_single(
         dataset = ReactionNetworkDatasetGraphs(
             grapher=get_grapher(config["extra_features"]), 
             file=config["dataset_loc"], 
-            out_file="./", 
             target = config["target_var"], 
             classifier = config["classifier"], 
             classif_categories=config["categories"], 
@@ -58,7 +57,6 @@ def train_single(
         dataset_transfer = ReactionNetworkDatasetGraphs(
             grapher=get_grapher(config["extra_features"]), 
             file=config["dataset_loc"], 
-            out_file="./", 
             target = config["target_var_transfer"], 
             classifier = config["classifier"], 
             classif_categories=config["categories"], 
@@ -126,8 +124,8 @@ def train_single(
             
             checkpoint_callback_transfer = ModelCheckpoint(
                 dirpath=log_save_dir, 
-                filename=run_name+'_model_lightning_transfer_{epoch:02d}-{val_l1:.2f}',
-                monitor='val_l1',
+                filename=run_name+'_model_lightning_transfer_{epoch:02d}-{val_loss:.2f}',
+                monitor='val_loss',
                 mode='min',
                 auto_insert_metric_name=True,
                 save_last=True
@@ -188,8 +186,8 @@ def train_single(
         lr_monitor = LearningRateMonitor(logging_interval='step')
         checkpoint_callback = ModelCheckpoint(
             dirpath=log_save_dir, 
-            filename=run_name+'_model_lightning_{epoch:02d}-{val_l1:.2f}',
-            monitor='val_l1',
+            filename=run_name+'_model_lightning_{epoch:02d}-{val_loss:.2f}',
+            monitor='val_loss',
             mode='min',
             auto_insert_metric_name=True,
             save_last=True
@@ -252,7 +250,6 @@ def controller_main(project_name, log_save_dir):
     dataset = ReactionNetworkDatasetGraphs(
         grapher=get_grapher(extra_keys), 
         file=config["dataset_loc"], 
-        out_file="./", 
         target = config["target_var"], 
         classifier = config["classifier"], 
         classif_categories=config["categories"], 
@@ -273,7 +270,6 @@ def controller_main(project_name, log_save_dir):
         dataset_transfer = ReactionNetworkDatasetGraphs(
             grapher=get_grapher(extra_keys), 
             file=config["dataset_loc"], 
-            out_file="./", 
             target = config["target_var_transfer"], 
             classifier = config["classifier"], 
             classif_categories=config["categories"], 

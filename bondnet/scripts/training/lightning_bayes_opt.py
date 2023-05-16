@@ -40,7 +40,6 @@ class TrainingObject:
         self.dataset = ReactionNetworkDatasetGraphs(
             grapher=get_grapher(self.extra_keys), 
             file=self.dataset_loc, 
-            out_file="./", 
             target = self.config["parameters"]["target_var"]["values"][0], 
             classifier = self.config["parameters"]["classifier"]["values"][0], 
             classif_categories=self.config["parameters"]["classif_categories"]["values"][0], 
@@ -66,7 +65,6 @@ class TrainingObject:
             self.dataset_transfer = ReactionNetworkDatasetGraphs(
                 grapher=get_grapher(self.extra_keys), 
                 file=dataset_loc, 
-                out_file="./", 
                 target = self.config["parameters"]["target_var_transfer"]["values"], 
                 classifier = self.config["parameters"]["classifier"]["values"][0], 
                 classif_categories=self.config["parameters"]["classif_categories"]["values"][0], 
@@ -115,8 +113,8 @@ class TrainingObject:
 
                 checkpoint_callback_transfer = ModelCheckpoint(
                     dirpath=log_save_dir, 
-                    filename='model_lightning_transfer_{epoch:02d}-{val_l1:.2f}',
-                    monitor='val_l1',
+                    filename='model_lightning_transfer_{epoch:02d}-{val_loss:.2f}',
+                    monitor='val_loss',
                     mode='min',
                     auto_insert_metric_name=True,
                     save_last=True
@@ -175,8 +173,8 @@ class TrainingObject:
             
             checkpoint_callback = ModelCheckpoint(
                 dirpath=self.log_save_dir, 
-                filename='model_lightning_{epoch:02d}-{val_l1:.2f}',
-                monitor='val_l1',
+                filename='model_lightning_{epoch:02d}-{val_loss:.2f}',
+                monitor='val_loss',
                 mode='min',
                 auto_insert_metric_name=True,
                 save_last=True
@@ -262,7 +260,7 @@ if __name__ == "__main__":
 
     if method == "bayes":
         sweep_config["method"] = method
-        sweep_config["metric"] = {"name": "val_l1", "goal": "minimize"}
+        sweep_config["metric"] = {"name": "val_loss", "goal": "minimize"}
     
     # wandb loop
     sweep_id = wandb.sweep(sweep_config, project=wandb_project_name)

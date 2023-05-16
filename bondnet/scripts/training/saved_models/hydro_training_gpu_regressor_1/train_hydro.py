@@ -53,7 +53,6 @@ def train_hydro(
         dataset = ReactionNetworkDatasetGraphs(
             grapher=get_grapher(dict_train["extra_features"]), 
             file=dict_train["dataset_loc"], 
-            out_file="./", 
             target = 'dG_sp', 
             classifier = dict_train["classifier"], 
             classif_categories=classif_categories, 

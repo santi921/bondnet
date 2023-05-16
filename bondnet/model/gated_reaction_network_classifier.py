@@ -299,8 +299,8 @@ def mol_graph_to_rxn_graph(graph, feats, reactions):
     # create reaction graphs
     reaction_graphs = []
     reaction_feats = []
-    for rxn in reactions:
 
+    for rxn in reactions:
         reactants = [graphs[i] for i in rxn.reactants]
         products = [graphs[i] for i in rxn.products]
         # print(len(torch.cat([p.nodes['bond'].data['ft'] for p in reactants])),

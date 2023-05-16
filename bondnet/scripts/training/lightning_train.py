@@ -37,8 +37,8 @@ if __name__ == "__main__":
     dataset_loc = args.dataset_loc
     log_save_dir = args.log_save_dir
     config = args.config
-
     config = json.load(open(config, "r"))
+
     precision = config["precision"]
     if precision == "16" or precision == "32":
         precision = int(precision)
@@ -53,26 +53,26 @@ if __name__ == "__main__":
     dataset = ReactionNetworkDatasetGraphs(
         grapher=get_grapher(extra_keys), 
         file=dataset_loc, 
-        out_file="./", 
         target = config["target_var"], 
-        classifier = False, 
-        classif_categories=3, 
-        filter_species = [3, 5],
-        filter_outliers=True,
+        classifier = config["classifier"], 
+        classif_categories=config["classif_categories"], 
+        filter_species = config["filter_species"],
+        filter_outliers=config["filter_outliers"],
         filter_sparse_rxns=False,
         debug = debug,
         device = device,
         extra_keys=extra_keys,
         extra_info=config["extra_info"]
         )
-     
+    #print("labels") 
+    #print(dataset.labels)
     
     dict_for_model = {
         "extra_features": extra_keys,
-        "classifier": False,
-        "classif_categories": 3,
-        "filter_species": [3, 5],
-        "filter_outliers": True,
+        "classifier": config["classifier"],
+        "classif_categories": config["classif_categories"],
+        "filter_species": config["filter_species"],
+        "filter_outliers": config["filter_outliers"],
         "filter_sparse_rxns": False,
         "debug": debug,
         "in_feats": dataset.feature_size
@@ -102,16 +102,14 @@ if __name__ == "__main__":
 
     if config["transfer"]:
         with wandb.init(project=project_name+"_transfer") as run_transfer:
-            
             dataset_transfer = ReactionNetworkDatasetGraphs(
                 grapher=get_grapher(extra_keys), 
                 file=dataset_loc, 
-                out_file="./", 
                 target = config["target_var_transfer"], 
-                classifier = False, 
-                classif_categories=3, 
-                filter_species = [3, 5],
-                filter_outliers=True,
+                classifier = config["classifier"], 
+                classif_categories=config["classif_categories"], 
+                filter_species = config["filter_species"],
+                filter_outliers=config["filter_outliers"],
                 filter_sparse_rxns=False,
                 debug = debug,
                 device = device,
@@ -133,8 +131,8 @@ if __name__ == "__main__":
             
             checkpoint_callback_transfer = ModelCheckpoint(
                 dirpath=log_save_dir, 
-                filename='model_lightning_transfer_{epoch:02d}-{val_l1:.2f}',
-                monitor='val_l1',
+                filename='model_lightning_transfer_{epoch:02d}-{val_loss:.2f}',
+                monitor='val_loss',
                 mode='min',
                 auto_insert_metric_name=True,
                 save_last=True
@@ -196,8 +194,8 @@ if __name__ == "__main__":
         
         checkpoint_callback = ModelCheckpoint(
             dirpath=log_save_dir, 
-            filename='model_lightning_{epoch:02d}-{val_l1:.2f}',
-            monitor='val_l1',
+            filename='model_lightning_{epoch:02d}-{val_loss:.2f}',
+            monitor='val_loss', # TODO
             mode='min',
             auto_insert_metric_name=True,
             save_last=True

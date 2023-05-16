@@ -1,11 +1,14 @@
 {
-  "augment": true,
+  "augment": false,
   "batch_size": 128,
   "debug": true,
+  "classifier": true,
+  "classif_categories": 3,
   "embedding_size": 12,
   "epochs": 100,
   "extra_features": ["bond_length"],
-  "extra_info": ["functional_group_reacted"],
+  "extra_info": [],
+  "filter_species": [3, 5],
   "fc_activation": "ReLU",
   "fc_batch_norm": false,
   "fc_dropout": 0.2,
@@ -21,9 +24,9 @@
   "gated_num_fc_layers": 1,
   "gated_num_layers": 2,
   "gated_residual": true,
-  "learning_rate": 0.001,
+  "learning_rate": 0.01,
   "precision": 32,
-  "loss": "mae",
+  "loss": "cross_entropy",
   "num_lstm_iters": 3,
   "num_lstm_layers": 1,
   "on_gpu": true,
@@ -33,5 +36,6 @@
   "weight_decay": 0.0,
   "max_epochs": 100,
   "max_epochs_transfer": 100,
-  "transfer": true
+  "transfer": false,
+  "filter_outliers": true
 }

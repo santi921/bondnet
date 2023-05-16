@@ -12,6 +12,7 @@ from concurrent.futures import TimeoutError
 from pebble import ProcessPool
 from tqdm import tqdm
 from rdkit import Chem, RDLogger
+
 logger = RDLogger.logger()
 logger.setLevel(RDLogger.CRITICAL)
 
@@ -70,7 +71,6 @@ class BaseDataset:
         dtype="float32",
         state_dict_filename=None,
     ):
-
         if dtype not in ["float32", "float64"]:
             raise ValueError(f"`dtype {dtype}` should be `float32` or `float64`.")
 
@@ -204,7 +204,7 @@ class BaseDataset:
             list: DGL graphs
         """
         graphs = []
-        '''
+        """
         with ProcessPool(max_workers=12, max_tasks=10) as pool:
             for i, (m, feats) in enumerate(zip(molecules, features)):
                 if m is not None:
@@ -222,7 +222,7 @@ class BaseDataset:
                         pass
                 else: graphs.append(None)
 
-        '''
+        """
         for i, (m, feats) in tqdm(enumerate(zip(molecules, features))):
             if m is not None:
                 g = grapher.build_graph_and_featurize(
@@ -234,7 +234,7 @@ class BaseDataset:
             else:
                 g = None
             graphs.append(g)
-        
+
         return graphs
 
     def __getitem__(self, item):
@@ -247,7 +247,10 @@ class BaseDataset:
             g (DGLGraph or DGLHeteroGraph): graph ith data point
             lb (dict): Labels of the data point
         """
-        g, lb, = (
+        (
+            g,
+            lb,
+        ) = (
             self.graphs[item],
             self.labels[item],
         )
@@ -272,7 +275,6 @@ class BaseDataset:
 
 class BondDataset(BaseDataset):
     def _load(self):
-
         logger.info("Start loading dataset")
 
         # get molecules, labels, and extra features
@@ -326,7 +328,6 @@ class BondDataset(BaseDataset):
 
         # feature transformers
         if self.feature_transformer:
-
             if self.state_dict_filename is None:
                 feature_scaler = HeteroGraphFeatureStandardScaler(mean=None, std=None)
             else:
@@ -351,7 +352,6 @@ class BondDataset(BaseDataset):
 
         # label transformers
         if self.label_transformer:
-
             # normalization
             values = torch.cat([lb["value"] for lb in self.labels])  # 1D tensor
 
@@ -420,7 +420,6 @@ class BondDatasetClassification(BaseDataset):
         )
 
     def _load(self):
-
         logger.info("Start loading dataset")
 
         # read label and feature file
@@ -534,7 +533,6 @@ class MoleculeDataset(BaseDataset):
         )
 
     def _load(self):
-
         logger.info("Start loading dataset")
 
         # read label and feature file
@@ -552,7 +550,6 @@ class MoleculeDataset(BaseDataset):
         self.labels = []
         natoms = []
         for i, (mol, feats, lb) in enumerate(zip(molecules, features, raw_labels)):
-
             if i % 100 == 0:
                 logger.info("Processing molecule {}/{}".format(i, len(raw_labels)))
 
@@ -659,7 +656,6 @@ class MoleculeDataset(BaseDataset):
         supp_prop["atomization_energy"] = {"uc": 1.0, "extensive": True}
 
         if self.properties is not None:
-
             for prop in self.properties:
                 if prop not in supp_prop:
                     raise ValueError(
@@ -687,25 +683,22 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         self,
         grapher,
         file,
-        out_file,
         feature_transformer=True,
         label_transformer=True,
         dtype="float32",
-        target = 'ts', 
-        filter_species = [2, 3], 
-        filter_outliers = True,
-        filter_sparse_rxns = False,
-        feature_filter = False, 
-        classifier = False,
-        debug = False,
-        classif_categories = None,
-        device = None,
-        extra_keys = None,
-        dataset_atom_types = None,
-        extra_info = None,
+        target="ts",
+        filter_species=[2, 3],
+        filter_outliers=True,
+        filter_sparse_rxns=False,
+        feature_filter=False,
+        classifier=False,
+        debug=False,
+        classif_categories=None,
+        device=None,
+        extra_keys=None,
+        dataset_atom_types=None,
+        extra_info=None,
     ):
-        
-
         if dtype not in ["float32", "float64"]:
             raise ValueError(f"`dtype {dtype}` should be `float32` or `float64`.")
         self.grapher = grapher
@@ -714,16 +707,18 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
             all_labels,
             features,
         ) = create_reaction_network_files_and_valid_rows(
-            file, bond_map_filter=False, 
-            target=target, 
-            filter_species = filter_species,
-            classifier=classifier, debug=debug,
+            file,
+            bond_map_filter=False,
+            target=target,
+            filter_species=filter_species,
+            classifier=classifier,
+            debug=debug,
             filter_outliers=filter_outliers,
             categories=classif_categories,
             filter_sparse_rxn=filter_sparse_rxns,
             feature_filter=feature_filter,
             extra_keys=extra_keys,
-            extra_info=extra_info
+            extra_info=extra_info,
         )
 
         self.molecules = all_mols
@@ -744,7 +739,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         self._label_scaler_mean = None
         self._label_scaler_std = None
         self._species = None
-        self._elements =  dataset_atom_types
+        self._elements = dataset_atom_types
         self._failed = None
         self.classifier = classifier
         self.classif_categories = classif_categories
@@ -752,7 +747,6 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         self._load()
 
     def _load(self):
-
         logger.info("Start loading dataset")
 
         # get molecules, labels, and extra features
@@ -772,20 +766,26 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         # get species
         # species = get_dataset_species_from_json(self.pandas_df)
         system_species = set()
-        for mol in self.molecules: 
+        for mol in self.molecules:
             species = list(set(mol.species))
             system_species.update(species)
 
         self._species = sorted(system_species)
-        
-        self._species = ['C', 'F', 'H', 'N', 'O'] # this is hard coded and potentially needs to be adjusted for other datasets
+
+        self._species = [
+            "C",
+            "F",
+            "H",
+            "N",
+            "O",
+        ]  # this is hard coded and potentially needs to be adjusted for other datasets
 
         # create dgl graphs
         print("constructing graphs & features....")
-        
+
         graphs = self.build_graphs(
-                self.grapher, self.molecules, extra_features, self._species
-            )
+            self.grapher, self.molecules, extra_features, self._species
+        )
         graphs_not_none_indices = [i for i, g in enumerate(graphs) if g is not None]
         print("number of graphs valid: " + str(len(graphs_not_none_indices)))
         print("number of graphs: " + str(len(graphs)))
@@ -821,9 +821,9 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                 graphs[i] = g
             self.molecules_ordered = molecules_final
 
-            if(self.device != None):
+            if self.device != None:
                 graph_temp = []
-                for g in graphs: 
+                for g in graphs:
                     graph_temp.append(g.to(self.device))
                 graphs = graph_temp
 
@@ -852,9 +852,9 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                     atom_mapping=lb["atom_mapping"],
                     bond_mapping=lb["bond_mapping"],
                     total_bonds=lb["total_bonds"],
-                    total_atoms=lb['total_atoms'],
+                    total_atoms=lb["total_atoms"],
                     id=lb["id"],
-                    extra_info=lb['extra_info']
+                    extra_info=lb["extra_info"],
                 )
 
                 reactions.append(rxn)
@@ -863,26 +863,27 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                 else:
                     environemnt = None
 
-                if(self.classifier):
+                if self.classifier:
                     lab_temp = torch.zeros(self.classif_categories)
-                    lab_temp[int(lb['value'][0])] = 1
+                    lab_temp[int(lb["value"][0])] = 1
 
-                    if(lb['value_rev']!= None):
+                    if lb["value_rev"] != None:
                         lab_temp_rev = torch.zeros(self.classif_categories)
-                        lab_temp[int(lb['value_rev'][0])] = 1
-                    else: lab_temp_rev = None
-                        
+                        lab_temp[int(lb["value_rev"][0])] = 1
+                    else:
+                        lab_temp_rev = None
+
                     label = {
                         "value": lab_temp,
                         "value_rev": lab_temp_rev,
                         "id": lb["id"],
                         "environment": environemnt,
-                        "atom_map":lb["atom_mapping"],
-                        "bond_map":lb["bond_mapping"],
-                        "total_bonds":lb["total_bonds"],
-                        "total_atoms":lb["total_atoms"],
+                        "atom_map": lb["atom_mapping"],
+                        "bond_map": lb["bond_mapping"],
+                        "total_bonds": lb["total_bonds"],
+                        "total_atoms": lb["total_atoms"],
                         "reaction_type": lb["reaction_type"],
-                        "extra_info": lb["extra_info"]
+                        "extra_info": lb["extra_info"],
                     }
                     self.labels.append(label)
                 else:
@@ -890,17 +891,17 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                         "value": torch.tensor(
                             lb["value"], dtype=getattr(torch, self.dtype)
                         ),
-                        "value_rev":  torch.tensor(
+                        "value_rev": torch.tensor(
                             lb["value_rev"], dtype=getattr(torch, self.dtype)
                         ),
                         "id": lb["id"],
                         "environment": environemnt,
-                        "atom_map":lb["atom_mapping"],
-                        "bond_map":lb["bond_mapping"], 
-                        "total_bonds":lb["total_bonds"],
-                        "total_atoms":lb["total_atoms"],
+                        "atom_map": lb["atom_mapping"],
+                        "bond_map": lb["bond_mapping"],
+                        "total_bonds": lb["total_bonds"],
+                        "total_atoms": lb["total_atoms"],
                         "reaction_type": lb["reaction_type"],
-                        "extra_info": lb["extra_info"]
+                        "extra_info": lb["extra_info"],
                     }
                     self.labels.append(label)
 
@@ -913,7 +914,6 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
 
         # feature transformers
         if self.label_transformer:
-
             # normalization
             values = torch.stack([lb["value"] for lb in self.labels])  # 1D tensor
             values_rev = torch.stack([lb["value_rev"] for lb in self.labels])
@@ -972,17 +972,15 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                 g = grapher.build_graph_and_featurize(
                     mol, extra_feats_info=feats, dataset_species=species
                 )
-         
+
                 # add this for check purpose; some entries in the sdf file may fail
                 g.graph_id = ind
             else:
                 g = None
             graphs.append(g)
-            count += 1   
-        
+            count += 1
 
         return graphs
-        
 
     @staticmethod
     def get_labels(labels):
@@ -1008,7 +1006,6 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
 
 class ReactionDataset(BaseDataset):
     def _load(self):
-
         logger.info("Start loading dataset")
 
         # read label and feature file
@@ -1076,7 +1073,6 @@ class ReactionDataset(BaseDataset):
             logger.info("Feature scaler std: {}".format(feature_scaler.std))
 
         if self.label_transformer:
-
             # normalization
             values = [lb["value"] for lb in self.labels]  # list of 0D tensor
             # np and torch compute slightly differently std (depending on `ddof` of np)
@@ -1101,7 +1097,6 @@ class ReactionDataset(BaseDataset):
 
 class ReactionNetworkDataset(BaseDataset):
     def _load(self):
-
         logger.info("Start loading dataset")
 
         # get molecules, labels, and extra features
@@ -1142,7 +1137,6 @@ class ReactionNetworkDataset(BaseDataset):
 
         # feature transformers
         if self.feature_transformer:
-
             if self.state_dict_filename is None:
                 feature_scaler = HeteroGraphFeatureStandardScaler(mean=None, std=None)
             else:
@@ -1214,7 +1208,6 @@ class ReactionNetworkDataset(BaseDataset):
 
         # feature transformers
         if self.label_transformer:
-
             # normalization
             values = torch.stack([lb["value"] for lb in self.labels])  # 1D tensor
 
@@ -1264,7 +1257,6 @@ class ReactionNetworkDataset(BaseDataset):
         graphs = []
         for i, (m, feats) in enumerate(zip(molecules, features)):
             if m is not None:
-
                 g = grapher.build_graph_and_featurize(
                     m, extra_feats_info=feats, dataset_species=species
                 )
@@ -1470,5 +1462,3 @@ def train_validation_test_split_selected_bond_in_train(
         Subset(dataset, val_idx),
         Subset(dataset, test_idx),
     ]
-
-

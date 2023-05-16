@@ -7,12 +7,14 @@ dist/
 *.yaml
 *.svg
 *.sdf
+*png
 
 *.csv
 *.tsv
 *.pdf
 *.log
 *.out
+*.zip
 
 *.egg-info/
 *ipynb

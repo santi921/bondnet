@@ -33,7 +33,6 @@ def main():
     dataset = ReactionNetworkDatasetGraphs(
         grapher=get_grapher(dict_train["extra_features"]), 
         file=dict_train["dataset_loc"], 
-        out_file="./", 
         target = 'ts', 
         classifier = dict_train["classifier"], 
         classif_categories=classif_categories, 
@@ -49,7 +48,6 @@ def main():
     dataset_transfer = ReactionNetworkDatasetGraphs(
         grapher=get_grapher(dict_train["extra_features"]), 
         file=dict_train["dataset_loc"], 
-        out_file="./", 
         target = 'diff', 
         classifier = dict_train["classifier"], 
         classif_categories=classif_categories, 
