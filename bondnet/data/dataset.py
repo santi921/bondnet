@@ -771,14 +771,8 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
             system_species.update(species)
 
         self._species = sorted(system_species)
-
-        self._species = [
-            "C",
-            "F",
-            "H",
-            "N",
-            "O",
-        ]  # this is hard coded and potentially needs to be adjusted for other datasets
+        # this is hard coded and potentially needs to be adjusted for other datasets, this is to have fixed size and order of the species
+        self._species = ["C", "F", "H", "N", "O", "Mg", "Li", "S", "Cl", "P", "O", "Br"]
 
         # create dgl graphs
         print("constructing graphs & features....")
