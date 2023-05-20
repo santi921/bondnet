@@ -29,7 +29,7 @@ from bondnet.data.featurizer import (
 
 
 class LogParameters(pl.Callback):
-    # weight and biases to tensorbard
+    # weight and biases to tensorboard
     def __init__(self):
         super().__init__()
 
@@ -43,13 +43,14 @@ class LogParameters(pl.Callback):
             lp = []
             tensorboard_logger_index = 0
             for n, p in pl_module.named_parameters():
-                trainer.logger.experiment[tensorboard_logger_index].add_histogram(
+                trainer.logger.experiment.add_histogram(
                     n, p.data, trainer.current_epoch
                 )
                 self.d_parameters[n].append(p.ravel().cpu().numpy())
                 lp.append(p.ravel().cpu().numpy())
+
             p = np.concatenate(lp)
-            trainer.logger.experiment[tensorboard_logger_index].add_histogram(
+            trainer.logger.experiment.add_histogram(
                 "Parameters", p, trainer.current_epoch
             )
 
