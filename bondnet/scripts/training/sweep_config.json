@@ -1,6 +1,6 @@
 {
   "batch_size": { "values": [64, 128] },
-  "classifier": { "values": [false] },
+  "classifier": { "values": [true] },
   "weight_decay": { "values": [0.00001, 0.0] },
   "restore": { "values": [false] },
   "on_gpu": { "values": [true] },
@@ -32,7 +32,7 @@
     "min": 0.0001,
     "distribution": "log_uniform_values"
   },
-  "augment": { "values": [false] },
+  "augment": { "values": [true] },
   "target_var": { "values": ["ts"] },
   "target_var_transfer": { "values": ["diff"] },
   "transfer": { "values": [false] },

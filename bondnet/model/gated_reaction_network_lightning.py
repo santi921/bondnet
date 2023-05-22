@@ -252,8 +252,6 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         """
         if reverse:
             for key in feats:
-                # multiply by -1
-                # print("augmenting data")
                 feats[key] = -1 * feats[key]
 
         # embedding

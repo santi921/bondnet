@@ -256,7 +256,6 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
         if reverse:
             for key in feats:
                 # multiply by -1
-                print("augmenting data")
                 feats[key] = -1 * feats[key]
 
         # embedding
@@ -360,7 +359,6 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
                 norm_bond=norm_bond,
                 norm_atom=norm_atom,
             )
-            pred_aug = pred_aug.view(-1)
             all_loss = self.compute_loss(
                 target=torch.cat((target, target_aug), axis=0),
                 pred=torch.cat((pred, pred_aug), axis=0),
