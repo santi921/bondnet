@@ -1,4 +1,4 @@
-import torch, time, itertools, logging
+import torch, itertools
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -9,7 +9,6 @@ from bondnet.data.transformers import HeteroGraphFeatureStandardScaler, Standard
 from bondnet.data.utils import get_dataset_species
 from bondnet.utils import to_path, yaml_load, list_split_by_size
 from concurrent.futures import TimeoutError
-from pebble import ProcessPool
 from tqdm import tqdm
 from rdkit import Chem, RDLogger
 

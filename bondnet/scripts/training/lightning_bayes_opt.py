@@ -256,8 +256,8 @@ if __name__ == "__main__":
     method = str(args.method)
     on_gpu = bool(args.on_gpu)
     debug = bool(args.debug)
-
     augment = bool(args.augment)
+
     dataset_loc = args.dataset_loc
     log_save_dir = args.log_save_dir
     wandb_project_name = args.project_name

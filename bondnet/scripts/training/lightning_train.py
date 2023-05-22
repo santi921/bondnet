@@ -20,7 +20,7 @@ from bondnet.model.training_utils import (
 )
 
 seed_torch()
-# torch.set_float32_matmul_precision("high")  # might have to disable on older GPUs
+torch.set_float32_matmul_precision("high")  # might have to disable on older GPUs
 
 
 if __name__ == "__main__":
