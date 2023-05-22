@@ -3,7 +3,6 @@ import time, copy, bson
 import pandas as pd
 import networkx as nx
 import numpy as np
-from tqdm import tqdm
 from pebble import ProcessPool
 from concurrent.futures import TimeoutError
 
@@ -23,7 +22,7 @@ Chem.WrapLogs()
 
 def parse_extra_electronic_feats_atom(extra_feats, inds):
     ret_dict = {}
-    
+
     extra_feature_keys = list(extra_feats.keys())
     # get key as everything after "product_" or "reactant_"
     extra_feature_keys_trimmed = [i.split("_")[1:] for i in extra_feature_keys]
@@ -34,7 +33,7 @@ def parse_extra_electronic_feats_atom(extra_feats, inds):
 
     if inds != None:
         for k in ret_dict.keys():
-            try: 
+            try:
                 ret_dict[k] = ret_dict[k][inds]
             except:
                 pass
@@ -43,7 +42,6 @@ def parse_extra_electronic_feats_atom(extra_feats, inds):
 
 
 def parse_extra_electronic_feats_bond(extra_feats, dict_bonds_as_root_target_inds):
-    
     ret_dict_temp, ret_dict = {}, {}
     num_bonds = int(len(dict_bonds_as_root_target_inds.keys()))
     extra_feature_keys = list(extra_feats.keys())
@@ -53,45 +51,48 @@ def parse_extra_electronic_feats_bond(extra_feats, dict_bonds_as_root_target_ind
         if "indices" in i:
             key_with_indices = ind
             break
-    
-    
+
     extra_feature_keys_trimmed = [i.split("_")[1:] for i in extra_feature_keys]
     extra_feature_keys_trimmed = ["_".join(i) for i in extra_feature_keys_trimmed]
 
     for index, i in enumerate(extra_feature_keys):
         ret_dict_temp[extra_feature_keys_trimmed[index]] = extra_feats[i]
         ret_dict[extra_feature_keys_trimmed[index]] = []
-    
+
     # might need to generalize this to just containing indices
     if key_with_indices == -1:
         return ret_dict
 
-    else: 
-        if "reactant_" + extra_feature_keys_trimmed[key_with_indices] in extra_feature_keys:
-            extra_feat_bond_ind = extra_feats["reactant_" + extra_feature_keys_trimmed[key_with_indices]]
+    else:
+        if (
+            "reactant_" + extra_feature_keys_trimmed[key_with_indices]
+            in extra_feature_keys
+        ):
+            extra_feat_bond_ind = extra_feats[
+                "reactant_" + extra_feature_keys_trimmed[key_with_indices]
+            ]
         else:
-            extra_feat_bond_ind = extra_feats["product_" + extra_feature_keys_trimmed[key_with_indices]]
-        
-        extra_feat_bond_ind = [tuple(i) for i in extra_feat_bond_ind]
-    
+            extra_feat_bond_ind = extra_feats[
+                "product_" + extra_feature_keys_trimmed[key_with_indices]
+            ]
 
-    if(extra_feat_bond_ind == [] and num_bonds != 0):
-        
+        extra_feat_bond_ind = [tuple(i) for i in extra_feat_bond_ind]
+
+    if extra_feat_bond_ind == [] and num_bonds != 0:
         for k in ret_dict.keys():
             ret_dict[k] = [0] * num_bonds
         return ret_dict
 
     for k, v in dict_bonds_as_root_target_inds.items():
-        
         if k in extra_feat_bond_ind:
             ind_in_extra = extra_feat_bond_ind.index(k)
             hit = True
 
-        elif (k[-1], k[0]) in extra_feat_bond_ind: # reverse order
+        elif (k[-1], k[0]) in extra_feat_bond_ind:  # reverse order
             ind_in_extra = extra_feat_bond_ind.index((k[-1], k[0]))
             hit = True
-            
-        else: 
+
+        else:
             hit = False
 
         for k2, v2 in ret_dict_temp.items():
@@ -99,9 +100,9 @@ def parse_extra_electronic_feats_bond(extra_feats, dict_bonds_as_root_target_ind
                 ret_dict[k2] = []
             if hit:
                 ret_dict[k2].append(v2[ind_in_extra])
-            else: 
+            else:
                 ret_dict[k2].append(0)
-    #print(ret_dict)
+    # print(ret_dict)
     return ret_dict
 
 
@@ -121,20 +122,20 @@ def split_and_map(
     takes a list of nodes+bonds+reaction bonds and computes subgraphs/species
     also returns mappings
 
-    takes: 
-        species(list of strs): list of elements 
-        bonds(list of list/tuples): bond list 
+    takes:
+        species(list of strs): list of elements
+        bonds(list of list/tuples): bond list
         coords(list of list): atomic position
         atom_count(int): number of nodes/atoms in the total reaction
         reaction_scaffold(list of list/tuples): total bonds in rxn
-        id(str): unique id 
+        id(str): unique id
         bonds_nonmetal(list of tuples/lists): list nonmetal bonds
         charge(int): charge for molecule
         extra_feats(dict): dictionary w/ extra features
 
-    returns: 
+    returns:
         species(list of molwrappers)
-        atom_map(dict): maps atomic positions to reaction scaffold 
+        atom_map(dict): maps atomic positions to reaction scaffold
         bond_mapp(dict): maps bonds in subgraphs to reaction template ind
     """
 
@@ -158,7 +159,6 @@ def split_and_map(
                 # check if root to edge is in node list for subgraph
                 check = any(item in origin_bond_ind for item in nodes)
                 if check:  # if it is then map these to lowest values in nodes
-
                     bond_orig = nodes.index(origin_bond_ind[0])
                     bond_targ = nodes.index(origin_bond_ind[1])
                     bond_reindex_list.append([bond_orig, bond_targ])
@@ -186,22 +186,21 @@ def split_and_map(
 
             if extra_feats_atom != {}:
                 atom_feats = parse_extra_electronic_feats_atom(extra_feats_atom, nodes)
-            else: 
+            else:
                 atom_feats = {}
             if extra_feats_bond != {}:
                 bond_feats = parse_extra_electronic_feats_bond(
-                    extra_feats_bond, 
-                    dict_bonds_as_root_target_inds
+                    extra_feats_bond, dict_bonds_as_root_target_inds
                 )
-            else: 
+            else:
                 bond_feats = {}
 
             species_molwrapper = create_wrapper_mol_from_atoms_and_bonds(
                 species_sg,
                 coords_sg,
                 bond_reindex_list,
-                atom_features = atom_feats,
-                bond_features = bond_feats,
+                atom_features=atom_feats,
+                bond_features=bond_feats,
                 identifier=id + "_" + str(ind_sg),
             )
 
@@ -234,34 +233,35 @@ def split_and_map(
                 ]
                 original_bond_index = reaction_scaffold.index(ordered_targ_obj)
                 dict_bonds[len(bond_reindex_list) - 1] = original_bond_index
-                
-                
+
                 dict_bonds_as_root_target_inds[tuple(ordered_targ_obj)] = (
                     bond_orig,
                     bond_targ,
                 )
-        
+
         bond_map = [dict_bonds]
-        
+
         if extra_feats_atom != {}:
-            atom_feats = parse_extra_electronic_feats_atom(extra_feats_atom, list(G.nodes()))
-            
-        else: atom_feats = {}
+            atom_feats = parse_extra_electronic_feats_atom(
+                extra_feats_atom, list(G.nodes())
+            )
+
+        else:
+            atom_feats = {}
 
         if extra_feats_bond != {}:
             bond_feats = parse_extra_electronic_feats_bond(
-                extra_feats_bond, 
-                dict_bonds_as_root_target_inds
+                extra_feats_bond, dict_bonds_as_root_target_inds
             )
-        else: 
+        else:
             bond_feats = {}
 
         species_molwrapper = create_wrapper_mol_from_atoms_and_bonds(
             species,
             coords,
             bonds,
-            atom_features = atom_feats,
-            bond_features = bond_feats,
+            atom_features=atom_feats,
+            bond_features=bond_feats,
             identifier=id,
         )
 
@@ -269,8 +269,6 @@ def split_and_map(
             species_molwrapper.nonmetal_bonds = bonds
         else:
             species_molwrapper.nonmetal_bonds = bonds_nonmetal
-  
-
 
         # atom map
         for i in range(len(species)):
@@ -299,8 +297,8 @@ def process_species_graph(
     upper_bound=100,
     feature_filter=False,
     categories=5,
-    extra_keys = None,
-    extra_info = None,
+    extra_keys=None,
+    extra_info=None,
 ):
     """
     Takes a row and processes the products/reactants - entirely defined by graphs from row
@@ -313,7 +311,7 @@ def process_species_graph(
     """
 
     rxn = []
-    
+
     if filter_species == None:
         filter_prod = -99
         filter_reactant = -99
@@ -386,13 +384,17 @@ def process_species_graph(
     bonds_nonmetal_reactant = row[reactant_key + "_bonds_nometal"]
 
     # checks if there are other features to add to mol_wrapper object
-    if extra_keys == None: # if there are no extra features just look for the right named ones
+    if (
+        extra_keys == None
+    ):  # if there are no extra features just look for the right named ones
         extra_keys_full = list(row.index)
-    else: 
+    else:
         extra_keys_full = list(row.index)
         # find extra keys that contain extra_keys in string
-        extra_keys_full = [i for i in extra_keys_full if any([j in i for j in extra_keys])]
-        #print("full extra keys", extra_keys_full)
+        extra_keys_full = [
+            i for i in extra_keys_full if any([j in i for j in extra_keys])
+        ]
+        # print("full extra keys", extra_keys_full)
     # check all pandas columns that start with "extra_feat_atom" or "extra_feat_bond"
     extra_atom_feats_dict_prod, extra_atom_feats_dict_react = {}, {}
     extra_bond_feats_dict_prod, extra_bond_feats_dict_react = {}, {}
@@ -423,7 +425,7 @@ def process_species_graph(
             if key.split("_")[3] == "product":
                 opposite_key = key.replace("product", "reactant")
                 prod = True
-            
+
             if key.split("_")[3] == "reactant":
                 opposite_key = key.replace("reactant", "product")
                 prod = False
@@ -431,29 +433,28 @@ def process_species_graph(
             if opposite_key in extra_keys_full:
                 # remove the "extra_feat_bond" from the key
                 final_key = key.replace("extra_feat_bond_", "")
-            
+
                 if prod:
                     extra_bond_feats_dict_prod[final_key] = row[key][0]
                 else:
-                    extra_bond_feats_dict_react[final_key] = row[key][0]            
-    
+                    extra_bond_feats_dict_react[final_key] = row[key][0]
 
-    if feature_filter: # filter out reactions without complete features
+    if feature_filter:  # filter out reactions without complete features
         filter_rxn = False
         for dict in [
-            extra_atom_feats_dict_prod, 
-            extra_atom_feats_dict_react, 
-            extra_bond_feats_dict_prod, 
-            extra_bond_feats_dict_react]:
+            extra_atom_feats_dict_prod,
+            extra_atom_feats_dict_react,
+            extra_bond_feats_dict_prod,
+            extra_bond_feats_dict_react,
+        ]:
             for k, v in dict.items():
-                
-                if v == [] or v == None or v == [[]]: 
+                if v == [] or v == None or v == [[]]:
                     filter_rxn = True
-        if filter_rxn: 
-            if verbose: 
+        if filter_rxn:
+            if verbose:
                 print("filter rxn bc of missing features")
             return []
-    
+
     products, atoms_products, mapping_products = split_and_map(
         species=species_products_full,
         coords=coords_products_full,
@@ -479,7 +480,6 @@ def process_species_graph(
         extra_feats_atom=extra_atom_feats_dict_react,
         extra_feats_bond=extra_bond_feats_dict_react,
     )
-    
 
     total_atoms = list(
         set(list(np.concatenate([list(i.values()) for i in atoms_reactants]).flat))
@@ -494,16 +494,17 @@ def process_species_graph(
         ), "atoms in reactant and products are not equal"
 
     if products != [] and reactants != []:
-        
         rxn_type = []
 
         if filter_prod != -99:
             if len(products) > filter_prod:
-                if verbose: print("too many products")
+                if verbose:
+                    print("too many products")
                 return []
         if filter_reactant != -99:
             if len(reactants) > filter_reactant:
-                if verbose: print("too many reactants")
+                if verbose:
+                    print("too many reactants")
                 return []
 
         try:
@@ -657,13 +658,12 @@ def process_species_graph(
                 print("filtering rxn")
                 return []
 
-
         extra_info_dict = {}
         if extra_info != None:
             for key in extra_info:
                 if key in row.keys():
                     extra_info_dict[key] = row[key]
-                
+
         rxn = Reaction(
             reactants=reactants,
             products=products,
@@ -675,7 +675,7 @@ def process_species_graph(
             reverse_energy_target=reverse_energy,
             identifier=id,
             reaction_type=rxn_type,
-            extra_info = extra_info_dict
+            extra_info=extra_info_dict,
         )
         atom_mapping_check = []
         for i in atoms_reactants:
@@ -739,7 +739,9 @@ def process_species_rdkit(row, classifier=False):
     free_energy = row[product_key + "_free_energy"]
 
     reactant_mol = xyz2mol(
-        atoms=species_reactant, coordinates=coords_reactant, charge=charge,
+        atoms=species_reactant,
+        coordinates=coords_reactant,
+        charge=charge,
     )
     reactant_wrapper = rdkit_mol_to_wrapper_mol(
         reactant_mol[0], charge=charge, free_energy=free_energy, identifier=id
@@ -765,7 +767,6 @@ def process_species_rdkit(row, classifier=False):
     elif len(sub_graphs) == 2:
         mapping, mol_prod = [], []
         for sg in sub_graphs:
-
             coords_products, species_products, bond_reindex_list = [], [], []
             nodes = list(sg.nodes())
             bonds = list(sg.edges())
@@ -797,7 +798,9 @@ def process_species_rdkit(row, classifier=False):
             mapping.append(mapping_temp)
 
             mol = xyz2mol(
-                atoms=species_products, coordinates=coords_products, charge=charge,
+                atoms=species_products,
+                coordinates=coords_products,
+                charge=charge,
             )[0]
             product = rdkit_mol_to_wrapper_mol(
                 mol, charge=charge, free_energy=free_energy, identifier=id
@@ -988,7 +991,7 @@ def create_reaction_network_files(filename, out_file, classifier=False):
     fail_default, fail_count, fail_sdf_map, fail_prod_len = 0, 0, 0, 0
     for rxn_temp in rxn_raw:
         if not isinstance(rxn_temp, list):  # bunch of stuff is being filtered here
-            #try:
+            # try:
             #    rxn_temp.get_broken_bond()
             try:
                 bond_map = rxn_temp.bond_mapping_by_sdf_int_index()
@@ -1006,7 +1009,7 @@ def create_reaction_network_files(filename, out_file, classifier=False):
                     reactions.append(rxn_temp)
             except:
                 fail_sdf_map += 1
-            #except:
+            # except:
             #    fail_count += 1
         else:
             fail_default += 1
@@ -1058,8 +1061,8 @@ def create_reaction_network_files_and_valid_rows(
     filter_sparse_rxn=False,
     feature_filter=False,
     categories=5,
-    extra_keys = None,
-    extra_info = None
+    extra_keys=None,
+    extra_info=None,
 ):
     """
     Processes json file or bson from emmet to use in training bondnet
@@ -1069,22 +1072,21 @@ def create_reaction_network_files_and_valid_rows(
         out_file: name of folder where to store the three files for trianing
         bond_map_filter: true uses filter with sdf
         target (str): target for regression either 'ts' or 'diff'
-        classifier(bool): whether to create a classification or reg. task 
+        classifier(bool): whether to create a classification or reg. task
         debug(bool): use smaller dataset or not
     """
 
     # path_mg_data = "../../../dataset/mg_dataset/20220613_reaction_data.json"
-    
-    
+
     print("reading file from: {}".format(filename))
     if filename.endswith(".json"):
         path_json = filename
         mg_df = pd.read_json(path_json)
     else:
         path_bson = filename
-        with open(path_bson,'rb') as f:
+        with open(path_bson, "rb") as f:
             data = bson.decode_all(f.read())
-        mg_df=pd.DataFrame(data)
+        mg_df = pd.DataFrame(data)
 
     start_time = time.perf_counter()
     reactions, ind_val, rxn_raw, ind_final = [], [], [], []
@@ -1094,12 +1096,13 @@ def create_reaction_network_files_and_valid_rows(
         mg_df = mg_df.head(100)
 
     if filter_outliers:
-        if target == "ts": 
+        if target == "ts":
             energy_dist = mg_df["transition_state_energy"] - mg_df["reactant_energy"]
-        
-        elif target == "dG_sp": energy_dist = mg_df["dG_sp"]
-        
-        else: 
+
+        elif target == "dG_sp":
+            energy_dist = mg_df["dG_sp"]
+
+        else:
             energy_dist = mg_df["product_energy"] - mg_df["reactant_energy"]
 
         q1, q3, med = (
@@ -1112,7 +1115,7 @@ def create_reaction_network_files_and_valid_rows(
         # finding upper and lower whiskers
         upper_bound = q3 + (2.0 * iqr)
         lower_bound = q1 - (2.0 * iqr)
-    
+
     with ProcessPool(max_workers=12, max_tasks=10) as pool:
         for ind, row in mg_df.iterrows():
             future = pool.schedule(
@@ -1131,7 +1134,7 @@ def create_reaction_network_files_and_valid_rows(
                     "filter_sparse_rxns": filter_sparse_rxn,
                     "feature_filter": feature_filter,
                     "extra_keys": extra_keys,
-                    "extra_info": extra_info
+                    "extra_info": extra_info,
                 },
                 timeout=30,
             )
@@ -1150,7 +1153,6 @@ def create_reaction_network_files_and_valid_rows(
     for ind, rxn_temp in enumerate(rxn_raw):
         if not isinstance(rxn_temp, list):
             try:
-                #rxn_temp.get_broken_bond()
                 if bond_map_filter:
                     try:
                         bond_map = rxn_temp.bond_mapping_by_int_index()
@@ -1169,8 +1171,8 @@ def create_reaction_network_files_and_valid_rows(
                     except:
                         fail_sdf_map += 1
                 else:
-                    bond_map = rxn_temp.bond_mapping_by_int_index() 
-                    
+                    bond_map = rxn_temp.bond_mapping_by_int_index()
+
                     if len(rxn_temp.reactants) != len(bond_map[0]) or len(
                         rxn_temp.products
                     ) != len(bond_map[1]):
@@ -1194,33 +1196,20 @@ def create_reaction_network_files_and_valid_rows(
     print("product bond fail count: \t{}".format(fail_prod_len))
     print("about to group and organize")
     extra_info = False
-    if extra_info is not None: 
+    if extra_info is not None:
         extra_info_tf = True
-    
-    extractor = ReactionCollection(reactions)
+
+    extractor = ReactionCollection(
+        reactions
+    )  # this needs to be gutted and modified entirely
     (
         all_mols,
         all_labels,
         features,
     ) = extractor.create_struct_label_dataset_reaction_based_regression_general(
-        #struct_file=path_json + "mg_struct_bond_rgrn_classify.sdf",
-        #label_file=path_json + "mg_label_bond_rgrn_classify.yaml",
-        #feature_file=path_json + "mg_feature_bond_rgrn_classify.yaml",
         group_mode="charge_0",
         sdf_mapping=False,
         extra_info=extra_info_tf,
     )
 
     return all_mols, all_labels, features
-
-
-def process_data():
-    # create_struct_label_dataset_reaction_network(filename='', out_file='./')
-    # create_struct_label_dataset_bond_based_regression(filename='', out_file='./')
-    all_mols, all_labels, features = create_reaction_network_files(
-        filename="", out_file="./", target="ts"
-    )
-    return all_mols, all_labels, features
-
-
-

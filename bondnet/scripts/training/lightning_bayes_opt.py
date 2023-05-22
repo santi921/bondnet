@@ -9,8 +9,8 @@ from pytorch_lightning.callbacks import (
     ModelCheckpoint,
 )
 
-from bondnet.data.dataset import ReactionNetworkDatasetGraphs
-from bondnet.data.dataloader import DataLoaderReactionNetwork
+from bondnet.data.dataset import ReactionNetworkDatasetPrecomputed
+from bondnet.data.dataloader import DataLoaderPrecomputedReactionGraphs
 from bondnet.data.dataset import train_validation_test_split
 from bondnet.utils import seed_torch
 from bondnet.model.training_utils import (
@@ -50,7 +50,7 @@ class TrainingObject:
             bool(self.config["parameters"]["transfer"]["values"][0]),
         )
 
-        self.dataset = ReactionNetworkDatasetGraphs(
+        self.dataset = ReactionNetworkDatasetPrecomputed(
             grapher=get_grapher(self.extra_keys),
             file=self.dataset_loc,
             target=self.config["parameters"]["target_var"]["values"][0],
@@ -74,15 +74,15 @@ class TrainingObject:
             self.dataset, validation=0.15, test=0.15
         )
         self.trainset = trainset
-        self.val_loader = DataLoaderReactionNetwork(
+        self.val_loader = DataLoaderPrecomputedReactionGraphs(
             valset, batch_size=len(valset), shuffle=False
         )
-        self.test_loader = DataLoaderReactionNetwork(
+        self.test_loader = DataLoaderPrecomputedReactionGraphs(
             testset, batch_size=len(testset), shuffle=False
         )
 
         if bool(self.config["parameters"]["transfer"]["values"][0]):
-            self.dataset_transfer = ReactionNetworkDatasetGraphs(
+            self.dataset_transfer = ReactionNetworkDatasetPrecomputed(
                 grapher=get_grapher(self.extra_keys),
                 file=dataset_loc,
                 target=self.config["parameters"]["target_var_transfer"]["values"],
@@ -106,7 +106,7 @@ class TrainingObject:
                 self.dataset_transfer, validation=0.15, test=0.0
             )
             self.trainset_transfer = trainset
-            self.val_loader_transfer = DataLoaderReactionNetwork(
+            self.val_loader_transfer = DataLoaderPrecomputedReactionGraphs(
                 valset, batch_size=len(valset), shuffle=False
             )
 
@@ -123,7 +123,7 @@ class TrainingObject:
             model = self.make_model(config)
 
             if config["transfer"]:
-                train_loader_transfer = DataLoaderReactionNetwork(
+                train_loader_transfer = DataLoaderPrecomputedReactionGraphs(
                     self.trainset_transfer,
                     batch_size=config["batch_size"],
                     shuffle=True,
@@ -200,7 +200,7 @@ class TrainingObject:
                 save_last=True,
             )
 
-            train_loader = DataLoaderReactionNetwork(
+            train_loader = DataLoaderPrecomputedReactionGraphs(
                 self.trainset, batch_size=config["batch_size"], shuffle=True
             )
 
@@ -256,8 +256,8 @@ if __name__ == "__main__":
     method = str(args.method)
     on_gpu = bool(args.on_gpu)
     debug = bool(args.debug)
-
     augment = bool(args.augment)
+
     dataset_loc = args.dataset_loc
     log_save_dir = args.log_save_dir
     wandb_project_name = args.project_name

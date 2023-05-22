@@ -1,6 +1,5 @@
-
-from random import choice 
-import numpy as np 
+from random import choice
+import numpy as np
 import os, argparse, json
 
 
@@ -38,15 +37,19 @@ def put_file_slurm_in_every_subfolder(folder, project_name, file_loc, gpu=True):
             f.write("conda activate bondnet\n")
             script = "lightning_controller.py"
 
-            f.write("srun -n 1 -c 128 --cpu_bind=cores -G 1 --gpu-bind=single:1  {} -project_name {} ".format(script, project_name))
-            
+            f.write(
+                "srun -n 1 -c 128 --cpu_bind=cores -G 1 --gpu-bind=single:1  {} -project_name {} ".format(
+                    script, project_name
+                )
+            )
+
 
 def copy_file(src, dst):
     """
     copy a file from src to dst
     """
     with open(src, "r") as f:
-        content = f.read()  
+        content = f.read()
     with open(dst, "w") as f:
         f.write(content)
 
@@ -60,27 +63,26 @@ def check_folder(folder):
 
 
 def generate_and_write(options):
-
-    dictionary_categories = \
-    {
+    dictionary_categories = {
         "categories": [3, 5],
         "category_weights_3": [[1.0, 1.5, 2.0], [1.0, 3.0, 4.0], [1.0, 5.0, 5.0]],
-        "category_weights_5": [[2.0, 1.0, 2.0, 1.5, 1.0], [4.0, 1.0, 4.0, 3.0, 1.0], [5.0, 1.0, 5.0, 3.0, 1.0]]
+        "category_weights_5": [
+            [2.0, 1.0, 2.0, 1.5, 1.0],
+            [4.0, 1.0, 4.0, 3.0, 1.0],
+            [5.0, 1.0, 5.0, 3.0, 1.0],
+        ],
     }
 
-    dictionary_archi = \
-    {
-        "gated_num_layers": [1,2,3],
-        "fc_num_layers": [1,2,3],
+    dictionary_archi = {
+        "gated_num_layers": [1, 2, 3],
+        "fc_num_layers": [1, 2, 3],
         "gated_hidden_size_1": [512, 1024, 2048],
         "gated_hidden_size_shape": ["flat", "cone"],
         "fc_hidden_size_1": [512, 1024],
-        "fc_hidden_size_shape": ["flat", "cone"]
+        "fc_hidden_size_shape": ["flat", "cone"],
     }
 
-
-    dictionary_values_options = \
-    {
+    dictionary_values_options = {
         "filter_outliers": [True],
         "filter_sparse_rxns": [False],
         "filter_species": [[3, 6]],
@@ -88,7 +90,7 @@ def generate_and_write(options):
         "test": [False],
         "batch_size": [128, 256],
         "embedding_size": [8, 10, 12],
-        "max_epochs": [500,1000,1500],
+        "max_epochs": [500, 1000, 1500],
         "fc_activation": ["ReLU"],
         "fc_batch_norm": [False],
         "freeze": [False, True],
@@ -103,61 +105,53 @@ def generate_and_write(options):
         "scheduler": [False],
         "max_epochs_transfer": [250, 500, 1000],
         "transfer": [False, True],
-        "freeze" : [True, False],
+        "freeze": [True, False],
         "loss": ["huber", "mse"],
         "weight_decay": [0.0, 0.0001, 0.00001],
         "num_lstm_iters": [7, 9, 11],
         "num_lstm_layers": [1, 2],
         "gated_batch_norm": [0, 1],
-        "gated_graph_norm":[0,1],
-        "gated_residual":[True],
-        "fc_batch_norm":[False, True]
-    }   
-    
-    if(options["hydro"]):
+        "gated_graph_norm": [0, 1],
+        "gated_residual": [True],
+        "fc_batch_norm": [False, True],
+    }
+
+    if options["hydro"]:
         dictionary_values_options["augment"] = [False]
         dictionary_values_options["transfer"] = [False]
         dictionary_values_options["freeze"] = [False]
         dictionary_values_options["filter_sparse_rxns"] = [False]
 
-    else: 
+    else:
         dictionary_values_options["augment"] = [False, True]
         dictionary_values_options["filter_sparse_rxns"] = [False]
 
-
     for i in range(options["num"]):
-
         dictionary_write = {}
-        
-        if(options["hydro"] == True):
+
+        if options["hydro"] == True:
             featurizer_dict = {
-                #"choice_3":{
-                #    "extra_features": ["bond_length", 'Lagrangian_K', 'e_density', 'lap_e_density', 
-                #            'e_loc_func', 'ave_loc_ion_E', 'delta_g_promolecular', 'delta_g_hirsh', 'esp_nuc', 
-                #            'esp_e', 'esp_total', 'grad_norm', 'lap_norm', 'eig_hess', 
+                # "choice_3":{
+                #    "extra_features": ["bond_length", 'Lagrangian_K', 'e_density', 'lap_e_density',
+                #            'e_loc_func', 'ave_loc_ion_E', 'delta_g_promolecular', 'delta_g_hirsh', 'esp_nuc',
+                #            'esp_e', 'esp_total', 'grad_norm', 'lap_norm', 'eig_hess',
                 #            'det_hessian', 'ellip_e_dens', 'eta'],
                 #    "feature_filter": True
-                #},
-                #"choice_4":{
-                #    "extra_features": ["bond_length", 'esp_total', 'Lagrangian_K', 'ellip_e_dens'], 
+                # },
+                # "choice_4":{
+                #    "extra_features": ["bond_length", 'esp_total', 'Lagrangian_K', 'ellip_e_dens'],
                 #    "feature_filter": True
-                #},
-                "choice_5":{
-                    "extra_features": ['esp_total'], 
-                    "feature_filter": True
-                },
-                "choice_6":{
-                    "extra_features": ["bond_length"], 
-                    "feature_filter": True
-                },
-                #"choice_7":{
+                # },
+                "choice_5": {"extra_features": ["esp_total"], "feature_filter": True},
+                "choice_6": {"extra_features": ["bond_length"], "feature_filter": True},
+                # "choice_7":{
                 #    "feature_filter": False
-                #},
+                # },
             }
 
-        else: 
+        else:
             featurizer_dict = {
-                '''
+                """
                 "choice_1":{
                     "extra_features": [
                         "1_s", "2_s", "1_p", "2_p", "1_d", "2_d", "1_f", "2_f", 
@@ -179,38 +173,41 @@ def generate_and_write(options):
                         ],
                     "feature_filter": True
                 }, 
-                '''
-
-                "choice_4":{
-                    "extra_features": ["bond_length", "esp_total"], 
-                    "feature_filter": True
+                """
+                "choice_4": {
+                    "extra_features": ["bond_length", "esp_total"],
+                    "feature_filter": True,
                 },
-                "choice_5":{
-                    "extra_features": ["bond_length"], 
-                    "feature_filter": False
-                }
-
+                "choice_5": {
+                    "extra_features": ["bond_length"],
+                    "feature_filter": False,
+                },
             }
-        
+
         featurizer_settings = choice(list(featurizer_dict.keys()))
         featurizer_settings = featurizer_dict[featurizer_settings]
         dictionary_write.update(featurizer_settings)
 
-        if(options["class_cats"] == 3):
+        if options["class_cats"] == 3:
             dictionary_write["categories"] = 3
-            dictionary_write["category_weights"] = choice(dictionary_categories["category_weights_3"])
-        else: 
+            dictionary_write["category_weights"] = choice(
+                dictionary_categories["category_weights_3"]
+            )
+        else:
             dictionary_write["categories"] = 5
-            dictionary_write["category_weights"] = choice(dictionary_categories["category_weights_5"])
-            
+            dictionary_write["category_weights"] = choice(
+                dictionary_categories["category_weights_5"]
+            )
+
         base_fc = choice(dictionary_archi["gated_hidden_size_1"])
         base_gat = choice(dictionary_archi["fc_hidden_size_1"])
         shape_fc = choice(dictionary_archi["fc_hidden_size_shape"])
         shape_gat = choice(dictionary_archi["gated_hidden_size_shape"])
 
-
         dictionary_write["fc_num_layers"] = choice(dictionary_archi["fc_num_layers"])
-        dictionary_write["gated_num_layers"] = choice(dictionary_archi["gated_num_layers"])
+        dictionary_write["gated_num_layers"] = choice(
+            dictionary_archi["gated_num_layers"]
+        )
         dictionary_write["gated_hidden_size_1"] = base_gat
         dictionary_write["fc_hidden_size_1"] = base_fc
         dictionary_write["fc_hidden_size_shape"] = shape_fc
@@ -221,65 +218,75 @@ def generate_and_write(options):
         dictionary_write["restore"] = False
         dictionary_write["precision"] = "32"
         dictionary_write["restore_path"] = None
-        
-        if(options["hydro"]):
+
+        if options["hydro"]:
             dictionary_write["target_var"] = "dG_sp"
             dictionary_write["extra_info"] = ["functional_group_reacted"]
         else:
             dictionary_write["target_var"] = "ts"
             dictionary_write["target_var_transfer"] = "diff"
             dictionary_write["extra_info"] = []
-            
+
         for k, v in dictionary_values_options.items():
             dictionary_write[k] = choice(v)
 
-        if(options["hydro"]):
+        if options["hydro"]:
             folder = "./hydro_lightning"
-            
-        
-        else: 
+
+        else:
             folder = "./mg_lightning"
 
-        if(options["gpu"]): folder += "_gpu"
-        else: folder += "_cpu"
+        if options["gpu"]:
+            folder += "_gpu"
+        else:
+            folder += "_cpu"
 
-        if(options["classifier"]):
+        if options["classifier"]:
             folder += "_classifier/"
         else:
             folder += "_regressor/"
 
         check_folder(folder)
 
-        if(options["gpu"]): target = folder + "gpu_"
-        else: target = folder + "cpu_"
+        if options["gpu"]:
+            target = folder + "gpu_"
+        else:
+            target = folder + "cpu_"
 
-    
         target += str(int(np.floor(i / options["per_folder"])))
         check_folder(target)
         target += "/settings_" + str(i) + ".json"
         # sort keys
         dictionary_write = dict(sorted(dictionary_write.items()))
         write_one(dictionary_write, target)
-    if options["perlmutter"]:    
+    if options["perlmutter"]:
         put_file_slurm_in_every_subfolder(
-            folder=folder, 
+            folder=folder,
             project_name=options["project_name"],
-            file_loc=options["dataset_loc"], 
-            gpu=options["gpu"]
+            file_loc=options["dataset_loc"],
+            gpu=options["gpu"],
         )
 
 
 def main():
-    # create argparse 
-    parser = argparse.ArgumentParser(description='Create settings files for training')
-    parser.add_argument('--perlmutter', action='store_true', help='write perlmutter sbatch')
-    parser.add_argument('--gpu', action='store_true', help='Use gpu')
-    parser.add_argument('--hydro', action='store_true', help='Use hydro')
-    parser.add_argument('--classifier', action='store_true', help='Use classifier')
-    parser.add_argument('--class_cats', type=int, default=3, help='Number of categories')
-    parser.add_argument('--project_name', type=str, default="mg_lightning", help='Project name')
-    parser.add_argument('--num', type=int, default=50, help='Number of runs')
-    parser.add_argument('--per_folder', type=int, default=50, help='Number of runs per folder')
+    # create argparse
+    parser = argparse.ArgumentParser(description="Create settings files for training")
+    parser.add_argument(
+        "--perlmutter", action="store_true", help="write perlmutter sbatch"
+    )
+    parser.add_argument("--gpu", action="store_true", help="Use gpu")
+    parser.add_argument("--hydro", action="store_true", help="Use hydro")
+    parser.add_argument("--classifier", action="store_true", help="Use classifier")
+    parser.add_argument(
+        "--class_cats", type=int, default=3, help="Number of categories"
+    )
+    parser.add_argument(
+        "--project_name", type=str, default="mg_lightning", help="Project name"
+    )
+    parser.add_argument("--num", type=int, default=50, help="Number of runs")
+    parser.add_argument(
+        "--per_folder", type=int, default=50, help="Number of runs per folder"
+    )
     args = parser.parse_args()
     options = vars(args)
 
@@ -292,18 +299,16 @@ def main():
     per_folder = options["per_folder"]
     project_name = options["project_name"]
 
-    
-    if(classifier and class_cats != 3 and class_cats != 5):
+    if classifier and class_cats != 3 and class_cats != 5:
         raise ValueError("Must have 3 or 5 categories for classifier")
 
     if hydro:
         options["dataset_loc"] = "../../../../dataset/qm_9_merge_3_qtaim.json"
-    
-    else: 
+
+    else:
         options["dataset_loc"] = "../../../../dataset/mg_dataset/mg_qtaim_complete.json"
-    
+
     generate_and_write(options)
 
-    
-main()
 
+main()

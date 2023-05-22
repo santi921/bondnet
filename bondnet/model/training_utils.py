@@ -12,7 +12,6 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 from bondnet.model.metric import WeightedL1Loss, WeightedMSELoss, WeightedSmoothL1Loss
-from bondnet.model.gated_reaction_network_graph import GatedGCNReactionNetwork
 
 from bondnet.model.gated_reaction_network_lightning_classifier import (
     GatedGCNReactionNetworkLightningClassifier,
@@ -467,82 +466,6 @@ def evaluate_breakdown(model, nodes, data_loader, device=None):
         dict_result_raw[k] = np.mean(np.array(v))
 
     return dict_result_raw
-
-
-def load_model(dict_train):
-    """
-    returns model and optimizer from dict of parameters
-
-    Args:
-        dict_train(dict): dictionary
-    Returns:
-        model (pytorch model): model to train
-        optimizer (pytorch optimizer obj): optimizer
-    """
-
-    if dict_train["classifier"]:
-        model = GatedGCNReactionNetworkClassifier(
-            in_feats=dict_train["in_feats"],
-            embedding_size=dict_train["embedding_size"],
-            gated_dropout=dict_train["gated_dropout"],
-            gated_num_layers=dict_train["gated_num_layers"],
-            gated_hidden_size=dict_train["gated_hidden_size"],
-            gated_activation=dict_train["gated_activation"],
-            gated_batch_norm=dict_train["gated_batch_norm"],
-            gated_graph_norm=dict_train["gated_graph_norm"],
-            gated_num_fc_layers=dict_train["gated_num_fc_layers"],
-            gated_residual=dict_train["gated_residual"],
-            num_lstm_iters=dict_train["num_lstm_iters"],
-            num_lstm_layers=dict_train["num_lstm_layers"],
-            fc_num_layers=dict_train["fc_num_layers"],
-            fc_hidden_size=dict_train["fc_hidden_size"],
-            fc_batch_norm=dict_train["fc_batch_norm"],
-            fc_activation=dict_train["fc_activation"],
-            fc_dropout=dict_train["fc_dropout"],
-            outdim=dict_train["categories"],
-        )
-
-    else:
-        model = GatedGCNReactionNetwork(
-            in_feats=dict_train["in_feats"],
-            embedding_size=dict_train["embedding_size"],
-            gated_dropout=dict_train["gated_dropout"],
-            gated_num_layers=dict_train["gated_num_layers"],
-            gated_hidden_size=dict_train["gated_hidden_size"],
-            gated_activation=dict_train["gated_activation"],
-            gated_batch_norm=dict_train["gated_batch_norm"],
-            gated_graph_norm=dict_train["gated_graph_norm"],
-            gated_num_fc_layers=dict_train["gated_num_fc_layers"],
-            gated_residual=dict_train["gated_residual"],
-            num_lstm_iters=dict_train["num_lstm_iters"],
-            num_lstm_layers=dict_train["num_lstm_layers"],
-            fc_dropout=dict_train["fc_dropout"],
-            fc_batch_norm=dict_train["fc_batch_norm"],
-            fc_num_layers=dict_train["fc_num_layers"],
-            fc_hidden_size=dict_train["fc_hidden_size"],
-            fc_activation=dict_train["fc_activation"],
-        )
-
-    optimizer = Adam(
-        model.parameters(),
-        lr=dict_train["learning_rate"],
-        weight_decay=dict_train["weight_decay"],
-    )
-    optimizer_transfer = Adam(
-        model.parameters(),
-        lr=dict_train["learning_rate"],
-        weight_decay=dict_train["weight_decay"],
-    )
-
-    if dict_train["restore"]:
-        print(":::RESTORING MODEL FROM EXISTING FILE:::")
-        # check if there is a file in the directory called settings.pkl
-        if os.path.isfile(dict_train["settings_file_name"].split(".")[0] + ".pkl"):
-            model.load_state_dict(
-                torch.load(dict_train["settings_file_name"].split(".")[0] + ".pkl")
-            )
-
-    return model, optimizer, optimizer_transfer
 
 
 def load_model_lightning(dict_train, device=None, load_dir=None):
