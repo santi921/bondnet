@@ -16,86 +16,11 @@ from bondnet.utils import seed_torch
 from bondnet.model.training_utils import (
     get_grapher,
     LogParameters,
-)
-from bondnet.model.gated_reaction_network_lightning import (
-    GatedGCNReactionNetworkLightning,
+    load_model_lightning,
 )
 
 seed_torch()
 torch.set_float32_matmul_precision("high")  # might have to disable on older GPUs
-
-
-def load_model_lightning(dict_train, device=None, load_dir=None):
-    """
-    returns model and optimizer from dict of parameters
-
-    Args:
-        dict_train(dict): dictionary
-    Returns:
-        model (pytorch model): model to train
-        optimizer (pytorch optimizer obj): optimizer
-    """
-
-    if device == None:
-        if dict_train["on_gpu"]:
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            dict_train["gpu"] = "gpu"
-        else:
-            device = torch.device("cpu")
-            dict_train["gpu"] = "cpu"
-    else:
-        dict_train["gpu"] = "gpu"
-
-    shape_fc = dict_train["fc_hidden_size_shape"]
-    shape_gat = dict_train["gated_hidden_size_shape"]
-    base_fc = dict_train["fc_hidden_size_1"]
-    base_gat = dict_train["gated_hidden_size_1"]
-
-    if shape_fc == "flat":
-        fc_layers = [base_fc for i in range(dict_train["fc_num_layers"])]
-    else:
-        fc_layers = [
-            int(base_fc / (2**i)) for i in range(dict_train["fc_num_layers"])
-        ]
-
-    if shape_gat == "flat":
-        gat_layers = [base_gat for i in range(dict_train["gated_num_layers"])]
-    else:
-        gat_layers = [
-            int(base_gat / (2**i)) for i in range(dict_train["gated_num_layers"])
-        ]
-
-    model = GatedGCNReactionNetworkLightning(
-        in_feats=dict_train["in_feats"],
-        embedding_size=dict_train["embedding_size"],
-        gated_dropout=dict_train["gated_dropout"],
-        gated_num_layers=len(gat_layers),
-        gated_hidden_size=gat_layers,
-        gated_activation=dict_train["gated_activation"],
-        gated_batch_norm=dict_train["gated_batch_norm"],
-        gated_graph_norm=dict_train["gated_graph_norm"],
-        gated_num_fc_layers=dict_train["gated_num_fc_layers"],
-        gated_residual=dict_train["gated_residual"],
-        num_lstm_iters=dict_train["num_lstm_iters"],
-        num_lstm_layers=dict_train["num_lstm_layers"],
-        fc_dropout=dict_train["fc_dropout"],
-        fc_batch_norm=dict_train["fc_batch_norm"],
-        fc_num_layers=len(fc_layers),
-        fc_hidden_size=fc_layers,
-        fc_activation=dict_train["fc_activation"],
-        learning_rate=dict_train["learning_rate"],
-        weight_decay=dict_train["weight_decay"],
-        scheduler_name="reduce_on_plateau",
-        warmup_epochs=10,
-        max_epochs=dict_train["max_epochs"],
-        eta_min=1e-6,
-        loss_fn=dict_train["loss"],
-        augment=dict_train["augment"],
-        device=device,
-    )
-    model.to(device)
-
-    return model
 
 
 if __name__ == "__main__":

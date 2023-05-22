@@ -260,9 +260,6 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         for layer in self.gated_layers:
             feats = layer(graph, feats, norm_atom, norm_bond)
 
-        # convert mol graphs to reaction graphs by subtracting reactant feats from
-        # graph, feats = mol_graph_to_rxn_graph(graph, feats, reactions, device, reverse)
-
         # readout layer
         feats = self.readout_layer(graph, feats)
 
@@ -271,7 +268,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
 
         return feats
 
-    def feature_before_fc(self, graph, feats, reactions, norm_atom, norm_bond):
+    def feature_before_fc(self, graph, feats, norm_atom, norm_bond):
         """
         Get the features before the final fully-connected.
 
@@ -283,14 +280,11 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         for layer in self.gated_layers:
             feats = layer(graph, feats, norm_atom, norm_bond)
 
-        # convert mol graphs to reaction graphs by subtracting reactant feats from
-        # products feats
-        graph, feats = mol_graph_to_rxn_graph(graph, feats, reactions)
         # readout layer
         feats = self.readout_layer(graph, feats)
         return feats
 
-    def feature_at_each_layer(self, graph, feats, reactions, norm_atom, norm_bond):
+    def feature_at_each_layer(self, graph, feats, norm_atom, norm_bond):
         """
         Get the features at each layer before the final fully-connected layer.
 
@@ -482,7 +476,6 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         pred = self(
             batched_graph,
             feats,
-            label["reaction"],
             norm_bond=norm_bond,
             norm_atom=norm_atom,
         )
