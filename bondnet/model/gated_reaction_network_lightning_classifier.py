@@ -252,6 +252,13 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
         Returns:
             2D tensor: of shape(N, M), where `M = outdim`.
         """
+
+        if reverse:
+            for key in feats:
+                # multiply by -1
+                print("augmenting data")
+                feats[key] = -1 * feats[key]
+
         # embedding
         feats = self.embedding(feats)
         # gated layer

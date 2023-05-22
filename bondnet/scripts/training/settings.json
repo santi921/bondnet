@@ -1,8 +1,8 @@
 {
-  "augment": false,
+  "augment": true,
   "batch_size": 128,
   "debug": true,
-  "classifier": true,
+  "classifier": false,
   "classif_categories": 3,
   "embedding_size": 24,
   "epochs": 100,
