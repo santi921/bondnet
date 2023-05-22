@@ -2,7 +2,7 @@
   "augment": false,
   "batch_size": 128,
   "debug": true,
-  "classifier": true,
+  "classifier": false,
   "classif_categories": 3,
   "embedding_size": 12,
   "epochs": 100,

@@ -12,8 +12,8 @@ from pytorch_lightning.callbacks import (
     ModelCheckpoint,
 )
 
-from bondnet.data.dataset import ReactionNetworkDatasetGraphs
-from bondnet.data.dataloader import DataLoaderReactionNetwork
+from bondnet.data.dataset import ReactionNetworkDatasetPrecomputed
+from bondnet.data.dataloader import DataLoaderPrecomputedReactionGraphs
 from bondnet.data.dataset import train_validation_test_split
 from bondnet.utils import seed_torch
 from bondnet.model.training_utils import (
@@ -42,7 +42,7 @@ def train_single(
     print(">" * 40 + "config_settings" + "<" * 40)
 
     if dataset is None:
-        dataset = ReactionNetworkDatasetGraphs(
+        dataset = ReactionNetworkDatasetPrecomputed(
             grapher=get_grapher(config["extra_features"]),
             file=config["dataset_loc"],
             target=config["target_var"],
@@ -58,7 +58,7 @@ def train_single(
         )
 
     if dataset_transfer is None and config["transfer"]:
-        dataset_transfer = ReactionNetworkDatasetGraphs(
+        dataset_transfer = ReactionNetworkDatasetPrecomputed(
             grapher=get_grapher(config["extra_features"]),
             file=config["dataset_loc"],
             target=config["target_var_transfer"],
@@ -82,13 +82,13 @@ def train_single(
     trainset, valset, testset = train_validation_test_split(
         dataset, validation=0.15, test=0.15
     )
-    val_loader = DataLoaderReactionNetwork(
+    val_loader = DataLoaderPrecomputedReactionGraphs(
         valset, batch_size=len(valset), shuffle=False
     )
-    test_loader = DataLoaderReactionNetwork(
+    test_loader = DataLoaderPrecomputedReactionGraphs(
         testset, batch_size=len(testset), shuffle=False
     )
-    train_loader = DataLoaderReactionNetwork(
+    train_loader = DataLoaderPrecomputedReactionGraphs(
         trainset, batch_size=config["batch_size"], shuffle=True
     )
 
@@ -116,10 +116,10 @@ def train_single(
             trainset_transfer, valset_transfer, _ = train_validation_test_split(
                 dataset_transfer, validation=0.15, test=0.0
             )
-            val_transfer_loader = DataLoaderReactionNetwork(
+            val_transfer_loader = DataLoaderPrecomputedReactionGraphs(
                 valset_transfer, batch_size=len(valset), shuffle=False
             )
-            train_loader_loader = DataLoaderReactionNetwork(
+            train_loader_loader = DataLoaderPrecomputedReactionGraphs(
                 trainset_transfer, batch_size=config["batch_size"], shuffle=True
             )
 
@@ -242,7 +242,7 @@ def controller_main(project_name, log_save_dir):
 
     extra_keys = config["extra_features"]
 
-    dataset = ReactionNetworkDatasetGraphs(
+    dataset = ReactionNetworkDatasetPrecomputed(
         grapher=get_grapher(extra_keys),
         file=config["dataset_loc"],
         target=config["target_var"],
@@ -262,7 +262,7 @@ def controller_main(project_name, log_save_dir):
     dataset_transfer = None
 
     if config["transfer"]:
-        dataset_transfer = ReactionNetworkDatasetGraphs(
+        dataset_transfer = ReactionNetworkDatasetPrecomputed(
             grapher=get_grapher(extra_keys),
             file=config["dataset_loc"],
             target=config["target_var_transfer"],

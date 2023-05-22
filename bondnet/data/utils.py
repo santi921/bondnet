@@ -358,6 +358,7 @@ def rdkit_bond_desc(mol):
     return detected_bonds_dict
 
 
+# final model helper functions (for reaction graph generation)
 def _split_batched_output(graph, value):
     """
     Split a tensor into `num_graphs` chunks, the size of each chunk equals the
@@ -393,7 +394,6 @@ def mol_graph_to_rxn_graph(graph, feats, reactions, device=None, reverse=False):
     # updates node features on batches
     for nt, ft in feats.items():
         graph.nodes[nt].data.update({"ft": ft})
-        # feats = {k: v.to(device) for k, v in feats.items()}
     # unbatch molecule graph
     graphs = dgl.unbatch(graph)
     reaction_graphs, reaction_feats = [], []
@@ -402,7 +402,7 @@ def mol_graph_to_rxn_graph(graph, feats, reactions, device=None, reverse=False):
     for rxn in reactions:
         reactants = [graphs[i] for i in rxn.reactants]
         products = [graphs[i] for i in rxn.products]
-        # might need to rewrite to create dynamics here
+
         mappings = {
             "bond_map": rxn.bond_mapping,
             "atom_map": rxn.atom_mapping,
@@ -423,6 +423,7 @@ def mol_graph_to_rxn_graph(graph, feats, reactions, device=None, reverse=False):
         g, fts = create_rxn_graph(
             reactants, products, mappings, has_bonds, device, reverse=reverse
         )
+
         reaction_graphs.append(g)
         # if(device !=None):
         #    fts = {k: v.to(device) for k, v in fts.items()}
@@ -445,7 +446,8 @@ def mol_graph_to_rxn_graph(graph, feats, reactions, device=None, reverse=False):
             print(reactions[ind].total_atoms)
             print("--" * 20)
 
-    batched_graph = dgl.batch(reaction_graphs)  # batch graphs
+    batched_graph = dgl.batch(reaction_graphs)
+
     for nt in feats:  # batch features
         batched_feats[nt] = torch.cat([ft[nt] for ft in reaction_feats])
     return batched_graph, batched_feats

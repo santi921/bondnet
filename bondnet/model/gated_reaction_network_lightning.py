@@ -1,15 +1,13 @@
 import torch
+import torch
 import pytorch_lightning as pl
 
-import itertools, copy, dgl
 import numpy as np
 import logging
 import torch.nn as nn
-from torch.nn import MSELoss
 from torch.optim import lr_scheduler
 import torchmetrics
 
-# from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 import matplotlib.pyplot as plt
 
 from bondnet.layer.gatedconv import GatedGCNConv, GatedGCNConv1, GatedGCNConv2
@@ -235,10 +233,8 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         self,
         graph,
         feats,
-        reactions,
         norm_atom=None,
         norm_bond=None,
-        device=None,
         reverse=False,
     ):
         """
@@ -254,17 +250,18 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         Returns:
             2D tensor: of shape(N, M), where `M = outdim`.
         """
+        if reverse:
+            # throw not implemented error
+            raise NotImplementedError
+
         # embedding
         feats = self.embedding(feats)
         # gated layer
-
         for layer in self.gated_layers:
             feats = layer(graph, feats, norm_atom, norm_bond)
 
         # convert mol graphs to reaction graphs by subtracting reactant feats from
-        # products feats
-        # graph is actually batch graphs, not just a graph
-        graph, feats = mol_graph_to_rxn_graph(graph, feats, reactions, device, reverse)
+        # graph, feats = mol_graph_to_rxn_graph(graph, feats, reactions, device, reverse)
 
         # readout layer
         feats = self.readout_layer(graph, feats)
@@ -329,7 +326,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         # ========== compute predictions ==========
         batched_graph, label = batch
         nodes = ["atom", "bond", "global"]
-        feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
+        feats = {nt: batched_graph.nodes[nt].data["ft"] for nt in nodes}
         target = label["value"].view(-1)
         target_aug = label["value_rev"].view(-1)
         empty_aug = torch.isnan(target_aug).tolist()
@@ -350,8 +347,6 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         pred = self(
             batched_graph,
             feats,
-            label["reaction"],
-            device=self.device,
             norm_bond=norm_bond,
             norm_atom=norm_atom,
         )
@@ -364,8 +359,6 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             pred_aug = self(
                 batched_graph,
                 feats,
-                label["reaction"],
-                device=self.device,
                 reverse=True,
                 norm_bond=norm_bond,
                 norm_atom=norm_atom,
@@ -470,7 +463,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         # ========== compute predictions ==========
         batched_graph, label = batch
         nodes = ["atom", "bond", "global"]
-        feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
+        feats = {nt: batched_graph.nodes[nt].data["ft"] for nt in nodes}
         target = label["value"].view(-1)
         target_aug = label["value_rev"].view(-1)
         empty_aug = torch.isnan(target_aug).tolist()
@@ -486,12 +479,10 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             norm_bond = norm_bond.to(self.device)
             stdev = stdev.to(self.device)
 
-
         pred = self(
             batched_graph,
             feats,
             label["reaction"],
-            device=self.device,
             norm_bond=norm_bond,
             norm_atom=norm_atom,
         )
@@ -573,5 +564,3 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             self.test_l1.reset()
 
         return l1, r2
-
-
