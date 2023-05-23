@@ -4,6 +4,7 @@
   "debug": true,
   "classifier": false,
   "classif_categories": 3,
+  "cat_weights": [1.0, 1.0, 1.0],
   "embedding_size": 24,
   "epochs": 100,
   "extra_features": ["bond_length"],

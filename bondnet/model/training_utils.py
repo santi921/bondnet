@@ -562,6 +562,7 @@ def load_model_lightning(dict_train, device=None, load_dir=None):
             loss_fn=dict_train["loss"],
             augment=dict_train["augment"],
             device=device,
+            cat_weights=dict_train["cat_weights"],
         )
 
     else:

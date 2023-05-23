@@ -89,7 +89,7 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
         device="cpu",
         wandb=True,
         augment=False,
-        cat_weights=torch.Tensor([1, 1, 1]),
+        cat_weights=torch.Tensor([1.0, 1.0, 1.0]),
     ):
         super().__init__()
         self.learning_rate = learning_rate
