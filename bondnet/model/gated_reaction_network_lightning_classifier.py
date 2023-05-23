@@ -91,6 +91,9 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
         augment=False,
         cat_weights=torch.Tensor([1.0, 1.0, 1.0]),
     ):
+        if type(cat_weights) == list:
+            cat_weights = torch.Tensor(cat_weights)
+
         super().__init__()
         self.learning_rate = learning_rate
         cat_weights = cat_weights.to(device)
