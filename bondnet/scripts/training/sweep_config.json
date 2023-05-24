@@ -40,7 +40,13 @@
   "extra_info": { "values": ["functional_group_reacted"] },
   "precision": { "values": [16, "bf16"] },
   "classif_categories": { "values": [3] },
-  "cat_weights": { "values": [[1.0, 1.0, 1.0]] },
+  "cat_weights": {
+    "values": [
+      [1.0, 1.0, 1.0],
+      [1.0, 2.0, 3.0],
+      [1.0, 4.0, 4.0]
+    ]
+  },
   "filter_species": { "values": [[3, 6]] },
   "filter_outliers": { "values": [true] },
   "filter_sparse_rxns": { "values": [false] }

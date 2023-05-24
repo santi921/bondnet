@@ -106,7 +106,6 @@ def generate_and_write(options):
         "max_epochs_transfer": [250, 500, 1000],
         "transfer": [False, True],
         "freeze": [True, False],
-        "loss": ["huber", "mse"],
         "weight_decay": [0.0, 0.0001, 0.00001],
         "num_lstm_iters": [7, 9, 11],
         "num_lstm_layers": [1, 2],
@@ -242,8 +241,10 @@ def generate_and_write(options):
             folder += "_cpu"
 
         if options["classifier"]:
+            dictionary_write["loss"] = "cross_entropy"
             folder += "_classifier/"
         else:
+            dictionary_write["loss"] = choice(["huber", "mse"])
             folder += "_regressor/"
 
         check_folder(folder)
@@ -259,6 +260,7 @@ def generate_and_write(options):
         # sort keys
         dictionary_write = dict(sorted(dictionary_write.items()))
         write_one(dictionary_write, target)
+
     if options["perlmutter"]:
         put_file_slurm_in_every_subfolder(
             folder=folder,
