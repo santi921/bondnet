@@ -167,9 +167,7 @@ def generate_and_write(options):
                     "feature_filter": True
                 },
                 "choice_3": {
-                        "extra_features": [     
-                        "esp_nuc", "esp_e", "esp_total", "ellip_e_dens", "bond_length", 
-                        ],
+                        "extra_features": ["esp_nuc", "esp_e", "esp_total", "ellip_e_dens", "bond_length"],
                     "feature_filter": True
                 }, 
                 """

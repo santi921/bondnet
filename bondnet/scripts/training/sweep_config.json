@@ -49,5 +49,6 @@
   },
   "filter_species": { "values": [[3, 6]] },
   "filter_outliers": { "values": [true] },
-  "filter_sparse_rxns": { "values": [false] }
+  "filter_sparse_rxns": { "values": [false] },
+  "feature_filter": { "values": [true] }
 }
