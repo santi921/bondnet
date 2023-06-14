@@ -34,15 +34,19 @@ class Reaction:
     """
 
     def __init__(
-        self, reactants, products, 
-        broken_bond=None, formed_bond=None, 
-        free_energy=None, identifier=None, 
-        total_bonds=None, total_atoms=None,
-        reverse_energy_target = None,
-        reaction_type = None,
-        extra_info = {}
+        self,
+        reactants,
+        products,
+        broken_bond=None,
+        formed_bond=None,
+        free_energy=None,
+        identifier=None,
+        total_bonds=None,
+        total_atoms=None,
+        reverse_energy_target=None,
+        reaction_type=None,
+        extra_info={},
     ):
-
         self.reactants = reactants
         self.products = products
         self.len_products = len(products)
@@ -51,12 +55,12 @@ class Reaction:
         self.reaction_type = reaction_type
         self._extra_info = extra_info
 
-        if(total_atoms != None):
+        if total_atoms != None:
             self.total_atoms = total_atoms
             self.num_atoms_total = len(self.total_atoms)
             self.num_bonds_total = len(total_bonds)
         else:
-            if(total_bonds!=None): 
+            if total_bonds != None:
                 self.total_atoms = list(set(list(np.concatenate(total_bonds).flat)))
                 self.num_atoms_total = len(self.total_atoms)
                 self.num_bonds_total = len(total_bonds)
@@ -64,7 +68,7 @@ class Reaction:
                 self.total_atoms = None
                 self.num_atoms_total = None
                 self.num_bonds_total = None
-        
+
         self._broken_bond = broken_bond
         self._formed_bond = formed_bond
         self._free_energy = free_energy
@@ -131,7 +135,6 @@ class Reaction:
                     first_only=True,
                 )
             if not bonds:
-
                 # print(self.atom_mapping)
                 msg = f"Reaction id: {self.get_id()}. "
                 msg += "Reactants id: "
@@ -180,7 +183,7 @@ class Reaction:
 
     def get_extra_info(self):
         return self._extra_info
-    
+
     def set_extra_info(self, info):
         self._extra_info = info
 
@@ -313,7 +316,6 @@ class Reaction:
             bmp = dict()
 
             for p_ordering, (bond, _) in enumerate(p.bonds.items()):
-
                 # atom mapping between product and reactant of the bond
                 bond_amp = [amp[i] for i in bond]
 
@@ -369,7 +371,6 @@ class Reaction:
             bmp = dict()
 
             for b_product in p.bonds:
-
                 # atom mapping between product and reactant of the bond
                 i, j = b_product
 
@@ -422,7 +423,6 @@ class Reaction:
         product_to_reactant_mapping = self.bond_mapping_by_tuple_index()  # fail point
 
         for p, p2r in zip(self.products, product_to_reactant_mapping):
-
             mp = {}
             # product sdf bond index (list of tuple)
 
@@ -431,7 +431,6 @@ class Reaction:
             # ib: product sdf bond index (int)
             # b: product graph bond index (tuple)
             for ib, b in enumerate(psb):
-
                 # reactant graph bond index (tuple)
                 rsbt = p2r[b]
 
@@ -528,7 +527,6 @@ class ReactionsGroup:
                     pass
                     # print("failed rxn")
         else:
-
             self._add_one(reactions)
 
     def _add_one(self, rxn):
@@ -712,15 +710,15 @@ class ReactionsMultiplePerBond(ReactionsGroup):
         # assign rxn to bond group
         for rxn in self.reactions:
             # i'm going to assume that if this index isn't here but
-            #[tuple(i) for i in bond_rxns_dict]
+            # [tuple(i) for i in bond_rxns_dict]
             broken = rxn.get_broken_bond()
             if tuple(broken) in [tuple(i) for i in bond_rxns_dict]:
                 broken_first = tuple(rxn.get_broken_bond()[0])
                 bond_rxns_dict[broken_first].append(rxn)
-                    
+
             else:
                 broken_first = tuple(broken)
-                if(len(rxn.get_broken_bond())>1):
+                if len(rxn.get_broken_bond()) > 1:
                     bond_rxns_dict[broken_first] = []
                     bond_rxns_dict[broken_first].append(rxn)
                 else:
@@ -730,7 +728,6 @@ class ReactionsMultiplePerBond(ReactionsGroup):
         # remove duplicate isomorphic bonds
         if find_one:
             for group in self.reactant.isomorphic_bonds:
-
                 # keep the bond having the most reactions and remove others in the group
                 num_reactions = {bond: len(bond_rxns_dict[bond]) for bond in group}
                 sorted_bonds = sorted(num_reactions, key=lambda k: num_reactions[k])
@@ -1012,7 +1009,7 @@ class ReactionExtractorFromMolSet:
                     continue
 
                 reaction_ids = []
-                for (charge_A, charge_B, charge_C) in itertools.product(
+                for charge_A, charge_B, charge_C in itertools.product(
                     buckets[formula_A], buckets[formula_B], buckets[formula_C]
                 ):
                     if not self._is_valid_A_to_B_C_charge(charge_A, charge_B, charge_C):
@@ -1023,7 +1020,6 @@ class ReactionExtractorFromMolSet:
                         buckets[formula_B][charge_B],
                         buckets[formula_C][charge_C],
                     ):
-
                         # exclude reactions already considered
                         # Since we use `combinations_with_replacement` to consider
                         # products B and C for the same formula, buckets[formula_B] and
@@ -1122,7 +1118,6 @@ class ReactionExtractorFromReactant:
     NoResultReason = namedtuple("NoResultReason", ["compute", "fail", "reason"])
 
     def __init__(self, molecule, bond_energy=None, allowed_charge=None):
-
         if bond_energy is not None and allowed_charge is not None:
             if len(allowed_charge) != 1:
                 raise ValueError(
@@ -1224,7 +1219,6 @@ class ReactionExtractorFromReactant:
         no_rxn_reason = {}
         rxn_idx = 0
         for b, e in bond_energy.items():
-
             if b not in target_bonds:
                 reason = "isomorphic bond, no need to compute"
                 no_rxn_reason[b] = self.NoResultReason(False, None, reason)
