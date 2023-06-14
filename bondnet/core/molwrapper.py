@@ -11,6 +11,7 @@ from rdkit.Chem import Draw, AllChem
 from rdkit.Chem.Draw import rdMolDraw2D
 from bondnet.core.rdmol import create_rdkit_mol_from_mol_graph
 from bondnet.utils import create_directory, to_path, yaml_dump
+from pymatgen.core.structure import Molecule, Structure
 
 logger = logging.getLogger(__name__)
 
@@ -26,16 +27,17 @@ class MoleculeWrapper:
         id (str): (unique) identification of the molecule
     """
 
-    def __init__(self, 
-    mol_graph, 
-    free_energy=None, 
-    id=None, 
-    non_metal_bonds=None, 
-    atom_features={},
-    bond_features={},
-    original_atom_ind = None, 
-    original_bond_mapping = None):
-
+    def __init__(
+        self,
+        mol_graph,
+        free_energy=None,
+        id=None,
+        non_metal_bonds=None,
+        atom_features={},
+        bond_features={},
+        original_atom_ind=None,
+        original_bond_mapping=None,
+    ):
         self.mol_graph = mol_graph
         self.pymatgen_mol = mol_graph.molecule
         self.nonmetal_bonds = non_metal_bonds
@@ -45,7 +47,7 @@ class MoleculeWrapper:
         self.bond_features = bond_features
         self.original_atom_ind = original_atom_ind
         self.original_bond_mapping = original_bond_mapping
-        
+
         # set when corresponding method is called
         self._rdkit_mol = None
         self._fragments = None
@@ -185,12 +187,10 @@ class MoleculeWrapper:
         """
 
         if self._isomorphic_bonds is None:
-
             iso_bonds = []
 
             for bond1, frags1 in self.fragments.items():
                 for group in iso_bonds:
-
                     # compare to the first in a group to see whether it is isomorphic
                     bond2 = group[0]
                     frags2 = self.fragments[bond2]
@@ -522,8 +522,17 @@ class MoleculeWrapper:
 
 
 def create_wrapper_mol_from_atoms_and_bonds(
-    species, coords, bonds, charge=0, free_energy=None, identifier=None, 
-    original_atom_ind=None, original_bond_ind=None, atom_features={}, bond_features={}):
+    species,
+    coords,
+    bonds,
+    charge=0,
+    free_energy=None,
+    identifier=None,
+    original_atom_ind=None,
+    original_bond_ind=None,
+    atom_features={},
+    bond_features={},
+):
     """
     Create a :class:`MoleculeWrapper` from atoms and bonds.
 
@@ -540,18 +549,18 @@ def create_wrapper_mol_from_atoms_and_bonds(
         MoleculeWrapper instance
     """
 
-    pymatgen_mol = pymatgen.Molecule(species, coords, charge)
+    pymatgen_mol = Molecule(species, coords, charge)
     bonds = {tuple(sorted(b)): None for b in bonds}
     mol_graph = MoleculeGraph.with_edges(pymatgen_mol, bonds)
     mol_wrapper = MoleculeWrapper(
-                mol_graph, 
-                free_energy, 
-                identifier, 
-                original_atom_ind=original_atom_ind, 
-                original_bond_mapping=original_bond_ind,
-                atom_features=atom_features,
-                bond_features=bond_features
-                )
+        mol_graph,
+        free_energy,
+        identifier,
+        original_atom_ind=original_atom_ind,
+        original_bond_mapping=original_bond_ind,
+        atom_features=atom_features,
+        bond_features=bond_features,
+    )
 
     return mol_wrapper
 
@@ -627,12 +636,10 @@ def write_sdf_csv_dataset(
     feats = []
 
     with open(struct_file, "w") as fx, open(label_file, "w") as fy:
-
         fy.write("mol_id,atomization_energy\n")
 
         i = 0
         for m in molecules:
-
             if exclude_single_atom and m.num_atoms == 1:
                 logger.info("Excluding single atom molecule {}".format(m.formula))
                 continue
@@ -699,7 +706,6 @@ def write_edge_label_based_on_bond(
     with open(sdf_filename, "w") as f:
         i = 0
         for m in molecules:
-
             if exclude_single_atom and m.num_atoms == 1:
                 logger.info("Excluding single atom molecule {}".format(m.formula))
                 continue
