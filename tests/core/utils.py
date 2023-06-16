@@ -1,4 +1,4 @@
-from pymatgen import Molecule
+from pymatgen.core.structure import Molecule
 from pymatgen.analysis.graphs import MoleculeGraph
 from bondnet.core.molwrapper import create_wrapper_mol_from_atoms_and_bonds
 from bondnet.core.molwrapper import create_rdkit_mol_from_mol_graph
