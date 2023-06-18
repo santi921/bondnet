@@ -9,7 +9,7 @@ from bondnet.data.featurizer import (
     DistanceBins,
     RBF,
 )
-from .utils import make_a_mol
+from bondnet.test_utils import make_a_mol
 
 
 def test_atom_featurizer():
@@ -77,7 +77,7 @@ def test_bond_as_edge_complete_featurizer():
 
         natoms = m.GetNumAtoms()
         if self_loop:
-            nedges = natoms ** 2
+            nedges = natoms**2
         else:
             nedges = natoms * (natoms - 1)
 
@@ -131,3 +131,15 @@ def test_rbf():
 
     assert val[0] == np.exp(-1 / delta * (d - low) ** 2)
     assert val[-1] == np.exp(-1 / delta * (d - high) ** 2)
+
+
+def test_bondlen():
+    pass
+
+
+def test_extra_atom_featurizer():
+    pass
+
+
+def test_extra_bond_featurizer():
+    pass

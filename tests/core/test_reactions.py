@@ -4,7 +4,7 @@ from bondnet.core.reaction import (
     ReactionExtractorFromMolSet,
     create_reactions_from_reactant,
 )
-from .utils import (
+from bondnet.test_utils import (
     create_reactions_nonsymmetric_reactant,
     create_symmetric_molecules,
     create_reactions_symmetric_reactant,
@@ -142,7 +142,6 @@ class TestReaction:
 
 def test_create_reactions_from_reactant():
     def assert_A2B(rxn, products_charge, bond_energy, mol_reservoir):
-
         A = rxn.reactants[0]
         B = rxn.products[0]
         reactions, molecules = create_reactions_from_reactant(
@@ -173,7 +172,6 @@ def test_create_reactions_from_reactant():
             assert r.products[0].mol_graph.isomorphic_to(B.mol_graph)
 
     def assert_A2BC(rxn, products_charge, bond_energy, mol_reservoir):
-
         A = rxn.reactants[0]
         reactions, molecules = create_reactions_from_reactant(
             A,
@@ -226,7 +224,6 @@ class TestReactionsOfSameBond:
         assert m.charge == charge
 
     def test_create_complement_reactions_and_order_reactions(self):
-
         A2B, A2BC = create_reactions_symmetric_reactant()
 
         # A->B style

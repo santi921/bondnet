@@ -6,7 +6,7 @@ from bondnet.data.transformers import (
     HeteroGraphFeatureStandardScaler,
 )
 import torch
-from ..utils import make_homo_CH2O, make_hetero_CH2O
+from bondnet.test_utils import make_homo_CH2O, make_hetero_CH2O
 
 
 def test_standard_scaler():

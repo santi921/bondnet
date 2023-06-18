@@ -1,3 +1,0 @@
-# some comment
-0  1  some_string1  # some comment
-1  2  some_string2  # some comment

@@ -6,7 +6,7 @@ from bondnet.layer.hgatconv import (
     heterograph_edge_softmax,
 )
 
-from ..utils import make_hetero_CH2O
+from bondnet.test_utils import make_hetero_CH2O
 
 
 def test_edge_softmax():

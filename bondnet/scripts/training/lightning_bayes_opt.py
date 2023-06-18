@@ -243,7 +243,6 @@ if __name__ == "__main__":
     parser.add_argument("-method", type=str, default="bayes")
     parser.add_argument("--on_gpu", default=False, action="store_true")
     parser.add_argument("--debug", default=False, action="store_true")
-    parser.add_argument("--augment", default=False, action="store_true")
 
     parser.add_argument(
         "-dataset_loc", type=str, default="../../dataset/qm_9_merge_3_qtaim.json"
@@ -256,7 +255,6 @@ if __name__ == "__main__":
     method = str(args.method)
     on_gpu = bool(args.on_gpu)
     debug = bool(args.debug)
-    augment = bool(args.augment)
 
     dataset_loc = args.dataset_loc
     log_save_dir = args.log_save_dir
@@ -284,7 +282,6 @@ if __name__ == "__main__":
     print("method: {}".format(method))
     print("on_gpu: {}".format(on_gpu))
     print("debug: {}".format(debug))
-    print("augment: {}".format(augment))
     print("dataset_loc: {}".format(dataset_loc))
     print("log_save_dir: {}".format(log_save_dir))
     print("wandb_project_name: {}".format(wandb_project_name))

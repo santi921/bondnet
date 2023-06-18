@@ -6,7 +6,7 @@ from bondnet.data.grapher import (
     HeteroMoleculeGraph,
     HeteroCompleteGraph,
 )
-from .utils import make_a_mol
+from bondnet.test_utils import make_a_mol
 
 
 def get_bond_to_atom_map(g):
@@ -104,7 +104,7 @@ def test_build_homo_complete_graph():
         m = make_a_mol()
         natoms = m.GetNumAtoms()
         if self_loop:
-            nedges = natoms ** 2
+            nedges = natoms**2
             edges = zip(
                 [i for i in range(natoms) for j in range(natoms)],
                 [j for i in range(natoms) for j in range(natoms)],
@@ -247,3 +247,15 @@ def test_build_complete_hetero_graph():
 
     assert_graph(False)
     assert_graph(True)
+
+
+def test_build_extra_features_bonds():
+    # TODO
+    # throw not implemented error
+    pass
+
+
+def test_build_extra_features_atoms():
+    # TODO
+    # throw not implemented error
+    pass

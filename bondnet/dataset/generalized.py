@@ -960,96 +960,6 @@ def create_struct_label_dataset_reaction_network(filename, out_file):
     )
 
 
-def create_reaction_network_files(filename, out_file, classifier=False):
-    """
-    Processes json file from emmet to use in training bondnet
-
-    Args:
-        filename: name of the json file to be used to gather data
-        out_file: name of folder where to store the three files for trianing
-    """
-    path_mg_data = "/home/santiagovargas/Documents/Dataset/mg_dataset/"
-    path_json = path_mg_data + "20220613_reaction_data.json"
-    mg_df = pd.read_json(path_json)
-    reactions = []
-
-    start_time = time.perf_counter()
-
-    rxn_raw = []
-    with ProcessPool(max_workers=12, max_tasks=10) as pool:
-        for _, row in mg_df.head(100).iterrows():
-            # process_species = process_species_rdkit
-            future = pool.schedule(process_species_rdkit, args=[row, True], timeout=30)
-            future.add_done_callback(task_done)
-            try:
-                rxn_raw.append(future.result())
-            except:
-                pass
-    finish_time = time.perf_counter()
-    print("rxn raw len: {}".format(int(len(rxn_raw))))
-    print(f"Program finished in {finish_time-start_time} seconds")
-    fail_default, fail_count, fail_sdf_map, fail_prod_len = 0, 0, 0, 0
-    for rxn_temp in rxn_raw:
-        if not isinstance(rxn_temp, list):  # bunch of stuff is being filtered here
-            # try:
-            #    rxn_temp.get_broken_bond()
-            try:
-                bond_map = rxn_temp.bond_mapping_by_sdf_int_index()
-                rxn_temp._bond_mapping_by_int_index = bond_map
-
-                reactant_bond_count = int(
-                    len(rxn_temp.reactants[0].rdkit_mol.GetBonds())
-                )
-                prod_bond_count = 0
-                for i in rxn_temp.products:
-                    prod_bond_count += int(len(i.rdkit_mol.GetBonds()))
-                if reactant_bond_count < prod_bond_count:
-                    fail_prod_len += 1
-                else:
-                    reactions.append(rxn_temp)
-            except:
-                fail_sdf_map += 1
-            # except:
-            #    fail_count += 1
-        else:
-            fail_default += 1
-
-    print(".............failures.............")
-    print("reactions len: {}".format(int(len(reactions))))
-    print("bond break fail count: \t\t{}".format(fail_count))
-    print("default fail count: \t\t{}".format(fail_default))
-    print("sdf map fail count: \t\t{}".format(fail_sdf_map))
-    print("product bond fail count: \t{}".format(fail_prod_len))
-
-    extractor = ReactionCollection(reactions)
-    # works
-    if classifier:
-        (
-            all_mols,
-            all_labels,
-            features,
-        ) = extractor.create_struct_label_dataset_reaction_based_regression_alt(
-            struct_file=path_mg_data + "mg_struct_bond_rgrn_classify.sdf",
-            label_file=path_mg_data + "mg_label_bond_rgrn_classify.yaml",
-            feature_file=path_mg_data + "mg_feature_bond_rgrn_classify.yaml",
-            group_mode="charge_0",
-        )
-
-    else:
-        (
-            all_mols,
-            all_labels,
-            features,
-        ) = extractor.create_struct_label_dataset_reaction_based_regression_alt(
-            struct_file=path_mg_data + "mg_struct_bond_rgrn.sdf",
-            label_file=path_mg_data + "mg_label_bond_rgrn.yaml",
-            feature_file=path_mg_data + "mg_feature_bond_rgrn.yaml",
-            group_mode="charge_0",
-        )
-
-    return all_mols, all_labels, features
-
-
 def create_reaction_network_files_and_valid_rows(
     filename,
     bond_map_filter=False,
@@ -1202,6 +1112,13 @@ def create_reaction_network_files_and_valid_rows(
     extractor = ReactionCollection(
         reactions
     )  # this needs to be gutted and modified entirely
+    # un comment to show # of products and reactants
+    # [
+    #    print(
+    #        "# reactants: {}, # products: {}".format(len(i.reactants), len(i.products))
+    #    )
+    #    for i in reactions
+    # ]
     (
         all_mols,
         all_labels,
