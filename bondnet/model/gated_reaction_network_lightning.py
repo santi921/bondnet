@@ -211,19 +211,19 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
 
         self.loss = self.loss_function()
 
-        self.train_l1 = Metrics_WeightedMAE()
+        self.train_l1 = Metrics_WeightedMAE(reduction="mean")
         # self.train_mse = Metrics_WeightedMSE()
         self.train_r2 = torchmetrics.R2Score(
             num_outputs=1, multioutput="variance_weighted"
         )
 
-        self.val_l1 = Metrics_WeightedMAE()
+        self.val_l1 = Metrics_WeightedMAE(reduction="mean")
         # self.val_mse = Metrics_WeightedMSE()
         self.val_r2 = torchmetrics.R2Score(
             num_outputs=1, multioutput="variance_weighted"
         )
 
-        self.test_l1 = Metrics_WeightedMAE()
+        self.test_l1 = Metrics_WeightedMAE(reduction="mean")
         # self.test_mse = Metrics_WeightedMSE()
         self.test_r2 = torchmetrics.R2Score(
             num_outputs=1, multioutput="variance_weighted"
@@ -526,15 +526,15 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
 
     def update_metrics(self, pred, target, weight, mode):
         if mode == "train":
-            self.train_l1.update(pred, target, weight, reduction="sum")
+            self.train_l1.update(pred, target, weight)
             self.train_r2.update(pred, target)
 
         elif mode == "val":
-            self.val_l1.update(pred, target, weight, reduction="sum")
+            self.val_l1.update(pred, target, weight)
             self.val_r2.update(pred, target)
 
         elif mode == "test":
-            self.test_l1.update(pred, target, weight, reduction="sum")
+            self.test_l1.update(pred, target, weight)
             self.test_r2.update(pred, target)
 
     def compute_metrics(self, mode):

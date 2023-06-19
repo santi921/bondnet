@@ -237,3 +237,48 @@ def test_augmentation():
     )
 
     trainer.fit(model, train_loader, train_loader)
+
+
+def test_classifier():
+    precision = 16
+    dataset_loc = "../data/testdata/barrier_100.json"
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    dataset = ReactionNetworkDatasetPrecomputed(
+        grapher=get_grapher([]),
+        file=dataset_loc,
+        target="dG_barrier",
+        classifier=True,
+        classif_categories=3,
+        filter_species=[3, 6],
+        filter_outliers=False,
+        filter_sparse_rxns=False,
+        debug=False,
+        device=device,
+        extra_keys=[],
+        extra_info=[],
+    )
+
+    train_loader = DataLoaderPrecomputedReactionGraphs(
+        dataset, batch_size=128, shuffle=False
+    )
+
+    config = get_defaults()
+    config["in_feats"] = dataset.feature_size
+    config["classifier"] = True
+    model = load_model_lightning(config, device=device, load_dir="./test_checkpoints/")
+
+    trainer = pl.Trainer(
+        max_epochs=3,
+        accelerator="gpu",
+        devices=[0],
+        accumulate_grad_batches=5,
+        enable_progress_bar=True,
+        gradient_clip_val=1.0,
+        enable_checkpointing=True,
+        default_root_dir="./test_checkpoints/",
+        precision=precision,
+        log_every_n_steps=1,
+    )
+
+    trainer.fit(model, train_loader, train_loader)
