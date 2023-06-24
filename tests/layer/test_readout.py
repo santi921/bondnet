@@ -5,7 +5,7 @@ from bondnet.layer.readout import (
     Set2Set,
     Set2SetThenCat,
 )
-from ..utils import make_hetero_CH2O, make_batched_hetero_CH2O
+from bondnet.test_utils import make_hetero_CH2O, make_batched_hetero_CH2O
 
 
 def test_concatenate_mean_max():

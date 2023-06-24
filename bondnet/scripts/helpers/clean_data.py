@@ -3,7 +3,7 @@ import ast, json
 
 
 def main():
-    path_df = "../../dataset/" + "protonated_hydrolysis_reactions_complete.json"
+    path_df = "../../dataset/" + "qm_9_merge_3_final.json"
     hydro_df = pd.read_json(path_df)
 
     product_list, water_list, reac_list = [], [], []
@@ -19,14 +19,21 @@ def main():
             try:
                 reac_graph_mol = json.loads(row["reactant_molecule_graph"])[0]
             except:
-                print(ind)
+                try:
+                    reac_graph_mol = row["reactant_molecule_graph"]
+                except:
+                    print("reactant: " + str(ind))
         try:
             prod_graph_mol = json.loads('"' + row["product_molecule_graph"] + '"')
         except:
             try:
                 prod_graph_mol = json.loads(row["product_molecule_graph"])[0]
             except:
-                print(ind)
+                try:
+                    prod_graph_mol = row["product_molecule_graph"]
+                except:
+                    print("product: " + str(ind))
+
         reactant_pymat_list.append(reac_graph_mol)
         product_pymat_list.append(prod_graph_mol)
 
@@ -93,12 +100,12 @@ def main():
     hydro_df["product_bonds"] = product_bond_list
     hydro_df["composition"] = comp_list
     hydro_df["reactant_composition"] = comp_list
-    hydro_df["combined_reactants_graph"] = combined_product_list
-    hydro_df["combined_products_graph"] = combined_reactant_list
+    hydro_df["combined_reactants_graph"] = combined_reactant_list
+    hydro_df["combined_products_graph"] = combined_product_list
     hydro_df["composition"] = hydro_df["reactant_composition"]
     hydro_df["reactant_bonds_nometal"] = hydro_df["reactant_bonds"]
     hydro_df["product_bonds_nometal"] = hydro_df["product_bonds"]
-    # hydro_df["charge"] = hydro_df.reactant_charge
+    hydro_df["charge"] = hydro_df.reactant_charge
 
     # to overwrite the old file
     hydro_df.to_json(path_df)

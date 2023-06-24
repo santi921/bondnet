@@ -113,6 +113,8 @@ def train_single(
 
     if config["transfer"]:
         with wandb.init(project=project_name + "_transfer") as run_transfer:
+            # log config
+            wandb.config.update(config)
             trainset_transfer, valset_transfer, _ = train_validation_test_split(
                 dataset_transfer, validation=0.15, test=0.0
             )
@@ -185,6 +187,7 @@ def train_single(
         run_transfer.finish()
 
     with wandb.init(project=project_name) as run:
+        wandb.config.update(config)
         log_parameters = LogParameters()
         logger_tb = TensorBoardLogger(log_save_dir, name="test_logs")
         logger_wb = WandbLogger(project=project_name, name="test_logs")

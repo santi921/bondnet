@@ -1,7 +1,7 @@
-from .utils import create_C2H4O1
+from bondnet.test_utils import create_C2H4O1
 
 
-class TestMoleucleWrapper:
+class TestMoleculeWrapper:
     def test_isomorphic_bonds(self):
         ref_identical = [{(0, 2), (0, 3)}, {(1, 2), (3, 4), (2, 5), (3, 6)}, {(2, 3)}]
 

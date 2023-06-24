@@ -2,11 +2,10 @@ import torch
 import numpy as np
 from bondnet.layer.gatedconv import GatedGCNConv, select_not_equal
 from bondnet.layer.utils import UnifySize
-from ..utils import make_hetero_CH2O
+from bondnet.test_utils import make_hetero_CH2O
 
 
 def test_select_not_equal():
-
     x = torch.tensor(
         [
             [[[0, 1, 2], [3, 4, 5]], [[0, 1, 2], [6, 7, 8]]],
@@ -22,7 +21,6 @@ def test_select_not_equal():
 
 
 def test_gated_conv_layer():
-
     node_types = ["atom", "bond", "global"]
 
     g, feats = make_hetero_CH2O(self_loop=True)

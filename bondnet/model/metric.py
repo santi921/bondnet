@@ -129,7 +129,7 @@ class WeightedSmoothL1Loss(nn.Module):
 
 
 class Metrics_WeightedMAE(Metric):
-    def __init__(self):
+    def __init__(self, reduction="sum"):
         super().__init__()
         # to count the correct predictions
         is_differentiable: bool = True
@@ -137,12 +137,17 @@ class Metrics_WeightedMAE(Metric):
         full_state_update: bool = False
         sum_abs_error: Tensor
         total: Tensor
-
+        self.reduction = reduction
         self.add_state("sum_abs_error", default=tensor(0.0), dist_reduce_fx="sum")
         self.add_state("total", default=tensor(0), dist_reduce_fx="sum")
+        if reduction == "mean" or reduction == "sum":
+            self.add_state("sum_weights", default=tensor(0.0), dist_reduce_fx="sum")
 
     def update(
-        self, preds: Tensor, target: Tensor, weight: Tensor, reduction: str = "sum"
+        self,
+        preds: Tensor,
+        target: Tensor,
+        weight: Tensor = torch.Tensor([]),
     ) -> None:
         if preds.size() != target.size() != weight.size():
             warnings.warn(
@@ -152,28 +157,34 @@ class Metrics_WeightedMAE(Metric):
                     input.size(), target.size(), weight.size()
                 )
             )
+        if weight.numel() == 0:
+            weight = torch.ones_like(target)
 
         preds = preds if preds.is_floating_point else preds.float()
         target = target if target.is_floating_point else target.float()
 
-        sum_abs_error = torch.abs(preds - target)
-        sum_abs_error *= weight
-        if reduction != "none":
-            if reduction == "mean":
-                sum_abs_error = torch.sum(sum_abs_error) / torch.sum(weight)
-            else:
-                sum_abs_error = torch.sum(sum_abs_error)
+        abs_error = torch.abs(preds - target)
+        abs_error *= weight
+        if self.reduction != None:
+            sum_abs_error = torch.sum(abs_error)
+            sub_weights_temp = torch.sum(weight)
+            self.sum_weights += sub_weights_temp
+            # else:
+            #    sum_abs_error = torch.sum(sum_abs_error)
 
         n_obs = target.numel()
         self.sum_abs_error += sum_abs_error
         self.total += n_obs
 
     def compute(self):
-        return self.sum_abs_error / self.total
+        if self.reduction == "mean":
+            return self.sum_abs_error / (self.sum_weights)
+        else:
+            return self.sum_abs_error
 
 
 class Metrics_WeightedMSE(Metric):
-    def __init__(self):
+    def __init__(self, reduction="sum"):
         super().__init__()
         # to count the correct predictions
         is_differentiable: bool = True
@@ -181,12 +192,17 @@ class Metrics_WeightedMSE(Metric):
         full_state_update: bool = False
         sum_abs_error: Tensor
         total: Tensor
-
+        self.reduction = reduction
         self.add_state("sum_abs_error", default=tensor(0.0), dist_reduce_fx="sum")
         self.add_state("total", default=tensor(0), dist_reduce_fx="sum")
+        if reduction == "mean" or reduction == "sum":
+            self.add_state("sum_weights", default=tensor(0.0), dist_reduce_fx="sum")
 
     def update(
-        self, preds: Tensor, target: Tensor, weight: Tensor, reduction: str = "sum"
+        self,
+        preds: Tensor,
+        target: Tensor,
+        weight: Tensor = torch.Tensor([]),
     ) -> None:
         if preds.size() != target.size() != weight.size():
             warnings.warn(
@@ -196,28 +212,31 @@ class Metrics_WeightedMSE(Metric):
                     input.size(), target.size(), weight.size()
                 )
             )
+        if weight.numel() == 0:
+            weight = torch.ones_like(target)
 
         preds = preds if preds.is_floating_point else preds.float()
         target = target if target.is_floating_point else target.float()
 
         sum_abs_error = (preds - target) ** 2
         sum_abs_error *= weight
-        if reduction != "none":
-            if reduction == "mean":
-                sum_abs_error = torch.sum(sum_abs_error) / torch.sum(weight)
-            else:
-                sum_abs_error = torch.sum(sum_abs_error)
-
+        if self.reduction != None:
+            sum_abs_error = torch.sum(sum_abs_error)
+            sub_weights_temp = torch.sum(weight)
+            self.sum_weights += sub_weights_temp
         n_obs = target.numel()
         self.sum_abs_error += sum_abs_error
         self.total += n_obs
 
     def compute(self):
-        return self.sum_abs_error / self.total
+        if self.reduction == "mean":
+            return self.sum_abs_error / (self.sum_weights)
+        else:
+            return self.sum_abs_error
 
 
 class Metrics_Accuracy_Weighted(Metric):
-    def __init__(self):
+    def __init__(self, reduction="sum"):
         super().__init__()
         # to count the correct predictions
         is_differentiable: bool = False
@@ -225,16 +244,17 @@ class Metrics_Accuracy_Weighted(Metric):
         full_state_update: bool = False
         correct: Tensor
         total: Tensor
-
-        self.add_state("correct", default=tensor(0), dist_reduce_fx="sum")
-        self.add_state("total", default=tensor(0), dist_reduce_fx="sum")
+        self.reduction = reduction
+        self.add_state("correct", default=tensor(0).float(), dist_reduce_fx="sum")
+        self.add_state("total", default=tensor(0).float(), dist_reduce_fx="sum")
+        # if reduction == "mean" or reduction == "sum":
+        #    self.add_state("sum_weights", default=tensor(0.0), dist_reduce_fx="sum")
 
     def update(
         self,
         preds: Tensor,
         target: Tensor,
         weight: Tensor = torch.Tensor([]),
-        reduction: str = "sum",
     ) -> None:
         if preds.size() != target.size():
             warnings.warn(
@@ -244,24 +264,37 @@ class Metrics_Accuracy_Weighted(Metric):
                     input.size(), target.size()
                 )
             )
-        if weight.numel() == 0:
-            weight = torch.ones_like(target)
 
         preds = preds if preds.is_floating_point else preds.float()
         target = target if target.is_floating_point else target.float()
         preds_one_hot = preds.argmax(dim=1)  # convert to class labels
         target_one_hot = target.argmax(dim=1)  # convert to class labels
-        correct = preds_one_hot.eq(target_one_hot).sum()
-        n_obs = target.numel()
+        correct = preds_one_hot.eq(target_one_hot).int()
 
         if weight.numel() == 0:
-            weight = torch.ones_like(target)
+            weight = torch.ones_like(correct)
+            use_weights = False
+        else:
+            use_weights = True
 
-        self.correct += correct
+        if use_weights:
+            correct = weight * correct.float()
+            n_obs = torch.sum(weight)
+        else:
+            n_obs = target.numel()
+        if self.reduction != None:
+            correct = torch.sum(correct)
+            self.correct += correct
+        else:
+            # concat otherwise
+            self.correct = torch.cat((self.correct, correct))
         self.total += n_obs
 
     def compute(self):
-        return self.correct / self.total
+        if self.reduction == "mean":
+            return self.correct / (self.total)
+        else:
+            return self.correct
 
 
 class Metrics_Cross_Entropy(Metric):
@@ -274,8 +307,10 @@ class Metrics_Cross_Entropy(Metric):
         total: Tensor
         self.reduction = reduction
         self.n_categories = n_categories
-        self.add_state("cross_entropy", default=tensor(0.0), dist_reduce_fx="sum")
-        self.add_state("total", default=tensor(0), dist_reduce_fx="sum")
+        self.add_state(
+            "cross_entropy", default=tensor(0.0).float(), dist_reduce_fx="sum"
+        )
+        self.add_state("total", default=tensor(0).float(), dist_reduce_fx="sum")
 
     def update(
         self,
@@ -297,15 +332,21 @@ class Metrics_Cross_Entropy(Metric):
 
         target_filtered = torch.argmax(target, axis=1)
         cross_entropy = F.cross_entropy(
-            input=preds, target=target_filtered, reduction=self.reduction, weight=weight
+            input=preds,
+            target=target_filtered,
+            reduction="sum",
+            weight=weight,
         )
 
-        n_obs = target.numel()
+        n_obs = target_filtered.numel()
         self.cross_entropy += cross_entropy
         self.total += n_obs
 
     def compute(self):
-        return self.cross_entropy / self.total
+        if self.reduction == "mean":
+            return self.cross_entropy / self.total
+        else:
+            return self.cross_entropy
 
 
 class OrderAccuracy:
