@@ -47,7 +47,8 @@ class MoleculeWrapper:
         self.bond_features = bond_features
         self.original_atom_ind = original_atom_ind
         self.original_bond_mapping = original_bond_mapping
-
+        # print("final bond features:")
+        # print(self.bond_features)
         # set when corresponding method is called
         self._rdkit_mol = None
         self._fragments = None

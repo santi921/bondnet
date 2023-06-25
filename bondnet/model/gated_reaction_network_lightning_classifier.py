@@ -218,18 +218,18 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
         self.loss = self.loss_function()
 
         self.train_f1 = torchmetrics.classification.MulticlassF1Score(
-            num_classes=self.hparams.outdim
+            num_classes=self.hparams.outdim, multidim_average="global", average="macro"
         )
         self.val_f1 = torchmetrics.classification.MulticlassF1Score(
-            num_classes=self.hparams.outdim
+            num_classes=self.hparams.outdim, multidim_average="global", average="macro"
         )
         self.test_f1 = torchmetrics.classification.MulticlassF1Score(
-            num_classes=self.hparams.outdim
+            num_classes=self.hparams.outdim, multidim_average="global", average="macro"
         )
 
-        self.train_acc = Metrics_Accuracy_Weighted()
-        self.val_acc = Metrics_Accuracy_Weighted()
-        self.test_acc = Metrics_Accuracy_Weighted()
+        self.train_acc = Metrics_Accuracy_Weighted(reduction="mean")
+        self.val_acc = Metrics_Accuracy_Weighted(reduction="mean")
+        self.test_acc = Metrics_Accuracy_Weighted(reduction="mean")
 
         self.val_cross = Metrics_Cross_Entropy(
             n_categories=self.hparams.outdim, reduction="sum"
@@ -351,6 +351,7 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
             norm_bond=norm_bond,
             norm_atom=norm_atom,
         )
+        # print("pred shape: ", pred.shape)
 
         if self.hparams.augment and not empty_aug:
             # target_aug_new_shape = (len(target_aug), 1)
