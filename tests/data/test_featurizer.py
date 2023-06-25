@@ -1,145 +1,109 @@
 import numpy as np
+import pandas as pd
 from bondnet.data.featurizer import (
-    AtomFeaturizerFull,
-    BondAsNodeFeaturizerFull,
-    BondAsNodeCompleteFeaturizer,
-    BondAsEdgeBidirectedFeaturizer,
-    BondAsEdgeCompleteFeaturizer,
-    GlobalFeaturizer,
+    BondAsNodeGraphFeaturizerGeneral,
+    AtomFeaturizerGraphGeneral,
+    GlobalFeaturizerGraph,
     DistanceBins,
     RBF,
 )
-from bondnet.test_utils import make_a_mol
+from bondnet.dataset.generalized import create_reaction_network_files_and_valid_rows
+from bondnet.model.training_utils import get_grapher
+from bondnet.data.utils import get_dataset_species
 
 
-def test_atom_featurizer():
-    m = make_a_mol()
-    species = list(set([a.GetSymbol() for a in m.GetAtoms()]))
-    featurizer = AtomFeaturizerFull()
-    feat = featurizer(m, dataset_species=species)
-    size = featurizer.feature_size
-    assert np.array_equal(feat["feat"].shape, (m.GetNumAtoms(), size))
-    assert len(featurizer.feature_name) == size
+def get_data(
+    extra_keys=[],
+    species=["C", "F", "H", "N", "O", "Mg", "Li", "S", "Cl", "P", "O", "Br"],
+):
+    test_df_file = "./testdata/barrier_2.json"
+    df = pd.read_json(test_df_file)
 
+    grapher = get_grapher(features=extra_keys)
+    # store feature name and size
+    (
+        molecules,
+        raw_labels,
+        extra_features,
+    ) = create_reaction_network_files_and_valid_rows(
+        test_df_file,
+        bond_map_filter=False,
+        target="ts",
+        filter_species=[4, 6],
+        classifier=False,
+        debug=False,
+        filter_outliers=False,
+        categories=None,
+        filter_sparse_rxn=False,
+        feature_filter=True,
+        extra_keys=extra_keys,
+        extra_info=[],
+    )
+    # print("extra_features: ", extra_features)
 
-def test_bond_as_node_featurizer():
-    m = make_a_mol()
-    featurizer = BondAsNodeFeaturizerFull(length_featurizer="bin")
-    feat = featurizer(m)
-    size = featurizer.feature_size
-    assert np.array_equal(feat["feat"].shape, (m.GetNumBonds(), size))
-    assert len(featurizer.feature_name) == size
+    count = 0
 
+    # feats_global = glob_feats
+    if extra_keys is not None:
+        extra_features = extra_features
+    else:
+        extra_features = [None] * len(molecules)
 
-def test_bond_as_node_complete_featurizer():
-    m = make_a_mol()
-    natoms = m.GetNumAtoms()
-    nbonds = natoms * (natoms - 1) // 2
+    graphs = []
+    feat_name_list = []
+    for ind, mol in enumerate(molecules):
+        feats = extra_features[count]
 
-    featurizer = BondAsNodeCompleteFeaturizer(length_featurizer="bin")
-    feat = featurizer(m)
-    size = featurizer.feature_size
-    assert np.array_equal(feat["feat"].shape, (nbonds, size))
-    assert len(featurizer.feature_name) == size
-
-
-def test_bond_as_edge_bidirected_featurizer():
-    def assert_featurizer(self_loop):
-        m = make_a_mol()
-        featurizer = BondAsEdgeBidirectedFeaturizer(
-            self_loop=self_loop, length_featurizer="bin"
-        )
-        feat = featurizer(m)
-        size = featurizer.feature_size
-
-        natoms = m.GetNumAtoms()
-        nbonds = m.GetNumBonds()
-        if self_loop:
-            nedges = 2 * nbonds + natoms
+        if mol is not None:
+            g, feat_names = grapher.build_graph_and_featurize(
+                mol,
+                extra_feats_info=feats,
+                dataset_species=species,
+                ret_feat_names=True,
+            )
+            feat_name_list.append(feat_names)
+            # add this for check purpose; some entries in the sdf file may fail
+            g.graph_id = ind
         else:
-            nedges = 2 * nbonds
-
-        assert np.array_equal(feat["feat"].shape, (nedges, size))
-        assert len(featurizer.feature_name) == size
-
-    assert_featurizer(True)
-    assert_featurizer(False)
-
-
-def test_bond_as_edge_complete_featurizer():
-    def assert_featurizer(self_loop):
-        m = make_a_mol()
-        featurizer = BondAsEdgeCompleteFeaturizer(
-            self_loop=self_loop, length_featurizer="bin"
-        )
-        feat = featurizer(m)
-        size = featurizer.feature_size
-
-        natoms = m.GetNumAtoms()
-        if self_loop:
-            nedges = natoms**2
-        else:
-            nedges = natoms * (natoms - 1)
-
-        assert np.array_equal(feat["feat"].shape, (nedges, size))
-        assert len(featurizer.feature_name) == size
-
-    assert_featurizer(True)
-    assert_featurizer(False)
-
-
-def test_mol_weight_featurizer():
-    m = make_a_mol()
-    featurizer = GlobalFeaturizer()
-    feat = featurizer(m)
-    size = featurizer.feature_size
-    assert size == 3
-    assert np.array_equal(feat["feat"].shape, (1, size))
-    assert len(featurizer.feature_name) == size
-
-
-def test_dist_bins():
-    dist_b = DistanceBins(low=2, high=6, num_bins=10)
-    print(dist_b.bins)
-
-    ref = np.zeros(10)
-    ref[1] = 1
-    assert np.array_equal(dist_b(2), ref)
-
-    ref = np.zeros(10)
-    ref[0] = 1
-    assert np.array_equal(dist_b(1.9999), ref)
-
-    ref = np.zeros(10)
-    ref[9] = 1
-    assert np.array_equal(dist_b(6), ref)
-
-    ref = np.zeros(10)
-    ref[8] = 1
-    assert np.array_equal(dist_b(5.9999), ref)
-
-
-def test_rbf():
-    low = 0.0
-    high = 4.0
-    num_centers = 20
-    delta = (high - low) / (num_centers - 1)
-
-    rbf = RBF(low, high, num_centers)
-    d = 1.42
-    val = rbf(d)
-
-    assert val[0] == np.exp(-1 / delta * (d - low) ** 2)
-    assert val[-1] == np.exp(-1 / delta * (d - high) ** 2)
-
-
-def test_bondlen():
-    pass
+            g = None
+        graphs.append(g)
+        count += 1
+    return graphs, feat_name_list
 
 
 def test_extra_atom_featurizer():
-    pass
+    extra_feats = [
+        "esp_nuc",
+        "esp_e",
+        "esp_total",
+    ]
+    graphs, feats = get_data(extra_keys=extra_feats)
+    [print(k, len(v[0])) for k, v in feats[0].items()]
+    for k, v in feats[0].items():
+        if k == "atom":
+            assert len(v[0]) == 23
+        elif k == "bond":
+            assert len(v[0]) == 7
+        elif k == "global":
+            assert len(v[0]) == 7
 
 
 def test_extra_bond_featurizer():
-    pass
+    extra_feats = [
+        "esp_total",  # the atom esp is also added
+        "bond_esp_total",  # this turns on the esp added to graphs
+        "bond_length",  # this is a feature
+        "indices_qtaim",  # this maps features to bonds
+    ]
+
+    graphs, feats = get_data(extra_keys=extra_feats)
+    [print(k, len(v[0])) for k, v in feats[0].items()]
+    for k, v in feats[0].items():
+        if k == "atom":
+            assert len(v[0]) == 21
+        elif k == "bond":
+            assert len(v[0]) == 9
+        elif k == "global":
+            assert len(v[0]) == 7
+
+

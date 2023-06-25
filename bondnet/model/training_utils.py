@@ -328,17 +328,25 @@ def get_grapher(features):
     # find keys with bonds in the name
 
     keys_selected_atoms, keys_selected_bonds = [], []
+
     for key in features:
         if "bond" in key:
-            keys_selected_bonds.append(key)
+            if key == "bond_length":
+                keys_selected_bonds.append(key)
+            else:
+                keys_selected_bonds.append(key[5:])
         else:
             if "indices" not in key:
                 keys_selected_atoms.append(key)
+
+    # print("keys_selected_atoms", keys_selected_atoms)
+    # print("keys_selected_bonds", keys_selected_bonds)
 
     atom_featurizer = AtomFeaturizerGraphGeneral(selected_keys=keys_selected_atoms)
     bond_featurizer = BondAsNodeGraphFeaturizerGeneral(
         selected_keys=keys_selected_bonds
     )
+
     global_featurizer = GlobalFeaturizerGraph(allowed_charges=[-2, -1, 0, 1])
 
     grapher = HeteroCompleteGraphFromMolWrapper(

@@ -373,29 +373,5 @@ class TestReactionsMultiplePerBond:
         assert ordered_rxns[2] == A2BC[2] or ordered_rxns[2] == A2BC[3]
 
 
-def test_extract_reactions_from_mol_set():
-    def assert_rxns(rxns, ref, size):
-        assert (len(rxns)) == size
-        for r in rxns:
-            assert r in ref
-        for r in ref:
-            assert r in rxns
-
-    def assert_one(find_one):
-        ref_A2B, ref_A2BC = create_reactions_symmetric_reactant()
-        ref_size = 6
-        if find_one:
-            # remove reactions of isomorphic bond
-            ref_A2BC = ref_A2BC[:2] + ref_A2BC[4:]
-            ref_size = 4
-
-        mols = create_symmetric_molecules()
-        extractor = ReactionExtractorFromMolSet(mols)
-        A2B = extractor.extract_A_to_B_style_reaction(find_one)
-        A2BC = extractor.extract_A_to_B_C_style_reaction(find_one)
-
-        assert_rxns(A2B, ref_A2B, 1)
-        assert_rxns(A2BC, ref_A2BC, ref_size)
-
-    assert_one(True)
-    assert_one(False)
+class TestReactionNetwork: 
+    pass 

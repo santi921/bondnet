@@ -45,6 +45,11 @@ def parse_extra_electronic_feats_bond(extra_feats, dict_bonds_as_root_target_ind
     ret_dict_temp, ret_dict = {}, {}
     num_bonds = int(len(dict_bonds_as_root_target_inds.keys()))
     extra_feature_keys = list(extra_feats.keys())
+    for extra_feat in extra_feats:
+        assert num_bonds == len(
+            extra_feats[extra_feat]
+        ), "inconsistent number of features for {}".format(extra_feat)
+
     # check that there is a key with indices in the name
     key_with_indices = -1
     for ind, i in enumerate(extra_feature_keys):
@@ -102,6 +107,7 @@ def parse_extra_electronic_feats_bond(extra_feats, dict_bonds_as_root_target_ind
                 ret_dict[k2].append(v2[ind_in_extra])
             else:
                 ret_dict[k2].append(0)
+    # print("parse bond feats")
     # print(ret_dict)
     return ret_dict
 
@@ -188,7 +194,12 @@ def split_and_map(
                 atom_feats = parse_extra_electronic_feats_atom(extra_feats_atom, nodes)
             else:
                 atom_feats = {}
+
             if extra_feats_bond != {}:
+                # print("sg len > 1")
+                # print(extra_feats_bond)
+                # print(dict_bonds_as_root_target_inds)
+
                 bond_feats = parse_extra_electronic_feats_bond(
                     extra_feats_bond, dict_bonds_as_root_target_inds
                 )
@@ -245,15 +256,21 @@ def split_and_map(
             atom_feats = parse_extra_electronic_feats_atom(
                 extra_feats_atom, list(G.nodes())
             )
-
+            # print("atopmic feats")
+            # print(atom_feats)
         else:
             atom_feats = {}
 
         if extra_feats_bond != {}:
+            # print("extra features in bond")
+            # print(extra_feats_bond)
             bond_feats = parse_extra_electronic_feats_bond(
                 extra_feats_bond, dict_bonds_as_root_target_inds
             )
+            # print("bond feats after parsing")
+            # print(bond_feats)
         else:
+            # print("empty bond features!!!!!")
             bond_feats = {}
 
         species_molwrapper = create_wrapper_mol_from_atoms_and_bonds(
@@ -394,11 +411,12 @@ def process_species_graph(
         extra_keys_full = [
             i for i in extra_keys_full if any([j in i for j in extra_keys])
         ]
-        # print("full extra keys", extra_keys_full)
+        print("full extra keys", extra_keys_full)
     # check all pandas columns that start with "extra_feat_atom" or "extra_feat_bond"
     extra_atom_feats_dict_prod, extra_atom_feats_dict_react = {}, {}
     extra_bond_feats_dict_prod, extra_bond_feats_dict_react = {}, {}
-
+    # print("extra key full")
+    # print(extra_keys_full)
     for key in extra_keys_full:
         prod = False
         # check if key starts with "extra_feat_atom"
@@ -438,6 +456,10 @@ def process_species_graph(
                     extra_bond_feats_dict_prod[final_key] = row[key][0]
                 else:
                     extra_bond_feats_dict_react[final_key] = row[key][0]
+    # print("extra atom feats dict prod", extra_atom_feats_dict_prod)
+    # print("extra atom feats dict react", extra_atom_feats_dict_react)
+    # print("extra bond feats dict prod", extra_bond_feats_dict_prod)
+    # print("extra bond feats dict react", extra_bond_feats_dict_react)
 
     if feature_filter:  # filter out reactions without complete features
         filter_rxn = False
@@ -454,7 +476,10 @@ def process_species_graph(
             if verbose:
                 print("filter rxn bc of missing features")
             return []
-
+    # print("extra atom feats dict prod", extra_atom_feats_dict_prod)
+    # print("extra atom feats dict react", extra_atom_feats_dict_react)
+    # print("extra bond feats dict prod", extra_bond_feats_dict_prod)
+    # print("extra bond feats dict react", extra_bond_feats_dict_react)
     products, atoms_products, mapping_products = split_and_map(
         species=species_products_full,
         coords=coords_products_full,
@@ -480,6 +505,10 @@ def process_species_graph(
         extra_feats_atom=extra_atom_feats_dict_react,
         extra_feats_bond=extra_bond_feats_dict_react,
     )
+    # print("reactant bond features")
+    # for i in reactants:
+    #    # print(i.atom_features)
+    #    # print(i.bond_features)
 
     total_atoms = list(
         set(list(np.concatenate([list(i.values()) for i in atoms_reactants]).flat))
@@ -1124,7 +1153,7 @@ def create_reaction_network_files_and_valid_rows(
         all_labels,
         features,
     ) = extractor.create_struct_label_dataset_reaction_based_regression_general(
-        group_mode="charge_0",
+        group_mode="all",
         sdf_mapping=False,
         extra_info=extra_info_tf,
     )
