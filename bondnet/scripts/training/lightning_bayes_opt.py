@@ -121,7 +121,8 @@ class TrainingObject:
         with wandb.init(project=self.wandb_name) as run:
             config = wandb.config
             model = self.make_model(config)
-
+            # log dataset
+            wandb.log({"dataset": self.dataset_loc})
             if config["transfer"]:
                 train_loader_transfer = DataLoaderPrecomputedReactionGraphs(
                     self.trainset_transfer,
