@@ -113,7 +113,7 @@ def parse_extra_electronic_feats_bond(extra_feats, dict_bonds_as_root_target_ind
 
 
 def split_and_map(
-    species,
+    elements,
     bonds,
     coords,
     atom_count,
@@ -129,7 +129,7 @@ def split_and_map(
     also returns mappings
 
     takes:
-        species(list of strs): list of elements
+        elements(list of strs): list of elements
         bonds(list of list/tuples): bond list
         coords(list of list): atomic position
         atom_count(int): number of nodes/atoms in the total reaction
@@ -184,7 +184,7 @@ def split_and_map(
             bond_map.append(dict_bonds)
 
             for site in nodes:
-                species_sg.append(species[site])
+                species_sg.append(elements[site])
                 coords_sg.append(coords[site])
 
             mapping_temp = {i: ind for i, ind in enumerate(nodes)}
@@ -274,7 +274,7 @@ def split_and_map(
             bond_feats = {}
 
         species_molwrapper = create_wrapper_mol_from_atoms_and_bonds(
-            species,
+            elements,
             coords,
             bonds,
             atom_features=atom_feats,
@@ -288,7 +288,7 @@ def split_and_map(
             species_molwrapper.nonmetal_bonds = bonds_nonmetal
 
         # atom map
-        for i in range(len(species)):
+        for i in range(len(elements)):
             dict_temp[i] = i
         mapping = [dict_temp]
         ret_list.append(species_molwrapper)
@@ -411,7 +411,7 @@ def process_species_graph(
         extra_keys_full = [
             i for i in extra_keys_full if any([j in i for j in extra_keys])
         ]
-        print("full extra keys", extra_keys_full)
+        # print("full extra keys", extra_keys_full)
     # check all pandas columns that start with "extra_feat_atom" or "extra_feat_bond"
     extra_atom_feats_dict_prod, extra_atom_feats_dict_react = {}, {}
     extra_bond_feats_dict_prod, extra_bond_feats_dict_react = {}, {}
@@ -481,7 +481,7 @@ def process_species_graph(
     # print("extra bond feats dict prod", extra_bond_feats_dict_prod)
     # print("extra bond feats dict react", extra_bond_feats_dict_react)
     products, atoms_products, mapping_products = split_and_map(
-        species=species_products_full,
+        elements=species_products_full,
         coords=coords_products_full,
         bonds=row[product_key + "_bonds"],
         atom_count=num_nodes,
@@ -494,7 +494,7 @@ def process_species_graph(
     )
 
     reactants, atoms_reactants, mapping_reactants = split_and_map(
-        species=species_reactant,
+        elements=species_reactant,
         coords=coords_reactant,
         bonds=row[reactant_key + "_bonds"],
         atom_count=num_nodes,

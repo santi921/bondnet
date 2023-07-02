@@ -24,7 +24,7 @@ setup(
     install_requires=["numpy", "pyyaml", "scikit-learn", "click"],
     author="Mingjian Wen, Santiago Vargas",
     author_email="wenxx151@gmail.com, santiagovargas921@gmail.com",
-    url="https://github.com/mjwen/bondnet",
+    url="https://github.com/santi921/bondnet",
     description="short description",
     long_description="long description",
     classifiers=[

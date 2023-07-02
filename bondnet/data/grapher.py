@@ -36,11 +36,13 @@ class BaseGraph:
         """
 
         g = self.build_graph(mol)
+
+        # print(feat_names)
         if ret_feat_names:
-            g, feat_names = self.featurize(g, mol, ret_feat_names, **kwargs)
+            g, feat_names = self.featurize(g, mol, True, **kwargs)
             return g, feat_names
         else:
-            g = self.featurize(g, mol, **kwargs)
+            g = self.featurize(g, mol, False, **kwargs)
             return g
 
     @property

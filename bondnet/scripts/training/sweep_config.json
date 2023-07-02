@@ -1,29 +1,42 @@
 {
-  "batch_size": { "values": [64, 128] },
-  "classifier": { "values": [true] },
-  "weight_decay": { "values": [0.00001, 0.0] },
+  "batch_size": { "values": [256] },
+  "classifier": { "values": [false] },
+  "weight_decay": {
+    "max": 0.1,
+    "min": 0.0005,
+    "distribution": "log_uniform_values"
+  },
   "restore": { "values": [false] },
   "on_gpu": { "values": [true] },
-  "embedding_size": { "values": [8, 10, 12, 16, 24, 20] },
+  "embedding_size": {
+    "max": 20,
+    "min": 8
+  },
   "gated_dropout": { "values": [0.0, 0.1, 0.2] },
-  "gated_num_layers": { "values": [1, 2, 3] },
-  "gated_hidden_size": { "values": [64, 128] },
+  "gated_num_layers": { "values": [1, 2, 3, 4] },
+  "gated_hidden_size": { "values": [64, 128, 2256] },
   "gated_activation": { "values": ["ReLU"] },
   "gated_batch_norm": { "values": [true, false] },
   "gated_graph_norm": { "values": [true, false] },
   "gated_num_fc_layers": { "values": [1, 2, 3] },
   "gated_residual": { "values": [true, false] },
-  "num_lstm_iters": { "values": [9, 11, 13, 15] },
+  "num_lstm_iters": { 
+    "max": 15,
+    "min": 2
+  },
   "num_lstm_layers": { "values": [1, 2, 3] },
-  "fc_dropout": { "values": [0.0, 0.1, 0.2] },
+  "fc_dropout": { 
+    "max": 0.3,
+    "min": 0.0
+  },
   "fc_batch_norm": { "values": [true, false] },
-  "fc_num_layers": { "values": [1, 2, 3] },
-  "freeze": { "values": [true] },
-  "max_epochs": { "values": [1000, 1500] },
+  "fc_num_layers": { "values": [1, 2, 3, 4, 5] },
+  "freeze": { "values": [false] },
+  "max_epochs": { "values": [1000, 1500, 200] },
   "max_epochs_transfer": { "values": [500, 1000, 1500] },
   "fc_activation": { "values": ["ReLU"] },
-  "loss": { "values": ["cross_entropy"] },
-  "gated_hidden_size_1": { "values": [256, 128] },
+  "loss": { "values": ["mse", "huber"] },
+  "gated_hidden_size_1": { "values": [512, 256, 128] },
   "gated_hidden_size_shape": { "values": ["flat", "cone"] },
   "fc_hidden_size_1": { "values": [512, 1024] },
   "fc_hidden_size_shape": { "values": ["flat", "cone"] },
@@ -32,10 +45,10 @@
     "min": 0.0005,
     "distribution": "log_uniform_values"
   },
-  "augment": { "values": [true, false] },
+  "augment": { "values": [false] },
   "target_var": { "values": ["ts"] },
   "target_var_transfer": { "values": ["diff"] },
-  "transfer": { "values": [false] },
+  "transfer": { "values": [true] },
   "extra_features": { "values": [["bond_length"]] },
   "extra_info": { "values": ["functional_group_reacted"] },
   "precision": { "values": [16, "bf16"] },
@@ -50,5 +63,5 @@
   "filter_species": { "values": [[3, 6]] },
   "filter_outliers": { "values": [true] },
   "filter_sparse_rxns": { "values": [false] },
-  "feature_filter": { "values": [true] }
+  "feature_filter": { "values": [false] }
 }

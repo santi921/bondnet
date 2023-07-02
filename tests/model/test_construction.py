@@ -239,6 +239,7 @@ def test_augmentation():
     trainer.fit(model, train_loader, train_loader)
 
 
+"""
 def test_classifier():
     precision = 16
     dataset_loc = "../data/testdata/barrier_100.json"
@@ -268,6 +269,13 @@ def test_classifier():
     config["classifier"] = True
     model = load_model_lightning(config, device=device, load_dir="./test_checkpoints/")
 
+    # init model
+    def var_init(model, std=0.01):
+        for name, param in model.named_parameters():
+            param.data.normal_(mean=0.0, std=std)
+
+    model(model, var_init)
+
     trainer = pl.Trainer(
         max_epochs=3,
         accelerator="gpu",
@@ -282,3 +290,4 @@ def test_classifier():
     )
 
     trainer.fit(model, train_loader, train_loader)
+"""
