@@ -124,6 +124,7 @@ class TrainingObject:
             # log dataset
             wandb.log({"dataset": self.dataset_loc})
             if config["transfer"]:
+                # print("transfer learning -- " * 10)
                 train_loader_transfer = DataLoaderPrecomputedReactionGraphs(
                     self.trainset_transfer,
                     batch_size=config["batch_size"],
