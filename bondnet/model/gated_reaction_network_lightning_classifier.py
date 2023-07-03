@@ -334,16 +334,7 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
         empty_aug = True in empty_aug
         norm_atom = label["norm_atom"]
         norm_bond = label["norm_bond"]
-
         stdev = label["scaler_stdev"]
-        if self.device is not None:
-            feats = {k: v.to(self.device) for k, v in feats.items()}
-            target = target.to(self.device)
-            norm_atom = norm_atom.to(self.device)
-            norm_bond = norm_bond.to(self.device)
-            stdev = stdev.to(self.device)
-            if self.hparams.augment and not empty_aug:
-                target_aug = target_aug.to(self.device)
 
         pred = self(
             batched_graph,

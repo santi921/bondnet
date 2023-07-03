@@ -140,7 +140,7 @@ def load_model_lightning(dict_train, device=None, load_dir=None):
             model = GatedGCNReactionNetworkLightning.load_from_checkpoint(
                 checkpoint_path=dict_train["restore_path"]
             )
-            model.to(device)
+            # model.to(device)
             print(":::MODEL LOADED:::")
             return model
 
@@ -238,39 +238,9 @@ def load_model_lightning(dict_train, device=None, load_dir=None):
             augment=dict_train["augment"],
             device=device,
         )
-    model.to(device)
+    # model.to(device)
 
     return model
-
-
-def evaluate_r2(model, nodes, data_loader, device=None):
-    model.eval()
-    with torch.no_grad():
-        for batched_graph, label in data_loader:
-            feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
-            target = label["value"]
-            norm_atom = label["norm_atom"]
-            norm_bond = label["norm_bond"]
-
-            if device is not None:
-                feats = {k: v.to(device) for k, v in feats.items()}
-                target = target.to(device)
-                norm_atom = norm_atom.to(device)
-                norm_bond = norm_bond.to(device)
-            pred = model(
-                batched_graph,
-                feats,
-                label["reaction"],
-                device=device,
-                norm_atom=norm_atom,
-                norm_bond=norm_bond,
-            )
-
-    target_mean = torch.mean(target)
-    ss_tot = torch.sum((target - target_mean) ** 2)
-    ss_res = torch.sum((target - pred) ** 2)
-    r2 = 1 - ss_res / ss_tot
-    return r2
 
 
 def get_grapher(features):

@@ -291,3 +291,6 @@ def test_classifier():
 
     trainer.fit(model, train_loader, train_loader)
 """
+
+
+# TODO: test multi-gpu

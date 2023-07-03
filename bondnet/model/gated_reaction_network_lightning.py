@@ -327,16 +327,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         empty_aug = True in empty_aug
         norm_atom = label["norm_atom"]
         norm_bond = label["norm_bond"]
-
         stdev = label["scaler_stdev"]
-        if self.device is not None:
-            feats = {k: v.to(self.device) for k, v in feats.items()}
-            target = target.to(self.device)
-            norm_atom = norm_atom.to(self.device)
-            norm_bond = norm_bond.to(self.device)
-            stdev = stdev.to(self.device)
-            if self.hparams.augment and not empty_aug:
-                target_aug = target_aug.to(self.device)
 
         pred = self(
             batched_graph,
@@ -376,6 +367,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             on_epoch=True,
             prog_bar=True,
             batch_size=len(label),
+            sync_dist=True,
         )
         self.update_metrics(target, pred, stdev, mode)
 
@@ -466,12 +458,6 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         norm_bond = label["norm_bond"]
 
         stdev = label["scaler_stdev"]
-        if self.device is not None:
-            feats = {k: v.to(self.device) for k, v in feats.items()}
-            target = target.to(self.device)
-            norm_atom = norm_atom.to(self.device)
-            norm_bond = norm_bond.to(self.device)
-            stdev = stdev.to(self.device)
 
         pred = self(
             batched_graph,
@@ -505,24 +491,24 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         Training epoch end
         """
         l1, r2 = self.compute_metrics(mode="train")
-        self.log("train_l1", l1, prog_bar=True)
-        self.log("train_r2", r2, prog_bar=True)
+        self.log("train_l1", l1, prog_bar=True, sync_dist=True)
+        self.log("train_r2", r2, prog_bar=True, sync_dist=True)
 
     def validation_epoch_end(self, outputs):
         """
         Validation epoch end
         """
         l1, r2 = self.compute_metrics(mode="val")
-        self.log("val_l1", l1, prog_bar=True)
-        self.log("val_r2", r2, prog_bar=True)
+        self.log("val_l1", l1, prog_bar=True, sync_dist=True)
+        self.log("val_r2", r2, prog_bar=True, sync_dist=True)
 
     def test_epoch_end(self, outputs):
         """
         Test epoch end
         """
         l1, r2 = self.compute_metrics(mode="test")
-        self.log("test_l1", l1, prog_bar=True)
-        self.log("test_r2", r2, prog_bar=True)
+        self.log("test_l1", l1, prog_bar=True, sync_dist=True)
+        self.log("test_r2", r2, prog_bar=True, sync_dist=True)
 
     def update_metrics(self, pred, target, weight, mode):
         if mode == "train":
