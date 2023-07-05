@@ -137,15 +137,15 @@ def train_single(
             checkpoint_callback_transfer = ModelCheckpoint(
                 dirpath=log_save_dir,
                 filename=run_name
-                + "_model_lightning_transfer_{epoch:02d}-{val_loss:.2f}",
-                monitor="val_loss",
+                + "_model_lightning_transfer_{epoch:02d}-{val_l1:.2f}",
+                monitor="val_l1",
                 mode="min",
                 auto_insert_metric_name=True,
                 save_last=True,
             )
 
             early_stopping_callback_transfer = EarlyStopping(
-                monitor="val_loss",
+                monitor="val_l1",
                 min_delta=0.00,
                 patience=500,
                 verbose=False,
@@ -194,14 +194,14 @@ def train_single(
         lr_monitor = LearningRateMonitor(logging_interval="step")
         checkpoint_callback = ModelCheckpoint(
             dirpath=log_save_dir,
-            filename=run_name + "_model_lightning_{epoch:02d}-{val_loss:.2f}",
-            monitor="val_loss",
+            filename=run_name + "_model_lightning_{epoch:02d}-{val_l1:.2f}",
+            monitor="val_l1",
             mode="min",
             auto_insert_metric_name=True,
             save_last=True,
         )
         early_stopping_callback = EarlyStopping(
-            monitor="val_loss", min_delta=0.00, patience=500, verbose=False, mode="min"
+            monitor="val_l1", min_delta=0.00, patience=500, verbose=False, mode="min"
         )
 
         trainer = pl.Trainer(

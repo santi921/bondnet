@@ -142,15 +142,15 @@ class TrainingObject:
 
                 checkpoint_callback_transfer = ModelCheckpoint(
                     dirpath=log_save_dir,
-                    filename="model_lightning_transfer_{epoch:02d}-{val_loss:.2f}",
-                    monitor="val_loss",
+                    filename="model_lightning_transfer_{epoch:02d}-{val_l1:.2f}",
+                    monitor="val_l1",
                     mode="min",
                     auto_insert_metric_name=True,
                     save_last=True,
                 )
 
                 early_stopping_callback_transfer = EarlyStopping(
-                    monitor="val_loss",
+                    monitor="val_l1",
                     min_delta=0.00,
                     patience=500,
                     verbose=False,
@@ -195,8 +195,8 @@ class TrainingObject:
 
             checkpoint_callback = ModelCheckpoint(
                 dirpath=self.log_save_dir,
-                filename="model_lightning_{epoch:02d}-{val_loss:.2f}",
-                monitor="val_loss",
+                filename="model_lightning_{epoch:02d}-{val_l1:.2f}",
+                monitor="val_l1",
                 mode="min",
                 auto_insert_metric_name=True,
                 save_last=True,
@@ -207,7 +207,7 @@ class TrainingObject:
             )
 
             early_stopping_callback = EarlyStopping(
-                monitor="val_loss",
+                monitor="val_l1",
                 min_delta=0.00,
                 patience=500,
                 verbose=False,
@@ -269,7 +269,7 @@ if __name__ == "__main__":
 
     if method == "bayes":
         sweep_config["method"] = method
-        sweep_config["metric"] = {"name": "val_loss", "goal": "minimize"}
+        sweep_config["metric"] = {"name": "val_l1", "goal": "minimize"}
 
     # wandb loop
     sweep_id = wandb.sweep(sweep_config, project=wandb_project_name)

@@ -142,15 +142,15 @@ if __name__ == "__main__":
 
             checkpoint_callback_transfer = ModelCheckpoint(
                 dirpath=log_save_dir,
-                filename="model_lightning_transfer_{epoch:02d}-{val_loss:.2f}",
-                monitor="val_loss",
+                filename="model_lightning_transfer_{epoch:02d}-{val_l1:.2f}",
+                monitor="val_l1",
                 mode="min",
                 auto_insert_metric_name=True,
                 save_last=True,
             )
 
             early_stopping_callback_transfer = EarlyStopping(
-                monitor="val_loss",
+                monitor="val_l1",
                 min_delta=0.00,
                 patience=500,
                 verbose=False,
@@ -202,15 +202,15 @@ if __name__ == "__main__":
 
         checkpoint_callback = ModelCheckpoint(
             dirpath=log_save_dir,
-            filename="model_lightning_{epoch:02d}-{val_loss:.2f}",
-            monitor="val_loss",  # TODO
+            filename="model_lightning_{epoch:02d}-{val_l1:.2f}",
+            monitor="val_l1",  # TODO
             mode="min",
             auto_insert_metric_name=True,
             save_last=True,
         )
 
         early_stopping_callback = EarlyStopping(
-            monitor="val_loss", min_delta=0.00, patience=500, verbose=False, mode="min"
+            monitor="val_l1", min_delta=0.00, patience=500, verbose=False, mode="min"
         )
 
         trainer = pl.Trainer(
