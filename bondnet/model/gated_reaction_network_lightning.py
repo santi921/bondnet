@@ -19,6 +19,7 @@ from bondnet.model.metric import (
     WeightedSmoothL1Loss,
     Metrics_WeightedMAE,
 )
+
 from bondnet.data.utils import (
     _split_batched_output,
     mol_graph_to_rxn_graph,
@@ -211,23 +212,29 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
 
         self.loss = self.loss_function()
 
-        self.train_l1 = Metrics_WeightedMAE(reduction="mean")
+        # self.train_l1 = Metrics_WeightedMAE(reduction="mean")
         # self.train_mse = Metrics_WeightedMSE()
         self.train_r2 = torchmetrics.R2Score(
             num_outputs=1, multioutput="variance_weighted"
         )
+        self.train_torch_l1 = torchmetrics.MeanAbsoluteError()
+        self.train_torch_mse = torchmetrics.MeanSquaredError(square=False)
 
-        self.val_l1 = Metrics_WeightedMAE(reduction="mean")
+        # self.val_l1 = Metrics_WeightedMAE(reduction="mean")
         # self.val_mse = Metrics_WeightedMSE()
         self.val_r2 = torchmetrics.R2Score(
             num_outputs=1, multioutput="variance_weighted"
         )
+        self.val_torch_l1 = torchmetrics.MeanAbsoluteError()
+        self.val_torch_mse = torchmetrics.MeanSquaredError(square=False)
 
-        self.test_l1 = Metrics_WeightedMAE(reduction="mean")
+        # self.test_l1 = Metrics_WeightedMAE(reduction="mean")
         # self.test_mse = Metrics_WeightedMSE()
         self.test_r2 = torchmetrics.R2Score(
             num_outputs=1, multioutput="variance_weighted"
         )
+        self.test_torch_l1 = torchmetrics.MeanAbsoluteError()
+        self.test_torch_mse = torchmetrics.MeanSquaredError(square=False)
 
     def forward(
         self,
@@ -367,7 +374,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             on_epoch=True,
             prog_bar=True,
             batch_size=len(label),
-            sync_dist=True,
+            sync_dist=False,
         )
         self.update_metrics(target, pred, stdev, mode)
 
@@ -379,11 +386,13 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         """
 
         if self.hparams.loss_fn == "mse":
-            loss_fn = WeightedMSELoss(reduction="mean")
+            # loss_fn = WeightedMSELoss(reduction="mean")
+            loss_fn = torchmetrics.MeanSquaredError()
         elif self.hparams.loss_fn == "huber":
             loss_fn = WeightedSmoothL1Loss(reduction="mean")
         elif self.hparams.loss_fn == "mae":
-            loss_fn = WeightedL1Loss(reduction="mean")
+            # loss_fn = WeightedL1Loss(reduction="mean")
+            loss_fn = torchmetrics.MeanAbsoluteError()
         else:
             loss_fn = WeightedMSELoss(reduction="mean")
 
@@ -394,7 +403,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         Compute loss
         """
 
-        return self.loss(target=target, input=pred, weight=weight)
+        return self.loss(target * weight, pred * weight)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
@@ -490,56 +499,79 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         """
         Training epoch end
         """
-        l1, r2 = self.compute_metrics(mode="train")
-        self.log("train_l1", l1, prog_bar=True, sync_dist=True)
+        r2, torch_l1, torch_mse = self.compute_metrics(mode="train")
+        # self.log("train_l1", l1, prog_bar=True, sync_dist=True)
         self.log("train_r2", r2, prog_bar=True, sync_dist=True)
+        self.log("train_l1", torch_l1, prog_bar=True, sync_dist=True)
+        self.log("train_mse", torch_mse, prog_bar=True, sync_dist=True)
 
     def validation_epoch_end(self, outputs):
         """
         Validation epoch end
         """
-        l1, r2 = self.compute_metrics(mode="val")
-        self.log("val_l1", l1, prog_bar=True, sync_dist=True)
+        r2, torch_l1, torch_mse = self.compute_metrics(mode="val")
+        # self.log("val_l1", l1, prog_bar=True, sync_dist=True)
         self.log("val_r2", r2, prog_bar=True, sync_dist=True)
+        self.log("val_l1", torch_l1, prog_bar=True, sync_dist=True)
+        self.log("val_mse", torch_mse, prog_bar=True, sync_dist=True)
 
     def test_epoch_end(self, outputs):
         """
         Test epoch end
         """
-        l1, r2 = self.compute_metrics(mode="test")
-        self.log("test_l1", l1, prog_bar=True, sync_dist=True)
+        r2, torch_l1, torch_mse = self.compute_metrics(mode="test")
+        # self.log("test_l1", l1, prog_bar=True, sync_dist=True)
         self.log("test_r2", r2, prog_bar=True, sync_dist=True)
+        self.log("test_l1", torch_l1, prog_bar=True, sync_dist=True)
+        self.log("test_mse", torch_mse, prog_bar=True, sync_dist=True)
 
     def update_metrics(self, pred, target, weight, mode):
         if mode == "train":
-            self.train_l1.update(pred, target, weight)
-            self.train_r2.update(pred, target)
-
+            # self.train_l1.update(pred, target, weight)
+            self.train_r2.update(pred * weight, target * weight)
+            self.train_torch_l1.update(pred * weight, target * weight)
+            self.train_torch_mse.update(pred * weight, target * weight)
         elif mode == "val":
-            self.val_l1.update(pred, target, weight)
-            self.val_r2.update(pred, target)
+            # self.val_l1.update(pred, target, weight)
+            self.val_r2.update(pred * weight, target * weight)
+            self.val_torch_l1.update(pred * weight, target * weight)
+            self.val_torch_mse.update(pred * weight, target * weight)
 
         elif mode == "test":
-            self.test_l1.update(pred, target, weight)
-            self.test_r2.update(pred, target)
+            # self.test_l1.update(pred, target, weight)
+            self.test_r2.update(pred * weight, target * weight)
+            self.test_torch_l1.update(pred * weight, target * weight)
+            self.test_torch_mse.update(pred * weight, target * weight)
 
     def compute_metrics(self, mode):
         if mode == "train":
-            l1 = self.train_l1.compute()
+            # l1 = self.train_l1.compute()
             r2 = self.train_r2.compute()
+            torch_l1 = self.train_torch_l1.compute()
+            torch_mse = self.train_torch_mse.compute()
             self.train_r2.reset()
-            self.train_l1.reset()
+            # self.train_l1.reset()
+            self.train_torch_l1.reset()
+            self.train_torch_mse.reset()
 
         elif mode == "val":
-            l1 = self.val_l1.compute()
+            # l1 = self.val_l1.compute()
             r2 = self.val_r2.compute()
+            torch_l1 = self.val_torch_l1.compute()
+            torch_mse = self.val_torch_mse.compute()
             self.val_r2.reset()
-            self.val_l1.reset()
+            # self.val_l1.reset()
+            self.val_torch_l1.reset()
+            self.val_torch_mse.reset()
 
         elif mode == "test":
-            l1 = self.test_l1.compute()
+            # l1 = self.test_l1.compute()
             r2 = self.test_r2.compute()
+            torch_l1 = self.test_torch_l1.compute()
+            torch_mse = self.test_torch_mse.compute()
             self.test_r2.reset()
-            self.test_l1.reset()
+            # self.test_l1.reset()
+            self.test_torch_l1.reset()
+            self.test_torch_mse.reset()
 
-        return l1, r2
+        return r2, torch_l1, torch_mse

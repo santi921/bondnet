@@ -139,9 +139,9 @@ class Metrics_WeightedMAE(Metric):
         total: Tensor
         self.reduction = reduction
         self.add_state("sum_abs_error", default=tensor(0.0), dist_reduce_fx="sum")
-        self.add_state("total", default=tensor(0), dist_reduce_fx="sum")
-        if reduction == "mean" or reduction == "sum":
-            self.add_state("sum_weights", default=tensor(0.0), dist_reduce_fx="sum")
+        # self.add_state("total", default=tensor(0), dist_reduce_fx="sum")
+        # if reduction == "mean" or reduction == "sum":
+        #    self.add_state("sum_weights", default=tensor(0.0), dist_reduce_fx="sum")
 
     def update(
         self,
@@ -164,23 +164,19 @@ class Metrics_WeightedMAE(Metric):
         target = target if target.is_floating_point else target.float()
 
         abs_error = torch.abs(preds - target)
-        abs_error *= weight
-        if self.reduction != None:
-            sum_abs_error = torch.sum(abs_error)
-            sub_weights_temp = torch.sum(weight)
-            self.sum_weights += sub_weights_temp
-            # else:
-            #    sum_abs_error = torch.sum(sum_abs_error)
+        if weight is not None:
+            abs_error *= weight
+        sum_abs_error = torch.sum(abs_error)
 
-        n_obs = target.numel()
-        self.sum_abs_error += sum_abs_error
-        self.total += n_obs
+        if self.reduction == "mean":
+            sum_abs_error = sum_abs_error / torch.sum(weight)
+        else:
+            sum_abs_error = sum_abs_error
+        self.sum_abs_error = self.sum_abs_error + sum_abs_error
+        # self.total = self.total + n_obs
 
     def compute(self):
-        if self.reduction == "mean":
-            return self.sum_abs_error / (self.sum_weights)
-        else:
-            return self.sum_abs_error
+        return self.sum_abs_error
 
 
 class Metrics_WeightedMSE(Metric):
@@ -220,19 +216,17 @@ class Metrics_WeightedMSE(Metric):
 
         sum_abs_error = (preds - target) ** 2
         sum_abs_error *= weight
-        if self.reduction != None:
-            sum_abs_error = torch.sum(sum_abs_error)
-            sub_weights_temp = torch.sum(weight)
-            self.sum_weights += sub_weights_temp
-        n_obs = target.numel()
+        # if self.reduction != None:
+        #    sum_abs_error = torch.sum(sum_abs_error)
+        #    sub_weights_temp = torch.sum(weight)
+        #    self.sum_weights += sub_weights_temp
+
+        if self.reduction == "mean":
+            sum_abs_error = sum_abs_error / torch.sum(weight)
         self.sum_abs_error += sum_abs_error
-        self.total += n_obs
 
     def compute(self):
-        if self.reduction == "mean":
-            return self.sum_abs_error / (self.sum_weights)
-        else:
-            return self.sum_abs_error
+        return self.sum_abs_error
 
 
 class Metrics_Accuracy_Weighted(Metric):
