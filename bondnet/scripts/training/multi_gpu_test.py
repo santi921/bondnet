@@ -196,14 +196,16 @@ def main():
                 checkpoint_callback,
             ],
             enable_checkpointing=True,
-            # strategy="deepspeed",  # this works    
+            # strategy="deepspeed",  # this works
             # strategy="horovod",  # this works
             strategy="ddp",  # this works
             default_root_dir=log_save_dir,
             logger=[logger_tb, logger_wb],
             precision=precision,
         )
-
+        # print world and rank
+        print(f"world size: {trainer.world_size}")
+        print(f"global rank: {trainer.global_rank}")
         trainer.fit(model, train_loader, val_loader)
         trainer.test(model, test_loader)
 
