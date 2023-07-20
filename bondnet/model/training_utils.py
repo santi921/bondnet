@@ -265,6 +265,9 @@ def get_grapher(features):
         #"partial_spins2" # these might need to be imputed
     """
     """
+    keys_selected_global = ["functional_group_reacted", "charge"]??
+    """
+    """
 
         print("using general atom featurizer w/ electronic info ")
 
@@ -297,7 +300,7 @@ def get_grapher(features):
 
     # find keys with bonds in the name
 
-    keys_selected_atoms, keys_selected_bonds = [], []
+    keys_selected_atoms, keys_selected_bonds, keys_selected_global = [], [], []
 
     for key in features:
         if "bond" in key:
@@ -307,7 +310,17 @@ def get_grapher(features):
                 keys_selected_bonds.append(key[5:])
         else:
             if "indices" not in key:
-                keys_selected_atoms.append(key)
+                if key == "functional_group_reacted":
+                    keys_selected_global.append(key)
+                # elif key == "charge":
+                #     """
+                #     This is global charge of the reactant I presume?
+                #     I need some clarity on this since there is a separate charge we are getting
+                #     from the pymatgen molecules of reactants and products
+                #     """
+                #     keys_selected_global.append(key)              
+                else:
+                    keys_selected_atoms.append(key)
 
     # print("keys_selected_atoms", keys_selected_atoms)
     # print("keys_selected_bonds", keys_selected_bonds)
@@ -317,7 +330,13 @@ def get_grapher(features):
         selected_keys=keys_selected_bonds
     )
 
-    global_featurizer = GlobalFeaturizerGraph(allowed_charges=[-2, -1, 0, 1])
+    if len(keys_selected_global > 0):
+        if('functional_group_reacted' in keys_selected_global):
+            #hard coded for now. Ideally need to implement get_hydro_data_functional_groups
+            fg_list = ['PDK','amide','carbamate','carboxylic acid ester','cyclic carbonate','epoxide','imide','lactam','lactone','nitrile','urea']
+            global_featurizer = GlobalFeaturizerGraph(allowed_charges=[-2, -1, 0, 1], fg_info=fg_list)
+    else:
+        global_featurizer = GlobalFeaturizerGraph(allowed_charges=[-2, -1, 0, 1])
 
     grapher = HeteroCompleteGraphFromMolWrapper(
         atom_featurizer, bond_featurizer, global_featurizer

@@ -51,6 +51,19 @@ def get_dataset_species_from_json(json_file):
 
     return sorted(system_species)
 
+def get_hydro_data_functional_groups(json_file):
+    """
+    Get all the unique functional groups of the hydrolysis reactions compiled in the dataset
+
+    Args:
+        json_file: hydrolysis dataset containing the reactions
+
+    Returns:
+        list: a sequence of all the unique reacted functional groups in the dataset
+    """
+    df = pd.read_json(json_file)
+    return sorted(list(df['functional_group_reacted'].unique()))
+
 
 def one_hot_encoding(x, allowable_set):
     """One-hot encoding.
