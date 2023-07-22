@@ -209,6 +209,8 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
 
         # final output layer, mapping feature to the corresponding shape
         self.fc_layers.append(nn.Linear(in_size, outdim))
+        # create stdev with the same number of output
+        self.stdev = None
 
         self.loss = self.loss_function()
 
@@ -335,6 +337,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         norm_atom = label["norm_atom"]
         norm_bond = label["norm_bond"]
         stdev = label["scaler_stdev"]
+        mean = label["scaler_mean"]
 
         pred = self(
             batched_graph,
@@ -376,7 +379,16 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             batch_size=len(label),
             sync_dist=False,
         )
-        self.update_metrics(target, pred, stdev, mode)
+        self.update_metrics(target, pred, mode)
+        if self.stdev is None:
+            self.stdev = stdev[0]
+        # else:
+        #    self.stdev = torch.cat((self.stdev, stdev), axis=0)
+
+        # if self.mean is None:
+        #    self.mean = mean[0]
+        # else:
+        #    self.mean = torch.cat((self.mean, mean), axis=0)
 
         return all_loss
 
@@ -403,7 +415,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         Compute loss
         """
 
-        return self.loss(target * weight, pred * weight)
+        return self.loss(target, pred)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
@@ -525,32 +537,27 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         self.log("test_l1", torch_l1, prog_bar=True, sync_dist=True)
         self.log("test_mse", torch_mse, prog_bar=True, sync_dist=True)
 
-    def update_metrics(self, pred, target, weight, mode):
+    def update_metrics(self, pred, target, mode):
         if mode == "train":
-            # self.train_l1.update(pred, target, weight)
-            self.train_r2.update(pred * weight, target * weight)
-            self.train_torch_l1.update(pred * weight, target * weight)
-            self.train_torch_mse.update(pred * weight, target * weight)
+            self.train_r2.update(pred, target)
+            self.train_torch_l1.update(pred, target)
+            self.train_torch_mse.update(pred, target)
         elif mode == "val":
-            # self.val_l1.update(pred, target, weight)
-            self.val_r2.update(pred * weight, target * weight)
-            self.val_torch_l1.update(pred * weight, target * weight)
-            self.val_torch_mse.update(pred * weight, target * weight)
+            self.val_r2.update(pred, target)
+            self.val_torch_l1.update(pred, target)
+            self.val_torch_mse.update(pred, target)
 
         elif mode == "test":
-            # self.test_l1.update(pred, target, weight)
-            self.test_r2.update(pred * weight, target * weight)
-            self.test_torch_l1.update(pred * weight, target * weight)
-            self.test_torch_mse.update(pred * weight, target * weight)
+            self.test_r2.update(pred, target)
+            self.test_torch_l1.update(pred, target)
+            self.test_torch_mse.update(pred, target)
 
     def compute_metrics(self, mode):
         if mode == "train":
-            # l1 = self.train_l1.compute()
             r2 = self.train_r2.compute()
             torch_l1 = self.train_torch_l1.compute()
             torch_mse = self.train_torch_mse.compute()
             self.train_r2.reset()
-            # self.train_l1.reset()
             self.train_torch_l1.reset()
             self.train_torch_mse.reset()
 
@@ -573,5 +580,13 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             # self.test_l1.reset()
             self.test_torch_l1.reset()
             self.test_torch_mse.reset()
+
+        if self.stdev is not None:
+            torch_l1 = torch_l1 * self.stdev
+            torch_mse = torch_mse * self.stdev * self.stdev
+
+        # if self.mean is not None:
+        #    #torch_l1 = torch_l1 + self.mean
+        #    # torch_mse = torch_mse + self.mean
 
         return r2, torch_l1, torch_mse

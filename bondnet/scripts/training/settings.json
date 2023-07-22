@@ -1,5 +1,5 @@
 {
-  "augment": true,
+  "augment": false,
   "batch_size": 128,
   "debug": true,
   "classifier": false,
@@ -38,5 +38,5 @@
   "max_epochs": 100,
   "max_epochs_transfer": 100,
   "transfer": false,
-  "filter_outliers": true
+  "filter_outliers": false
 }
