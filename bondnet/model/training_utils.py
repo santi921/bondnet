@@ -265,7 +265,6 @@ def get_grapher(features):
         #"partial_spins2" # these might need to be imputed
     """
     """
-    keys_selected_global = ["functional_group_reacted", "charge"]??
     """
     """
 
@@ -312,13 +311,8 @@ def get_grapher(features):
             if "indices" not in key:
                 if key == "functional_group_reacted":
                     keys_selected_global.append(key)
-                # elif key == "charge":
-                #     """
-                #     This is global charge of the reactant I presume?
-                #     I need some clarity on this since there is a separate charge we are getting
-                #     from the pymatgen molecules of reactants and products
-                #     """
-                #     keys_selected_global.append(key)              
+                elif key == "charge":
+                    keys_selected_global.append(key)
                 else:
                     keys_selected_atoms.append(key)
 
@@ -330,14 +324,29 @@ def get_grapher(features):
         selected_keys=keys_selected_bonds
     )
 
-    if len(keys_selected_global > 0):
-        if('functional_group_reacted' in keys_selected_global):
-            #hard coded for now. Ideally need to implement get_hydro_data_functional_groups
-            fg_list = ['PDK','amide','carbamate','carboxylic acid ester','cyclic carbonate','epoxide','imide','lactam','lactone','nitrile','urea']
-            global_featurizer = GlobalFeaturizerGraph(allowed_charges=[-2, -1, 0, 1], fg_info=fg_list)
+    if len(keys_selected_global) > 0:
+        if "functional_group_reacted" in keys_selected_global:
+            # hard coded for now. Ideally need to implement get_hydro_data_functional_groups
+            # this is tough just because not hard-encoding this make it less portable
+            fg_list = [
+                "PDK",
+                "amide",
+                "carbamate",
+                "carboxylic acid ester",
+                "cyclic carbonate",
+                "epoxide",
+                "imide",
+                "lactam",
+                "lactone",
+                "nitrile",
+                "urea",
+            ]
     else:
-        global_featurizer = GlobalFeaturizerGraph(allowed_charges=[-2, -1, 0, 1])
+        fg_list = None
 
+    global_featurizer = GlobalFeaturizerGraph(
+        allowed_charges=[-2, -1, 0, 1], functional_g_basis=fg_list
+    )
     grapher = HeteroCompleteGraphFromMolWrapper(
         atom_featurizer, bond_featurizer, global_featurizer
     )

@@ -36,6 +36,7 @@ class MoleculeWrapper:
         non_metal_bonds=None,
         atom_features={},
         bond_features={},
+        global_features={},
         original_atom_ind=None,
         original_bond_mapping=None,
     ):
@@ -47,6 +48,7 @@ class MoleculeWrapper:
         self.id = id
         self.atom_features = atom_features
         self.bond_features = bond_features
+        self.global_features = global_features
         self.original_atom_ind = original_atom_ind
         self.original_bond_mapping = original_bond_mapping
         # print("final bond features:")
@@ -536,6 +538,7 @@ def create_wrapper_mol_from_atoms_and_bonds(
     original_bond_ind=None,
     atom_features={},
     bond_features={},
+    global_features={},
 ):
     """
     Create a :class:`MoleculeWrapper` from atoms and bonds.
@@ -558,13 +561,14 @@ def create_wrapper_mol_from_atoms_and_bonds(
     mol_graph = MoleculeGraph.with_edges(pymatgen_mol, bonds)
     mol_wrapper = MoleculeWrapper(
         mol_graph,
-        free_energy,
-        functional_group,
-        identifier,
+        free_energy=free_energy,
+        functional_group=functional_group,
+        id=identifier,
         original_atom_ind=original_atom_ind,
         original_bond_mapping=original_bond_ind,
         atom_features=atom_features,
         bond_features=bond_features,
+        global_features=global_features,
     )
 
     return mol_wrapper

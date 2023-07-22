@@ -124,6 +124,7 @@ def split_and_map(
     functional_group=None,
     extra_feats_atom={},
     extra_feats_bond={},
+    extra_feats_global={},
 ):
     """
     takes a list of nodes+bonds+reaction bonds and computes subgraphs/species
@@ -207,15 +208,15 @@ def split_and_map(
                 )
             else:
                 bond_feats = {}
-            
 
             species_molwrapper = create_wrapper_mol_from_atoms_and_bonds(
-                species_sg,
-                coords_sg,
-                bond_reindex_list,
-                functional_group,
+                species=species_sg,
+                coords=coords_sg,
+                bonds=bond_reindex_list,
+                functional_group=functional_group,
                 atom_features=atom_feats,
                 bond_features=bond_feats,
+                global_features=extra_feats_global,
                 identifier=id + "_" + str(ind_sg),
             )
 
@@ -278,12 +279,13 @@ def split_and_map(
             bond_feats = {}
 
         species_molwrapper = create_wrapper_mol_from_atoms_and_bonds(
-            elements,
-            coords,
-            bonds,
-            functional_group,
+            species=elements,
+            coords=coords,
+            bonds=bonds,
+            functional_group=functional_group,
             atom_features=atom_feats,
             bond_features=bond_feats,
+            global_features=extra_feats_global,
             identifier=id,
         )
 
@@ -371,8 +373,12 @@ def process_species_graph(
     bonds_reactant = row[reactant_key + "_bonds"]
     bonds_products = row[product_key + "_bonds"]
 
-    reactant_functional_group = row["functional_group_reacted"]
+    if "functional_group_reacted" in row.index:
+        reactant_functional_group = row["functional_group_reacted"]
+    else:
+        reactant_functional_group = None
     product_functional_group = None
+
     try:
         pymat_graph_reactants = row["combined_" + reactant_key + "s_graph"]["molecule"][
             "sites"
@@ -423,6 +429,8 @@ def process_species_graph(
     # check all pandas columns that start with "extra_feat_atom" or "extra_feat_bond"
     extra_atom_feats_dict_prod, extra_atom_feats_dict_react = {}, {}
     extra_bond_feats_dict_prod, extra_bond_feats_dict_react = {}, {}
+    extra_global_feats_dict_prod, extra_global_feats_dict_react = {}, {}
+
     # print("extra key full")
     # print(extra_keys_full)
     for key in extra_keys_full:
@@ -464,6 +472,30 @@ def process_species_graph(
                     extra_bond_feats_dict_prod[final_key] = row[key][0]
                 else:
                     extra_bond_feats_dict_react[final_key] = row[key][0]
+
+        if key.startswith("extra_feat_global"):
+            prod = False
+            # check if next underscore is product or reactant
+            # add key to dict if reactant equivalent is also present
+            if key.split("_")[3] == "product":
+                opposite_key = key.replace("product", "reactant")
+                prod = True
+
+            if key.split("_")[3] == "reactant":
+                opposite_key = key.replace("reactant", "product")
+                prod = False
+
+            if (
+                opposite_key in extra_keys_full
+            ):  # only appends if both reactant and product are present
+                # remove the "extra_feat_bond" from the key
+                final_key = key.replace("extra_feat_global_", "")
+
+                if prod:
+                    extra_global_feats_dict_prod[final_key] = row[key]
+                else:
+                    extra_global_feats_dict_react[final_key] = row[key]
+
     # print("extra atom feats dict prod", extra_atom_feats_dict_prod)
     # print("extra atom feats dict react", extra_atom_feats_dict_react)
     # print("extra bond feats dict prod", extra_bond_feats_dict_prod)
@@ -500,6 +532,7 @@ def process_species_graph(
         functional_group=product_functional_group,
         extra_feats_atom=extra_atom_feats_dict_prod,
         extra_feats_bond=extra_bond_feats_dict_prod,
+        extra_feats_global=extra_global_feats_dict_prod,
     )
 
     reactants, atoms_reactants, mapping_reactants = split_and_map(
@@ -514,6 +547,7 @@ def process_species_graph(
         functional_group=reactant_functional_group,
         extra_feats_atom=extra_atom_feats_dict_react,
         extra_feats_bond=extra_bond_feats_dict_react,
+        extra_feats_global=extra_global_feats_dict_react,
     )
     # print("reactant bond features")
     # for i in reactants:
