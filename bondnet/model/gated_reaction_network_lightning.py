@@ -371,18 +371,11 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             on_epoch=True,
             prog_bar=True,
             batch_size=len(label),
-            sync_dist=False,
+            sync_dist=True,
         )
         self.update_metrics(target, pred, mode)
         if self.stdev is None:
             self.stdev = stdev[0]
-        # else:
-        #    self.stdev = torch.cat((self.stdev, stdev), axis=0)
-
-        # if self.mean is None:
-        #    self.mean = mean[0]
-        # else:
-        #    self.mean = torch.cat((self.mean, mean), axis=0)
 
         return all_loss
 

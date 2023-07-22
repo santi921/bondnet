@@ -1,4 +1,3 @@
-
 try:
     from rdkit.Chem import rdEHTTools  # requires RDKit 2019.9.1 or later
 except ImportError:
@@ -24,8 +23,7 @@ import numpy as np
 from typing import List, Any
 from collections import defaultdict
 import networkx as nx
-
-
+import ast
 
 
 global __ATOM_LIST__
@@ -378,11 +376,11 @@ def warn_stdout(message, category, filename, lineno, file=None, line=None):
 def parse_settings(file="settings.txt"):
     """
     Processes a text file into a dictionary for training
-    
+
     Args:
-        file (file): file with settings 
-    Returns: 
-        dict_ret(dictionary): dictionary with settings 
+        file (file): file with settings
+    Returns:
+        dict_ret(dictionary): dictionary with settings
     """
     # some default values that get written over if in the file
     test = False
@@ -409,14 +407,14 @@ def parse_settings(file="settings.txt"):
     categories = 5
     category_weights = [1.0, 2.0, 1.0, 1.5, 2.0]
     weight_decay = 0.0001
-    
+
     early_stop = True
     scheduler = False
     filter_outliers = True
     filter_sparse_rxns = False
     transfer_epochs = 100
     transfer = True
-    loss = 'mse'
+    loss = "mse"
 
     fc_hidden_size = [128, 64]
     fc_layers = -1
@@ -443,7 +441,7 @@ def parse_settings(file="settings.txt"):
 
         for i in lines:
             if len(i.split()) > 1:
-                if i.split()[0] == "dataset_loc": 
+                if i.split()[0] == "dataset_loc":
                     dataset_loc = i.split()[1]
                 if i.split()[0] == "restore":
                     restore = "True" == i.split()[1]
@@ -451,10 +449,10 @@ def parse_settings(file="settings.txt"):
                     on_gpu = "True" == i.split()[1]
                 if i.split()[0] == "test":
                     test = "True" == i.split()[1]
-                if i.split()[0] == 'filter_species':
+                if i.split()[0] == "filter_species":
                     filter_species = [int(j) for j in i.split()[1:]]
-                if i.split()[0] == 'freeze':
-                    freeze = "True" == i.split()[1]                  
+                if i.split()[0] == "freeze":
+                    freeze = "True" == i.split()[1]
                 if i.split()[0] == "distributed":
                     distributed = "True" == i.split()[1]
                 if i.split()[0] == "save_hyper_params":
@@ -467,13 +465,13 @@ def parse_settings(file="settings.txt"):
                     augment = "True" == i.split()[1]
                 if i.split()[0] == "num_gpu":
                     num_gpu = int(i.split()[1])
-                #if i.split()[0] == 'xyz_featurizer':
+                # if i.split()[0] == 'xyz_featurizer':
                 #    featurizer_xyz = "True" == i.split()[1]
-                #if i.split()[0] == 'electronic_featurizer':
+                # if i.split()[0] == 'electronic_featurizer':
                 #    featurizer_electronic = "True" == i.split()[1]
-                #if i.split()[0] == 'featurizer_electronic_bond':
+                # if i.split()[0] == 'featurizer_electronic_bond':
                 #    featurizer_electronic_bond = "True" == i.split()[1]
-                if i.split()[0] == 'featurizer_filter':
+                if i.split()[0] == "featurizer_filter":
                     featurizer_filter = "True" == i.split()[1]
                 if i.split()[0] == "early_stop":
                     early_stop = "True" == i.split()[1]
@@ -485,7 +483,7 @@ def parse_settings(file="settings.txt"):
                     transfer = "True" == i.split()[1]
                 if i.split()[0] == "loss":
                     loss = i.split()[1]
-                if i.split()[0] == 'classifier':
+                if i.split()[0] == "classifier":
                     classifier = "True" == i.split()[1]
                 if i.split()[0] == "categories":
                     categories = int(i.split()[1])
@@ -502,7 +500,7 @@ def parse_settings(file="settings.txt"):
                 if i.split()[0] == "weight_decay":
                     weight_decay = float(i.split()[1])
                 if i.split()[0] == "gated_hidden_size":
-                    gated_hidden_size = [int(j) for j in i.split()[1:]]              
+                    gated_hidden_size = [int(j) for j in i.split()[1:]]
                 if i.split()[0] == "category_weights":
                     category_weights = [float(j) for j in i.split()[1:]]
 
@@ -534,11 +532,11 @@ def parse_settings(file="settings.txt"):
                     fc_batch_norm = "True" == i.split()[1]
                 if i.split()[0] == "fc_dropout":
                     fc_dropout = float(i.split()[1])
-                if i.split()[0] == 'filter_outliers':
+                if i.split()[0] == "filter_outliers":
                     filter_outliers = "True" == i.split()[1]
-                if i.split()[0] == 'filter_sparse_rxns':
+                if i.split()[0] == "filter_sparse_rxns":
                     filter_sparse_rxns = "True" == i.split()[1]
-                
+
                 if i.split()[0] == "num_lstm_iters":
                     num_lstm_iters = int(i.split()[1])
                 if i.split()[0] == "num_lstm_layers":
@@ -562,9 +560,9 @@ def parse_settings(file="settings.txt"):
         print("filter outliers?                 {}".format(filter_outliers))
         print("filter sparse rxns?              {}".format(filter_sparse_rxns))
         print("num gpu:                         {}".format(str(num_gpu)))
-        #print("xyz featurizer:                  {}".format(featurizer_xyz))
-        #print("electronic bond featurizer:      {}".format(featurizer_electronic_bond))
-        #print("electronic featurizer:           {}".format(featurizer_electronic))
+        # print("xyz featurizer:                  {}".format(featurizer_xyz))
+        # print("electronic bond featurizer:      {}".format(featurizer_electronic_bond))
+        # print("electronic featurizer:           {}".format(featurizer_electronic))
         print("featurizer filter:               {}".format(featurizer_filter))
         print("extra features:                  {}".format(extra_features))
         print("hyperparam save file:            {}".format(save_hyper_params))
@@ -616,19 +614,19 @@ def parse_settings(file="settings.txt"):
         dict_ret["save_hyper_params"] = save_hyper_params
         dict_ret["dataset_state_dict_filename"] = Path(dataset_state_dict_filename)
         dict_ret["model_path"] = Path(model_path)
-        #dict_ret["featurizer_xyz"] = featurizer_xyz
-        #dict_ret["featurizer_electronic"] = featurizer_electronic
-        #dict_ret["featurizer_electronic_bond"] = featurizer_electronic_bond
-        
+        # dict_ret["featurizer_xyz"] = featurizer_xyz
+        # dict_ret["featurizer_electronic"] = featurizer_electronic
+        # dict_ret["featurizer_electronic_bond"] = featurizer_electronic_bond
+
         dict_ret["featurizer_filter"] = featurizer_filter
-        dict_ret['early_stop'] = early_stop 
-        dict_ret['scheduler'] = scheduler 
-        dict_ret['transfer_epochs'] = transfer_epochs 
-        dict_ret['transfer'] = transfer 
-        dict_ret['loss'] = loss 
-        dict_ret['filter_outliers'] = filter_outliers
-        dict_ret['filter_sparse_rxns'] = filter_sparse_rxns
-        dict_ret["freeze"] = freeze  
+        dict_ret["early_stop"] = early_stop
+        dict_ret["scheduler"] = scheduler
+        dict_ret["transfer_epochs"] = transfer_epochs
+        dict_ret["transfer"] = transfer
+        dict_ret["loss"] = loss
+        dict_ret["filter_outliers"] = filter_outliers
+        dict_ret["filter_sparse_rxns"] = filter_sparse_rxns
+        dict_ret["freeze"] = freeze
         dict_ret["extra_features"] = extra_features
 
         dict_ret["start_epoch"] = start_epoch
@@ -735,7 +733,6 @@ def charge_is_OK(
     q_list = []
 
     if allow_charged_fragments:
-
         BO_valences = list(BO.sum(axis=1))
         for i, atom in enumerate(atoms):
             q = get_atomic_charge(atom, atomic_valence_electrons[atom], BO_valences[i])
@@ -1047,7 +1044,7 @@ def AC2BO(AC, atoms, charge, allow_charged_fragments=True, use_graph=True):
         # valence can't be smaller than number of neighbourgs
         possible_valence = [x for x in atomic_valence[atomicNum] if x >= valence]
         if not possible_valence:
-            #print(atomicNum, valence, possible_valence)
+            # print(atomicNum, valence, possible_valence)
             print(
                 "Valence of atom",
                 i,
@@ -1067,7 +1064,6 @@ def AC2BO(AC, atoms, charge, allow_charged_fragments=True, use_graph=True):
     best_BO = AC.copy()
 
     for valences in valences_list:
-
         UA, DU_from_AC = get_UA(valences, AC_valence)
 
         check_len = len(UA) == 0
@@ -1228,7 +1224,6 @@ def xyz2AC(atoms, xyz, charge, use_huckel=False):
 
 
 def xyz2AC_vdW(atoms, xyz):
-
     # Get mol template
     mol = get_proto_mol(atoms)
 
@@ -1379,17 +1374,162 @@ def xyz2mol(
     return new_mols
 
 
-def sdf_writer():
+def dict_set_recursively(dictionary, key_sequence, val):
+    top_key = key_sequence.pop(0)
+    if len(key_sequence) == 0:
+        dictionary[top_key] = val
+    else:
+        if top_key not in dictionary:
+            dictionary[top_key] = {}
+        dict_set_recursively(dictionary[top_key], key_sequence, val)
+
+
+def parse_value(value):
     """
-    write sdf file for a molecule w/custom bonding
-    takes:
-        atoms -
-        bonds -
-        features -
-    returns
-
-
+    Parse string as Python literal if possible and fallback to string.
     """
+    try:
+        return ast.literal_eval(value)
+    except (ValueError, SyntaxError):
+        # Use as string if nothing else worked
+        return value
 
 
+def create_dict_from_args(args: list, sep: str = "."):
+    """
+    Create a (nested) dictionary from console arguments.
+    Keys in different dictionary levels are separated by sep.
+    """
+    return_dict = {}
+    for arg in args:
+        arg = arg.strip("--")
+        keys_concat, val = arg.split("=")
+        val = parse_value(val)
+        key_sequence = keys_concat.split(sep)
+        dict_set_recursively(return_dict, key_sequence, val)
+    return return_dict
 
+
+def build_config(args, args_override):
+    config, duplicates_warning, duplicates_error = load_config(args.config_yml)
+
+    if len(duplicates_warning) > 0:
+        logging.warning(
+            f"Overwritten config parameters from included configs "
+            f"(non-included parameters take precedence): {duplicates_warning}"
+        )
+    if len(duplicates_error) > 0:
+        raise ValueError(
+            f"Conflicting (duplicate) parameters in simultaneously "
+            f"included configs: {duplicates_error}"
+        )
+
+    # Check for overridden parameters.
+    if args_override != []:
+        overrides = create_dict_from_args(args_override)
+        config, _ = merge_dicts(config, overrides)
+
+    # Some other flags.
+    config["mode"] = args.mode
+    config["identifier"] = args.identifier
+    config["timestamp_id"] = args.timestamp_id
+    config["seed"] = args.seed
+    config["is_debug"] = args.debug
+    config["run_dir"] = args.run_dir
+    config["print_every"] = args.print_every
+    config["amp"] = args.amp
+    config["checkpoint"] = args.checkpoint
+    config["cpu"] = args.cpu
+    # Submit
+    config["submit"] = args.submit
+    config["summit"] = args.summit
+    # Distributed
+    config["local_rank"] = args.local_rank
+    config["distributed_port"] = args.distributed_port
+    config["world_size"] = args.num_nodes * args.num_gpus
+    config["distributed_backend"] = args.distributed_backend
+    config["noddp"] = args.no_ddp
+    config["gp_gpus"] = args.gp_gpus
+
+    return config
+
+
+def merge_dicts(dict1: dict, dict2: dict):
+    """Recursively merge two dictionaries.
+    Values in dict2 override values in dict1. If dict1 and dict2 contain a dictionary as a
+    value, this will call itself recursively to merge these dictionaries.
+    This does not modify the input dictionaries (creates an internal copy).
+    Additionally returns a list of detected duplicates.
+    Adapted from https://github.com/TUM-DAML/seml/blob/master/seml/utils.py
+    Parameters
+    ----------
+    dict1: dict
+        First dict.
+    dict2: dict
+        Second dict. Values in dict2 will override values from dict1 in case they share the same key.
+    Returns
+    -------
+    return_dict: dict
+        Merged dictionaries.
+    """
+    if not isinstance(dict1, dict):
+        raise ValueError(f"Expecting dict1 to be dict, found {type(dict1)}.")
+    if not isinstance(dict2, dict):
+        raise ValueError(f"Expecting dict2 to be dict, found {type(dict2)}.")
+
+    return_dict = copy.deepcopy(dict1)
+    duplicates = []
+    for k, v in dict2.items():
+        if k not in dict1:
+            return_dict[k] = v
+        else:
+            if isinstance(v, dict) and isinstance(dict1[k], dict):
+                return_dict[k], duplicates_k = merge_dicts(dict1[k], dict2[k])
+                duplicates += [f"{k}.{dup}" for dup in duplicates_k]
+            else:
+                return_dict[k] = dict2[k]
+                duplicates.append(k)
+
+    return return_dict, duplicates
+
+
+def load_config(path: str, previous_includes: list = []):
+    path = Path(path)
+    if path in previous_includes:
+        raise ValueError(
+            f"Cyclic config include detected. {path} included in sequence {previous_includes}."
+        )
+    previous_includes = previous_includes + [path]
+
+    direct_config = yaml.safe_load(open(path, "r"))
+
+    # Load config from included files.
+    if "includes" in direct_config:
+        includes = direct_config.pop("includes")
+    else:
+        includes = []
+
+    if not isinstance(includes, list):
+        raise AttributeError(
+            "Includes must be a list, '{}' provided".format(type(includes))
+        )
+
+    config = {}
+    duplicates_warning = []
+    duplicates_error = []
+    for include in includes:
+        include_config, inc_dup_warning, inc_dup_error = load_config(
+            include, previous_includes
+        )
+        duplicates_warning += inc_dup_warning
+        duplicates_error += inc_dup_error
+
+        # Duplicates between includes causes an error
+        config, merge_dup_error = merge_dicts(config, include_config)
+        duplicates_error += merge_dup_error
+
+    # Duplicates between included and main file causes warnings
+    config, merge_dup_warning = merge_dicts(config, direct_config)
+    duplicates_warning += merge_dup_warning
+
+    return config, duplicates_warning, duplicates_error

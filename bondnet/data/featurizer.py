@@ -416,11 +416,17 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
         calculations for the molecule take place
     """
 
-    def __init__(self, allowed_charges=None, solvent_environment=None, fg_info=None, dtype="float32"):
+    def __init__(
+        self,
+        allowed_charges=None,
+        solvent_environment=None,
+        functional_g_basis=None,
+        dtype="float32",
+    ):
         super(GlobalFeaturizerGraph, self).__init__(dtype)
         self.allowed_charges = allowed_charges
         self.solvent_environment = solvent_environment
-        self.fg_info = fg_info
+        self.functional_g_basis = functional_g_basis
 
     def __call__(self, mol, **kwargs):
         """
@@ -442,7 +448,11 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
             mw,
         ]
 
-        if self.allowed_charges is not None or self.solvent_environment is not None or self.fg_info is not None:
+        if (
+            self.allowed_charges is not None
+            or self.solvent_environment is not None
+            or self.functional_g_basis is not None
+        ):
             try:
                 feats_info = kwargs["extra_feats_info"]
             except KeyError as e:
@@ -465,8 +475,9 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
                     g += one_hot_encoding(
                         feats_info["environment"], self.solvent_environment
                     )
-            if self.fg_info is not None:
-                g += one_hot_encoding(mol.functional_group, self.fg_info)
+            if self.functional_g_basis is not None:
+                print("functional group info", self.functional_g_basis)
+                g += one_hot_encoding(mol.functional_group, self.functional_g_basis)
 
         feats = torch.tensor([g], dtype=getattr(torch, self.dtype))
 
@@ -474,8 +485,12 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
         self._feature_name = ["num atoms", "num bonds", "molecule weight"]
         if self.allowed_charges is not None:
             self._feature_name += ["charge one hot"] * len(self.allowed_charges)
-        if self.fg_info is not None:
-            self._feature_name += ["hydrolysed functional group"] * len(self.fg_info)
+
+        if self.functional_g_basis is not None:
+            self._feature_name += ["hydrolysed functional group"] * len(
+                self.functional_g_basis
+            )
+
         if self.solvent_environment is not None:
             if len(self.solvent_environment) == 2:
                 self._feature_name += ["solvent"]
