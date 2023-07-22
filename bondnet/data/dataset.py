@@ -10,7 +10,7 @@ from rdkit import Chem, RDLogger
 from bondnet.dataset.generalized import create_reaction_network_files_and_valid_rows
 from bondnet.data.reaction_network import ReactionInNetwork, ReactionNetwork
 from bondnet.data.transformers import HeteroGraphFeatureStandardScaler, StandardScaler
-from bondnet.data.utils import get_dataset_species
+from bondnet.data.utils import get_dataset_species, get_hydro_data_functional_groups
 from bondnet.utils import to_path, yaml_load, list_split_by_size
 from bondnet.data.utils import create_rxn_graph
 
@@ -1092,7 +1092,6 @@ class ReactionNetworkDatasetPrecomputed(BaseDataset):
             extra_keys=extra_keys,
             extra_info=extra_info,
         )
-
         self.molecules = all_mols
         self.raw_labels = all_labels
         self.extra_features = features
@@ -1145,6 +1144,7 @@ class ReactionNetworkDatasetPrecomputed(BaseDataset):
         self._species = sorted(system_species)
         # this is hard coded and potentially needs to be adjusted for other datasets, this is to have fixed size and order of the species
         self._species = ["C", "F", "H", "N", "O", "Mg", "Li", "S", "Cl", "P", "O", "Br"]
+        
 
         # create dgl graphs
         print("constructing graphs & features....")

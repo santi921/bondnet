@@ -121,6 +121,7 @@ def split_and_map(
     id,
     bonds_nonmetal=None,
     charge=0,
+    functional_group=None,
     extra_feats_atom={},
     extra_feats_bond={},
 ):
@@ -137,6 +138,7 @@ def split_and_map(
         id(str): unique id
         bonds_nonmetal(list of tuples/lists): list nonmetal bonds
         charge(int): charge for molecule
+        functional_group(str): hydrolysed functional group in reactant, None entries in product
         extra_feats(dict): dictionary w/ extra features
 
     returns:
@@ -205,11 +207,13 @@ def split_and_map(
                 )
             else:
                 bond_feats = {}
+            
 
             species_molwrapper = create_wrapper_mol_from_atoms_and_bonds(
                 species_sg,
                 coords_sg,
                 bond_reindex_list,
+                functional_group,
                 atom_features=atom_feats,
                 bond_features=bond_feats,
                 identifier=id + "_" + str(ind_sg),
@@ -277,6 +281,7 @@ def split_and_map(
             elements,
             coords,
             bonds,
+            functional_group,
             atom_features=atom_feats,
             bond_features=bond_feats,
             identifier=id,
@@ -365,6 +370,9 @@ def process_species_graph(
 
     bonds_reactant = row[reactant_key + "_bonds"]
     bonds_products = row[product_key + "_bonds"]
+
+    reactant_functional_group = row["functional_group_reacted"]
+    product_functional_group = None
     try:
         pymat_graph_reactants = row["combined_" + reactant_key + "s_graph"]["molecule"][
             "sites"
@@ -489,6 +497,7 @@ def process_species_graph(
         id=str(row[product_key + "_id"]),
         bonds_nonmetal=bonds_nonmetal_product,
         charge=charge,
+        functional_group=product_functional_group,
         extra_feats_atom=extra_atom_feats_dict_prod,
         extra_feats_bond=extra_bond_feats_dict_prod,
     )
@@ -502,6 +511,7 @@ def process_species_graph(
         id=str(row[reactant_key + "_id"]),
         bonds_nonmetal=bonds_nonmetal_reactant,
         charge=charge,
+        functional_group=reactant_functional_group,
         extra_feats_atom=extra_atom_feats_dict_react,
         extra_feats_bond=extra_bond_feats_dict_react,
     )
