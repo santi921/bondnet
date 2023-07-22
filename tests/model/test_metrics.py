@@ -3,79 +3,68 @@ from torch.nn import functional as F
 import numpy as np
 from math import log2
 from bondnet.model.metric import (
-    Metrics_WeightedMAE,
-    Metrics_WeightedMSE,
     Metrics_Accuracy_Weighted,
     Metrics_Cross_Entropy,
 )
-
+from torchmetrics import MeanSquaredError, MeanAbsoluteError
 from sklearn.metrics import accuracy_score, mean_absolute_error, mean_squared_error
 
 
 def test_mse():
-    mse_obj = Metrics_WeightedMSE(reduction="mean")
-    test_a = torch.tensor([1.0, 2.0])
-    test_b = torch.tensor([2.0, 4.0])
-    weight = torch.tensor([1.0, 1.0])
-    test_a_full = [[1.0, 2.0] for i in range(3)]
-    test_b_full = [[2.0, 4.0] for i in range(3)]
-    weight_full = [[1.0, 2.0] for i in range(3)]
+    mse_obj = MeanSquaredError(squared=True)
+    test_data = torch.tensor([1.0, 2.0])
+    test_pred = torch.tensor([2.0, 4.0])
+    # repeat the test data 3 times
+    test_data_3 = torch.tensor([[1.0, 2.0] for i in range(3)]).flatten()
 
-    [mse_obj.update(preds=test_a, target=test_b, weight=weight) for i in range(3)]
+    # get mean of data
+    test_data_mean = torch.mean(test_data_3, axis=0)
+    # get std of data
+    test_data_std = torch.std(test_data_3, axis=0)
 
+    # scale the data
+    test_data_batch_scale = (test_data - test_data_mean) / test_data_std
+    test_pred_batch_scale = (test_pred - test_data_mean) / test_data_std
+
+    [
+        mse_obj.update(preds=test_pred_batch_scale, target=test_data_batch_scale)
+        for i in range(3)
+    ]
     # unfurl the list
-    test_a_full = np.array(test_a_full).flatten()
-    test_b_full = np.array(test_b_full).flatten()
-    weight_full = np.array(weight_full).flatten()
-
-    sklearn_mse = mean_squared_error(test_a_full, test_b_full, squared=True)
-    sklearn_mse_w = mean_squared_error(
-        test_a_full, test_b_full, sample_weight=weight_full, squared=True
-    )
 
     metric_mse = mse_obj.compute()
-    assert np.allclose(metric_mse, sklearn_mse), "MSE unweighted not equal"
-
-    mse_obj = Metrics_WeightedMSE(reduction="mean")
-    weight = torch.tensor([1.0, 2.0])
-    [mse_obj.update(preds=test_a, target=test_b, weight=weight) for i in range(3)]
-
-    metric_mse = mse_obj.compute()
-    assert np.allclose(metric_mse, sklearn_mse_w), "MSE weighted not equal"
+    # compute mse for data that was normalized
+    weighted_mse = metric_mse * test_data_std * test_data_std
+    print(weighted_mse)
+    assert np.allclose(weighted_mse, 2.5), "MSE weighted not equal"
 
 
 def test_mae():
-    mse_obj = Metrics_WeightedMAE(reduction="mean")
-    test_a = torch.tensor([1.0, 2.0])
-    test_b = torch.tensor([2.0, 4.0])
-    weight = torch.tensor([1.0, 1.0])
-    test_a_full = [[1.0, 2.0] for i in range(3)]
-    test_b_full = [[2.0, 4.0] for i in range(3)]
-    weight_full = [[1.0, 2.0] for i in range(3)]
+    mae_obj = MeanAbsoluteError()
+    test_data = torch.tensor([1.0, 2.0])
+    test_pred = torch.tensor([2.0, 4.0])
+    # repeat the test data 3 times
+    test_data_3 = torch.tensor([[1.0, 2.0] for i in range(3)]).flatten()
 
-    [mse_obj.update(preds=test_a, target=test_b, weight=weight) for i in range(3)]
+    # get mean of data
+    test_data_mean = torch.mean(test_data_3, axis=0)
+    # get std of data
+    test_data_std = torch.std(test_data_3, axis=0)
 
-    # unfurl the list
-    test_a_full = np.array(test_a_full).flatten()
-    test_b_full = np.array(test_b_full).flatten()
-    weight_full = np.array(weight_full).flatten()
-    print(np.sum((test_a_full - test_b_full) ** 2) / len(test_a_full))
-    print(np.sum(weight_full * (test_a_full - test_b_full) ** 2) / np.sum(weight_full))
+    # scale the data
+    test_data_batch_scale = (test_data - test_data_mean) / test_data_std
+    test_pred_batch_scale = (test_pred - test_data_mean) / test_data_std
 
-    sklearn_mse = mean_absolute_error(test_a_full, test_b_full)
-    sklearn_mse_w = mean_absolute_error(
-        test_a_full, test_b_full, sample_weight=weight_full
-    )
+    [
+        mae_obj.update(preds=test_pred_batch_scale, target=test_data_batch_scale)
+        for i in range(3)
+    ]
 
-    metric_mse = mse_obj.compute()
-    assert np.allclose(metric_mse, sklearn_mse), "MAE unweighted not equal"
-
-    mse_obj = Metrics_WeightedMAE(reduction="mean")
-    weight = torch.tensor([1.0, 2.0])
-    [mse_obj.update(preds=test_a, target=test_b, weight=weight) for i in range(3)]
-
-    metric_mse = mse_obj.compute()
-    assert np.allclose(metric_mse, sklearn_mse_w), "MAE weighted not equal"
+    metric_mae = mae_obj.compute()
+    # assert that all the values of the weight are the same
+    weighted_metric_mae = metric_mae * test_data_std
+    print(weighted_metric_mae)
+    assert np.allclose(weighted_metric_mae, 1.5), "MAE weighted not equal"
 
 
 def test_accuracy():
@@ -140,3 +129,7 @@ def test_cross_entropy():
 
     assert np.allclose(ce_metric, ce_sklearn), "Cross Entropy unweighted not equal"
     assert np.allclose(ce_metric_w, ce_sklearn_w), "Cross Entropy weighted not equal"
+
+
+test_mae()
+test_mse()
