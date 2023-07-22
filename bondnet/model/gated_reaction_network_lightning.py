@@ -214,24 +214,18 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
 
         self.loss = self.loss_function()
 
-        # self.train_l1 = Metrics_WeightedMAE(reduction="mean")
-        # self.train_mse = Metrics_WeightedMSE()
         self.train_r2 = torchmetrics.R2Score(
             num_outputs=1, multioutput="variance_weighted"
         )
         self.train_torch_l1 = torchmetrics.MeanAbsoluteError()
         self.train_torch_mse = torchmetrics.MeanSquaredError(square=False)
 
-        # self.val_l1 = Metrics_WeightedMAE(reduction="mean")
-        # self.val_mse = Metrics_WeightedMSE()
         self.val_r2 = torchmetrics.R2Score(
             num_outputs=1, multioutput="variance_weighted"
         )
         self.val_torch_l1 = torchmetrics.MeanAbsoluteError()
         self.val_torch_mse = torchmetrics.MeanSquaredError(square=False)
 
-        # self.test_l1 = Metrics_WeightedMAE(reduction="mean")
-        # self.test_mse = Metrics_WeightedMSE()
         self.test_r2 = torchmetrics.R2Score(
             num_outputs=1, multioutput="variance_weighted"
         )
@@ -342,6 +336,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         pred = self(
             batched_graph,
             feats,
+            reverse=False,
             norm_bond=norm_bond,
             norm_atom=norm_atom,
         )
@@ -362,12 +357,11 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             all_loss = self.compute_loss(
                 torch.cat((target, target_aug), axis=0),
                 torch.cat((pred, pred_aug), axis=0),
-                torch.cat((stdev, stdev), axis=0),
             )
 
         else:
             # ========== compute losses ==========
-            all_loss = self.compute_loss(pred, target, stdev)
+            all_loss = self.compute_loss(pred, target)
             # ========== logger the loss ==========
 
         self.log(
@@ -410,7 +404,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
 
         return loss_fn
 
-    def compute_loss(self, target, pred, weight):
+    def compute_loss(self, target, pred):
         """
         Compute loss
         """
@@ -483,6 +477,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         pred = self(
             batched_graph,
             feats,
+            reverse=False,
             norm_bond=norm_bond,
             norm_atom=norm_atom,
         )
