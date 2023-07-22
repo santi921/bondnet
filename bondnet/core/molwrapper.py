@@ -30,6 +30,7 @@ class MoleculeWrapper:
     def __init__(
         self,
         mol_graph,
+        functional_group=None,
         free_energy=None,
         id=None,
         non_metal_bonds=None,
@@ -42,6 +43,7 @@ class MoleculeWrapper:
         self.pymatgen_mol = mol_graph.molecule
         self.nonmetal_bonds = non_metal_bonds
         self.free_energy = free_energy
+        self.functional_group = functional_group
         self.id = id
         self.atom_features = atom_features
         self.bond_features = bond_features
@@ -528,6 +530,7 @@ def create_wrapper_mol_from_atoms_and_bonds(
     bonds,
     charge=0,
     free_energy=None,
+    functional_group=None,
     identifier=None,
     original_atom_ind=None,
     original_bond_ind=None,
@@ -556,6 +559,7 @@ def create_wrapper_mol_from_atoms_and_bonds(
     mol_wrapper = MoleculeWrapper(
         mol_graph,
         free_energy,
+        functional_group,
         identifier,
         original_atom_ind=original_atom_ind,
         original_bond_mapping=original_bond_ind,
