@@ -1558,7 +1558,7 @@ class BondNetLightningDataModule(pl.LightningDataModule):
                     num_workers=self.config["optim"]["num_workers"],
                     lmdb_name=lmdb_i,
                 )
-            print("done creating lmdb" * 10)
+            # print("done creating lmdb" * 10)
             self.prepared = True
             return entire_dataset._feature_size, entire_dataset._feature_name
 

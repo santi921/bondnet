@@ -1,6 +1,6 @@
 {
   "model": {
-    "augment": false,
+    "augment": true,
     "classifier": false,
     "classif_categories": 3,
     "cat_weights": [1.0, 1.0, 1.0],
@@ -32,16 +32,17 @@
     "on_gpu": true,
     "restore": false,
     "weight_decay": 0.0,
-    "max_epochs": 100,
-    "max_epochs_transfer": 100,
-    "transfer": false,
-    "filter_outliers": false
+    "max_epochs": 10,
+    "max_epochs_transfer": 10,
+    "transfer": true,
+    "filter_outliers": true,
+    "freeze": true
   },
   "optim": {
     "batch_size": 128,
     "num_devices": 1,
     "num_nodes": 1,
-    "num_workers": 8,
+    "num_workers": 2,
     "val_size": 0.15,
     "test_size": 0.1,
     "strategy": "ddp",
@@ -51,13 +52,13 @@
   "dataset": {
     "log_save_dir": "./test_lmdb/",
     "lmdb_dir": "./lmdb_data/",
-    "target_var": "dh",
+    "target_var": "ts",
     "overwrite": true
   },
   "dataset_transfer": {
     "log_save_dir": "./test_lmdb_transfer/",
     "lmdb_dir": "./lmdb_data_transfer/",
-    "target_var_transfer": "diff",
+    "target_var": "diff",
     "overwrite": true
   }
 }

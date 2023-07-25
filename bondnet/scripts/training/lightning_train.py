@@ -137,15 +137,15 @@ if __name__ == "__main__":
             model_parameters_prior = filter(
                 lambda p: p.requires_grad, model.parameters()
             )
-            params_prior = sum([np.prod(p.size()) for p in model_parameters_prior])
 
-            if config_transfer["freeze"]:  # depreciated since lightning port, TODO
+            if config_transfer["model"]["freeze"]:
+                params_prior = sum([np.prod(p.size()) for p in model_parameters_prior])
+                print(">" * 25 + "Freezing Module" + "<" * 25)
+                print("Freezing Gated Layers....")
+                print("Number of Trainable Model Params Prior: {}".format(params_prior))
                 model.gated_layers.requires_grad_(False)
             model_parameters = filter(lambda p: p.requires_grad, model.parameters())
             params = sum([np.prod(p.size()) for p in model_parameters])
-            print(">" * 25 + "Freezing Module" + "<" * 25)
-            print("Freezing Gated Layers....")
-            print("Number of Trainable Model Params Prior: {}".format(params_prior))
             print("Number of Trainable Model Params: {}".format(params))
 
         run_transfer.finish()
