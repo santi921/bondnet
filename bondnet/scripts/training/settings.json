@@ -32,7 +32,7 @@
   "num_lstm_layers": 1,
   "on_gpu": true,
   "restore": false,
-  "target_var": "dG_sp",
+  "target_var": "dh",
   "target_var_transfer": "diff",
   "weight_decay": 0.0,
   "max_epochs": 100,
