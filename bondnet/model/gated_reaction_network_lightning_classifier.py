@@ -86,7 +86,7 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
         max_epochs=2000,
         eta_min=1e-6,
         loss_fn="CrossEntropyLoss",
-        device="cpu",
+        # device="cpu",
         wandb=True,
         augment=False,
         cat_weights=torch.Tensor([1.0, 1.0, 1.0]),
@@ -96,7 +96,7 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
 
         super().__init__()
         self.learning_rate = learning_rate
-        cat_weights = cat_weights.to(device)
+        # cat_weights = cat_weights.to(device)
         params = {
             "in_feats": in_feats,
             "embedding_size": embedding_size,
@@ -125,7 +125,7 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
             "max_epochs": max_epochs,
             "eta_min": eta_min,
             "loss_fn": loss_fn,
-            "device": device,
+            # "device": device,
             "wandb": wandb,
             "augment": augment,
             "cat_weights": cat_weights,

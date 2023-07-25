@@ -163,7 +163,7 @@ class TrainingObject:
                     accelerator="gpu",
                     devices=[0],
                     accumulate_grad_batches=5,
-                    enable_progress_bar=True,
+                    enable_progress_bar=False,
                     gradient_clip_val=1.0,
                     callbacks=[
                         early_stopping_callback_transfer,
@@ -219,7 +219,7 @@ class TrainingObject:
                 accelerator="gpu",
                 devices=[0],
                 accumulate_grad_batches=5,
-                enable_progress_bar=True,
+                enable_progress_bar=False,
                 gradient_clip_val=1.0,
                 callbacks=[
                     early_stopping_callback,

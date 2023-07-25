@@ -88,7 +88,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         max_epochs=2000,
         eta_min=1e-6,
         loss_fn="MSELoss",
-        device="cpu",
+        # device="cpu",
         wandb=True,
         augment=False,
     ):
@@ -122,7 +122,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             "max_epochs": max_epochs,
             "eta_min": eta_min,
             "loss_fn": loss_fn,
-            "device": device,
+            # "device": device,
             "wandb": wandb,
             "augment": augment,
         }

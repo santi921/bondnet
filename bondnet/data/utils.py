@@ -51,6 +51,7 @@ def get_dataset_species_from_json(json_file):
 
     return sorted(system_species)
 
+
 def get_hydro_data_functional_groups(json_file):
     """
     Get all the unique functional groups of the hydrolysis reactions compiled in the dataset
@@ -62,7 +63,7 @@ def get_hydro_data_functional_groups(json_file):
         list: a sequence of all the unique reacted functional groups in the dataset
     """
     df = pd.read_json(json_file)
-    return sorted(list(df['functional_group_reacted'].unique()))
+    return sorted(list(df["functional_group_reacted"].unique()))
 
 
 def one_hot_encoding(x, allowable_set):
@@ -522,7 +523,6 @@ def create_rxn_graph(
     products,
     mappings,
     has_bonds,
-    device=None,
     ntypes=("global", "atom", "bond"),
     ft_name="ft",
     reverse=False,
@@ -554,7 +554,7 @@ def create_rxn_graph(
     # note, this assumes we have one reactant
     num_products = int(len(products))
     num_reactants = int(len(reactants))
-    graph = construct_rxn_graph_empty(mappings, device)
+    graph = construct_rxn_graph_empty(mappings)
     if verbose:
         print(
             "# reactions: {}, # products: {}".format(
@@ -566,9 +566,9 @@ def create_rxn_graph(
         reactants_ft = [p.nodes[nt].data[ft_name] for p in reactants]
         products_ft = [p.nodes[nt].data[ft_name] for p in products]
 
-        if device is not None:
-            reactants_ft = [r.to(device) for r in reactants_ft]
-            products_ft = [p.to(device) for p in products_ft]
+        # if device is not None:
+        #    reactants_ft = [r.to(device) for r in reactants_ft]
+        #    products_ft = [p.to(device) for p in products_ft]
 
         if nt == "bond":
             if num_products > 1:
@@ -597,9 +597,9 @@ def create_rxn_graph(
             products_ft = [
                 torch.sum(product_ft, dim=0, keepdim=True) for product_ft in products_ft
             ]
-            if device is not None:
-                reactants_ft = [r.to(device) for r in reactants_ft]
-                products_ft = [p.to(device) for p in products_ft]
+            # if device is not None:
+            #    reactants_ft = [r.to(device) for r in reactants_ft]
+            #    products_ft = [p.to(device) for p in products_ft]
 
         len_feature_nt = reactants_ft[0].shape[1]
         # if(len_feature_nt!=64): print(mappings)
@@ -611,8 +611,8 @@ def create_rxn_graph(
         else:
             net_ft_full = torch.zeros(mappings["num_atoms_total"], len_feature_nt)
 
-        if device is not None:
-            net_ft_full = net_ft_full.to(device)
+        # if device is not None:
+        #    net_ft_full = net_ft_full.to(device)
 
         if nt == "global":
             coef = 1

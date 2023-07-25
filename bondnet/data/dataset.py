@@ -1083,7 +1083,7 @@ class ReactionNetworkDatasetPrecomputed(BaseDataset):
         classifier=False,
         debug=False,
         classif_categories=None,
-        device=None,
+        # device=None,
         extra_keys=None,
         dataset_atom_types=None,
         extra_info=None,
@@ -1131,7 +1131,7 @@ class ReactionNetworkDatasetPrecomputed(BaseDataset):
         self._failed = None
         self.classifier = classifier
         self.classif_categories = classif_categories
-        self.device = device
+        # self.device = device
         self._load()
 
     def _load(self):
@@ -1203,11 +1203,11 @@ class ReactionNetworkDatasetPrecomputed(BaseDataset):
                 graphs[i] = g
             self.molecules_ordered = molecules_final
 
-            if self.device != None:
-                graph_temp = []
-                for g in graphs:
-                    graph_temp.append(g.to(self.device))
-                graphs = graph_temp
+            # if self.device != None:
+            #    graph_temp = []
+            #    for g in graphs:
+            #        graph_temp.append(g.to(self.device))
+            #    graphs = graph_temp
 
             if self.state_dict_filename is None:
                 self._feature_scaler_mean = feature_scaler.mean
@@ -1295,7 +1295,7 @@ class ReactionNetworkDatasetPrecomputed(BaseDataset):
         self.reaction_network = ReactionNetwork(graphs, reactions, molecules_final)
         print("prebuilding reaction graphs")
         self.reaction_graphs, self.reaction_features = self.build_reaction_graphs(
-            graphs, reactions, device=self.device
+            graphs, reactions
         )
 
         # feature transformers
@@ -1392,7 +1392,7 @@ class ReactionNetworkDatasetPrecomputed(BaseDataset):
         return len(self.reaction_ids)
 
     @staticmethod
-    def build_reaction_graphs(graphs, reactions, device):
+    def build_reaction_graphs(graphs, reactions):
         reaction_graphs = []
         reaction_fts = []
 
@@ -1425,7 +1425,6 @@ class ReactionNetworkDatasetPrecomputed(BaseDataset):
                 products,
                 mappings,
                 has_bonds,
-                device,
                 reverse=False,
                 ft_name="feat",
             )
@@ -1499,8 +1498,12 @@ class BondNetLightningDataModule(pl.LightningDataModule):
             self.test_lmdb = config["dataset"]["test_lmdb"]
 
         self.config = config
+        self.prepared = False
 
     def _check_exists(self, data_folder: str) -> bool:
+        if self.config["dataset"]["overwrite"]:
+            return False
+
         existing = True
         for fname in (self.train_lmdb, self.val_lmdb, self.test_lmdb):
             existing = existing and os.path.isfile(os.path.join(data_folder, fname))
@@ -1508,24 +1511,37 @@ class BondNetLightningDataModule(pl.LightningDataModule):
 
     def prepare_data(self):
         # https://github.com/Lightning-AI/lightning/blob/6d888b5ce081277a89dc2fb9a2775b81d862fe54/src/lightning/pytorch/demos/mnist_datamodule.py#L90
-        if not self._check_exists(self.config["dataset"]["lmdb_dir"]):
+        if not self.prepared and not self._check_exists(
+            self.config["dataset"]["lmdb_dir"]
+        ):
             # Load json file, preprocess data, and write to lmdb file
+            grapher = get_grapher(self.config["model"]["extra_features"])
+            file = self.config["dataset"]["data_dir"]
+            target = self.config["dataset"]["target_var"]
+            classifier = self.config["model"]["classifier"]
+            classif_categories = self.config["model"]["classif_categories"]
+            filter_species = self.config["model"]["filter_species"]
+            filter_outliers = self.config["model"]["filter_outliers"]
+            filter_sparse_rxns = False
+            debug = self.config["model"]["debug"]
+            # device=self.config["optim"]["device"],
+            extra_keys = self.config["model"]["extra_features"]
+            extra_info = self.config["model"]["extra_info"]
 
             entire_dataset = ReactionNetworkDatasetPrecomputed(
                 grapher=get_grapher(self.config["model"]["extra_features"]),
                 file=self.config["dataset"]["data_dir"],
-                target=self.config["model"]["target_var"],
+                target=self.config["dataset"]["target_var"],
                 classifier=self.config["model"]["classifier"],
                 classif_categories=self.config["model"]["classif_categories"],
                 filter_species=self.config["model"]["filter_species"],
                 filter_outliers=self.config["model"]["filter_outliers"],
                 filter_sparse_rxns=False,
                 debug=self.config["model"]["debug"],
-                device=self.config["optim"]["device"],
                 extra_keys=self.config["model"]["extra_features"],
                 extra_info=self.config["model"]["extra_info"],
             )
-            print("done loading dataset" * 10)
+            # print("done loading dataset" * 10)
             train_CRNs, val_CRNs, test_CRNs = train_validation_test_split(
                 entire_dataset,
                 validation=self.config["optim"]["val_size"],
@@ -1543,15 +1559,15 @@ class BondNetLightningDataModule(pl.LightningDataModule):
                     lmdb_name=lmdb_i,
                 )
             print("done creating lmdb" * 10)
+            self.prepared = True
             return entire_dataset._feature_size, entire_dataset._feature_name
 
         else:
             train_dataset = LmdbDataset(
                 {"src": f"{self.config['dataset']['lmdb_dir']}" + self.train_lmdb}
             )
+            self.prepared = True
             return train_dataset.feature_size, train_dataset.feature_name
-
-        # this is so you can specify the bondnet model
 
     def setup(self, stage):
         if stage in (None, "fit", "validate"):
