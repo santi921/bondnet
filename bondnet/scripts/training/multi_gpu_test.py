@@ -106,17 +106,21 @@ def main():
             "filter_outliers": config["model"]["filter_outliers"],
             "filter_sparse_rxns": False,
             "debug": config["model"]["debug"],
-            "in_feats": {"atom": 20, "bond": 8, "global": 7},
+            # "in_feats": {"atom": 20, "bond": 8, "global": 7},
         },
         "optim": {"batch_size": 12},
     }
 
-    config, overrides = merge_dicts(config, dict_for_model)
-    for override_i in overrides:
-        print("overrides:", override_i)
     print(config)
     # config datamodule
     dm = BondNetLightningDataModule(config)
+    feature_size, feature_names = dm.prepare_data()
+    dict_for_model
+    print("feature_size:", feature_size)
+    dict_for_model["model"]["in_feats"] = feature_size
+    config, overrides = merge_dicts(config, dict_for_model)
+    for override_i in overrides:
+        print("overrides:", override_i)
 
     # config lightning model
     model = load_model_lightning(

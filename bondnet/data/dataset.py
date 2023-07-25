@@ -1508,7 +1508,6 @@ class BondNetLightningDataModule(pl.LightningDataModule):
 
     def prepare_data(self):
         # https://github.com/Lightning-AI/lightning/blob/6d888b5ce081277a89dc2fb9a2775b81d862fe54/src/lightning/pytorch/demos/mnist_datamodule.py#L90
-        # print(self.config["dataset"][""])
         if not self._check_exists(self.config["dataset"]["lmdb_dir"]):
             # Load json file, preprocess data, and write to lmdb file
 
@@ -1544,6 +1543,15 @@ class BondNetLightningDataModule(pl.LightningDataModule):
                     lmdb_name=lmdb_i,
                 )
             print("done creating lmdb" * 10)
+            return entire_dataset._feature_size, entire_dataset._feature_name
+
+        else:
+            train_dataset = LmdbDataset(
+                {"src": f"{self.config['dataset']['lmdb_dir']}" + self.train_lmdb}
+            )
+            return train_dataset.feature_size, train_dataset.feature_name
+
+        # this is so you can specify the bondnet model
 
     def setup(self, stage):
         if stage in (None, "fit", "validate"):
