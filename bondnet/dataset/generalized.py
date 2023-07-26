@@ -147,7 +147,7 @@ def split_and_map(
         atom_map(dict): maps atomic positions to reaction scaffold
         bond_mapp(dict): maps bonds in subgraphs to reaction template ind
     """
-
+    # print("length of elements", len(elements))
     ret_list, bond_map = [], []
     id = str(id)
     G = nx.Graph()
@@ -392,7 +392,7 @@ def process_species_graph(
         ]
         pymat_graph_products = row[product_key + "_molecule_graph"]["molecule"]["sites"]
 
-    species_reactant = [int_atom(i["name"]) for i in pymat_graph_reactants]
+    species_reactant_full = [int_atom(i["name"]) for i in pymat_graph_reactants]
     species_products_full = [int_atom(i["name"]) for i in pymat_graph_products]
     coords_reactant = [i["xyz"] for i in pymat_graph_reactants]
     coords_products_full = [i["xyz"] for i in pymat_graph_products]
@@ -431,8 +431,6 @@ def process_species_graph(
     extra_bond_feats_dict_prod, extra_bond_feats_dict_react = {}, {}
     extra_global_feats_dict_prod, extra_global_feats_dict_react = {}, {}
 
-    # print("extra key full")
-    # print(extra_keys_full)
     for key in extra_keys_full:
         prod = False
         # check if key starts with "extra_feat_atom"
@@ -536,7 +534,7 @@ def process_species_graph(
     )
 
     reactants, atoms_reactants, mapping_reactants = split_and_map(
-        elements=species_reactant,
+        elements=species_reactant_full,
         coords=coords_reactant,
         bonds=row[reactant_key + "_bonds"],
         atom_count=num_nodes,
@@ -604,11 +602,14 @@ def process_species_graph(
         elif target == "dG_sp":
             value = row["dG_sp"]
             reverse_energy = -value
-        else:
+        elif target == "diff":
             value = row[product_key + "_energy"] - row[reactant_key + "_energy"]
             reverse_energy = (
                 row[reactant_key + "_energy"] - row[product_key + "_energy"]
             )
+        else:
+            value = row[target]
+            reverse_energy = -value
 
         if classifier:
             if categories == 3:
@@ -792,7 +793,7 @@ def process_species_rdkit(row, classifier=False):
     if row["bonds_broken"] == [] and row["bonds_formed"] == []:
         return rxn
 
-    species_reactant = [
+    species_reactant_full = [
         int_atom(i["name"])
         for i in row[reactant_key + "_molecule_graph"]["molecule"]["sites"]
     ]
@@ -800,7 +801,7 @@ def process_species_rdkit(row, classifier=False):
         int_atom(i["name"])
         for i in row[product_key + "_molecule_graph"]["molecule"]["sites"]
     ]
-    coords_reactant = [
+    coords_reactant_full = [
         i["xyz"] for i in row[reactant_key + "_molecule_graph"]["molecule"]["sites"]
     ]
     coords_products_full = [
@@ -812,8 +813,8 @@ def process_species_rdkit(row, classifier=False):
     free_energy = row[product_key + "_free_energy"]
 
     reactant_mol = xyz2mol(
-        atoms=species_reactant,
-        coordinates=coords_reactant,
+        atoms=species_reactant_full,
+        coordinates=coords_reactant_full,
         charge=charge,
     )
     reactant_wrapper = rdkit_mol_to_wrapper_mol(
@@ -1085,9 +1086,11 @@ def create_reaction_network_files_and_valid_rows(
         elif target == "dG_sp":
             energy_dist = mg_df["dG_sp"]
 
-        else:
+        elif target == "diff":
             energy_dist = mg_df["product_energy"] - mg_df["reactant_energy"]
 
+        else:
+            energy_dist = mg_df[target]
         q1, q3, med = (
             np.quantile(energy_dist, 0.25),
             np.quantile(energy_dist, 0.75),

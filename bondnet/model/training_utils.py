@@ -112,7 +112,7 @@ def evaluate_breakdown(model, nodes, data_loader, device=None):
     return dict_result_raw
 
 
-def load_model_lightning(dict_train, device=None, load_dir=None):
+def load_model_lightning(dict_train, load_dir=None):
     """
     returns model and optimizer from dict of parameters
 
@@ -123,7 +123,7 @@ def load_model_lightning(dict_train, device=None, load_dir=None):
         optimizer (pytorch optimizer obj): optimizer
     """
 
-    if device == None:
+    """    if device == None:
         if dict_train["on_gpu"]:
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             dict_train["gpu"] = "gpu"
@@ -132,7 +132,7 @@ def load_model_lightning(dict_train, device=None, load_dir=None):
             dict_train["gpu"] = "cpu"
     else:
         dict_train["gpu"] = "gpu"
-
+    """
     if dict_train["restore"]:
         print(":::RESTORING MODEL FROM EXISTING FILE:::")
 
@@ -151,7 +151,7 @@ def load_model_lightning(dict_train, device=None, load_dir=None):
             model = GatedGCNReactionNetworkLightning.load_from_checkpoint(
                 checkpoint_path=load_dir + "/last.ckpt"
             )
-            model.to(device)
+            # model.to(device)
             print(":::MODEL LOADED:::")
             return model
 
@@ -205,7 +205,7 @@ def load_model_lightning(dict_train, device=None, load_dir=None):
             eta_min=1e-6,
             loss_fn=dict_train["loss"],
             augment=dict_train["augment"],
-            device=device,
+            # device=device,
             cat_weights=dict_train["cat_weights"],
         )
 
@@ -236,7 +236,7 @@ def load_model_lightning(dict_train, device=None, load_dir=None):
             eta_min=1e-6,
             loss_fn=dict_train["loss"],
             augment=dict_train["augment"],
-            device=device,
+            # device=device,
         )
     # model.to(device)
 

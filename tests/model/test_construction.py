@@ -44,7 +44,6 @@ def test_model_construction():
         filter_outliers=False,
         filter_sparse_rxns=False,
         debug=False,
-        device=device,
         extra_keys=[],
         extra_info=[],
     )
@@ -54,7 +53,7 @@ def test_model_construction():
     )
     config = get_defaults()
     config["in_feats"] = dataset.feature_size
-    model = load_model_lightning(config, device=device, load_dir="./test_checkpoints/")
+    model = load_model_lightning(config, load_dir="./test_checkpoints/")
     assert type(model) == GatedGCNReactionNetworkLightning
 
 
@@ -73,7 +72,6 @@ def test_model_save_load():
         filter_outliers=False,
         filter_sparse_rxns=False,
         debug=False,
-        device=device,
         extra_keys=[],
         extra_info=[],
     )
@@ -84,7 +82,7 @@ def test_model_save_load():
 
     config = get_defaults()
     config["in_feats"] = dataset.feature_size
-    model = load_model_lightning(config, device=device, load_dir="./test_save_load/")
+    model = load_model_lightning(config, load_dir="./test_save_load/")
 
     trainer = pl.Trainer(
         max_epochs=3,
@@ -103,9 +101,7 @@ def test_model_save_load():
     trainer.save_checkpoint("./test_save_load/test.ckpt")
     config["restore_path"] = "./test_save_load/test.ckpt"
     config["restore"] = True
-    model_restart = load_model_lightning(
-        config, device=device, load_dir="./test_save_load/"
-    )
+    model_restart = load_model_lightning(config, load_dir="./test_save_load/")
 
     trainer_restart = pl.Trainer(resume_from_checkpoint="./test_save_load/test.ckpt")
     trainer_restart.fit_loop.max_epochs = 5
@@ -130,7 +126,6 @@ def test_transfer_learning():
         filter_outliers=False,
         filter_sparse_rxns=False,
         debug=False,
-        device=device,
         extra_keys=[],
         extra_info=[],
     )
@@ -145,7 +140,6 @@ def test_transfer_learning():
         filter_outliers=False,
         filter_sparse_rxns=False,
         debug=False,
-        device=device,
         extra_keys=[],
         extra_info=[],
     )
@@ -159,7 +153,7 @@ def test_transfer_learning():
 
     config = get_defaults()
     config["in_feats"] = dataset.feature_size
-    model = load_model_lightning(config, device=device, load_dir="./test_checkpoints/")
+    model = load_model_lightning(config, load_dir="./test_checkpoints/")
 
     trainer_transfer = pl.Trainer(
         max_epochs=3,
@@ -209,7 +203,6 @@ def test_augmentation():
         filter_outliers=False,
         filter_sparse_rxns=False,
         debug=False,
-        device=device,
         extra_keys=[],
         extra_info=[],
     )
@@ -221,7 +214,7 @@ def test_augmentation():
     config = get_defaults()
     config["in_feats"] = dataset.feature_size
     config["augment"] = True
-    model = load_model_lightning(config, device=device, load_dir="./test_save_load/")
+    model = load_model_lightning(config, load_dir="./test_save_load/")
 
     trainer = pl.Trainer(
         max_epochs=3,

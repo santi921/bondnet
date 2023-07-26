@@ -27,12 +27,13 @@ dist/
 .DS_Store
 .ipynb_checkpoints
 
-
+*.xyz
 *.txt
 latest-run
 settings*
 *.wandb
 *.pkl
+*.lmdb*
 *ckpt
 *.pt
 .cache/

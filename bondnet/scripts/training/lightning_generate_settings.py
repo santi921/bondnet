@@ -64,7 +64,7 @@ def check_folder(folder):
 
 def generate_and_write(options):
     dictionary_categories = {
-        "categories": [3, 5],
+        "classif_categories": [3, 5],
         "category_weights_3": [[1.0, 1.5, 2.0], [1.0, 3.0, 4.0], [1.0, 5.0, 5.0]],
         "category_weights_5": [
             [2.0, 1.0, 2.0, 1.5, 1.0],
@@ -73,7 +73,7 @@ def generate_and_write(options):
         ],
     }
 
-    dictionary_archi = {
+    dictionary_archi_options = {
         "gated_num_layers": [1, 2, 3],
         "fc_num_layers": [1, 2, 3],
         "gated_hidden_size_1": [512, 1024, 2048],
@@ -86,11 +86,10 @@ def generate_and_write(options):
         "filter_outliers": [True],
         "filter_sparse_rxns": [False],
         "filter_species": [[3, 6]],
-        "debug": [False],
+        "debug": [True],
         "test": [False],
-        "batch_size": [128, 256],
         "embedding_size": [8, 10, 12],
-        "max_epochs": [500, 1000, 1500],
+        "max_epochs": [10],
         "fc_activation": ["ReLU"],
         "fc_batch_norm": [False],
         "freeze": [False, True],
@@ -103,7 +102,7 @@ def generate_and_write(options):
         "start_epoch": [0],
         "early_stop": [True],
         "scheduler": [False],
-        "max_epochs_transfer": [250, 500, 1000],
+        "max_epochs_transfer": [10],
         "transfer": [False, True],
         "freeze": [True, False],
         "weight_decay": [0.0, 0.0001, 0.00001],
@@ -113,6 +112,20 @@ def generate_and_write(options):
         "gated_graph_norm": [0, 1],
         "gated_residual": [True],
         "fc_batch_norm": [False, True],
+    }
+
+    dict_opt_options = {
+        "gradient_clip_val": [0.0, 0.5, 1.0],
+        "accumulate_grad_batches": [1, 2, 4],
+    }
+    dictionary_optim = {
+        "batch_size": 256,
+        "num_devices": 1,
+        "num_nodes": 1,
+        "num_workers": 4,
+        "val_size": 0.1,
+        "test_size": 0.1,
+        "strategy": "ddp",
     }
 
     if options["hydro"]:
@@ -126,7 +139,12 @@ def generate_and_write(options):
         dictionary_values_options["filter_sparse_rxns"] = [False]
 
     for i in range(options["num"]):
-        dictionary_write = {}
+        dictionary_write = {
+            "model": {},
+            "dataset": {},
+            "dataset_transfer": {},
+            "optim": {},
+        }
 
         if options["hydro"] == True:
             featurizer_dict = {
@@ -183,49 +201,61 @@ def generate_and_write(options):
 
         featurizer_settings = choice(list(featurizer_dict.keys()))
         featurizer_settings = featurizer_dict[featurizer_settings]
-        dictionary_write.update(featurizer_settings)
+        # dictionary_write.update(featurizer_settings)
+        for k, v in featurizer_settings.items():
+            dictionary_write["model"][k] = v
+
+        for k, v in dictionary_optim.items():
+            dictionary_write["optim"][k] = v
+
+        for k, v in dict_opt_options.items():
+            dictionary_write["optim"][k] = choice(v)
+
+        for k, v in dictionary_values_options.items():
+            dictionary_write["model"][k] = choice(v)
 
         if options["class_cats"] == 3:
-            dictionary_write["categories"] = 3
-            dictionary_write["category_weights"] = choice(
+            dictionary_write["model"]["classif_categories"] = 3
+            dictionary_write["model"]["category_weights"] = choice(
                 dictionary_categories["category_weights_3"]
             )
         else:
-            dictionary_write["categories"] = 5
-            dictionary_write["category_weights"] = choice(
+            dictionary_write["model"]["classif_categories"] = 5
+            dictionary_write["model"]["category_weights"] = choice(
                 dictionary_categories["category_weights_5"]
             )
 
-        base_fc = choice(dictionary_archi["gated_hidden_size_1"])
-        base_gat = choice(dictionary_archi["fc_hidden_size_1"])
-        shape_fc = choice(dictionary_archi["fc_hidden_size_shape"])
-        shape_gat = choice(dictionary_archi["gated_hidden_size_shape"])
+        base_fc = choice(dictionary_archi_options["gated_hidden_size_1"])
+        base_gat = choice(dictionary_archi_options["fc_hidden_size_1"])
+        shape_fc = choice(dictionary_archi_options["fc_hidden_size_shape"])
+        shape_gat = choice(dictionary_archi_options["gated_hidden_size_shape"])
 
-        dictionary_write["fc_num_layers"] = choice(dictionary_archi["fc_num_layers"])
-        dictionary_write["gated_num_layers"] = choice(
-            dictionary_archi["gated_num_layers"]
+        dictionary_write["model"]["fc_num_layers"] = choice(
+            dictionary_archi_options["fc_num_layers"]
         )
-        dictionary_write["gated_hidden_size_1"] = base_gat
-        dictionary_write["fc_hidden_size_1"] = base_fc
-        dictionary_write["fc_hidden_size_shape"] = shape_fc
-        dictionary_write["gated_hidden_size_shape"] = shape_gat
-        dictionary_write["dataset_loc"] = options["dataset_loc"]
-        dictionary_write["on_gpu"] = options["gpu"]
-        dictionary_write["classifier"] = options["classifier"]
-        dictionary_write["restore"] = False
-        dictionary_write["precision"] = "32"
-        dictionary_write["restore_path"] = None
+        dictionary_write["model"]["gated_num_layers"] = choice(
+            dictionary_archi_options["gated_num_layers"]
+        )
+        dictionary_write["model"]["gated_hidden_size_1"] = base_gat
+        dictionary_write["model"]["fc_hidden_size_1"] = base_fc
+        dictionary_write["model"]["fc_hidden_size_shape"] = shape_fc
+        dictionary_write["model"]["gated_hidden_size_shape"] = shape_gat
+        dictionary_write["dataset"]["data_dir"] = options["data_dir"]
+        dictionary_write["dataset_transfer"]["data_dir"] = options["data_dir"]
+        dictionary_write["model"]["on_gpu"] = options["gpu"]
+        dictionary_write["model"]["classifier"] = options["classifier"]
+        dictionary_write["model"]["restore"] = False
+        dictionary_write["model"]["precision"] = "32"
+        dictionary_write["model"]["restore_path"] = None
 
         if options["hydro"]:
-            dictionary_write["target_var"] = "dG_sp"
-            dictionary_write["extra_info"] = ["functional_group_reacted"]
+            dictionary_write["dataset"]["target_var"] = "dG_sp"
+            dictionary_write["dataset_transfer"]["target_var"] = "dG_sp"
+            dictionary_write["model"]["extra_info"] = ["functional_group_reacted"]
         else:
-            dictionary_write["target_var"] = "ts"
-            dictionary_write["target_var_transfer"] = "diff"
-            dictionary_write["extra_info"] = []
-
-        for k, v in dictionary_values_options.items():
-            dictionary_write[k] = choice(v)
+            dictionary_write["dataset"]["target_var"] = "ts"
+            dictionary_write["dataset_transfer"]["target_var"] = "diff"
+            dictionary_write["model"]["extra_info"] = []
 
         if options["hydro"]:
             folder = "./hydro_lightning"
@@ -239,10 +269,10 @@ def generate_and_write(options):
             folder += "_cpu"
 
         if options["classifier"]:
-            dictionary_write["loss"] = "cross_entropy"
+            dictionary_write["model"]["loss"] = "cross_entropy"
             folder += "_classifier/"
         else:
-            dictionary_write["loss"] = choice(["huber", "mse"])
+            dictionary_write["model"]["loss"] = choice(["huber", "mse"])
             folder += "_regressor/"
 
         check_folder(folder)
@@ -256,6 +286,15 @@ def generate_and_write(options):
         check_folder(target)
         target += "/settings_" + str(i) + ".json"
         # sort keys
+
+        dictionary_write["dataset"]["log_save_dir"] = "./logs_lightning/"
+        dictionary_write["dataset_transfer"][
+            "log_save_dir"
+        ] = "./logs_lightning_transfer/"
+        dictionary_write["dataset_transfer"]["overwrite"] = True
+        dictionary_write["dataset"]["overwrite"] = True
+        dictionary_write["dataset"]["lmdb_dir"] = "./lmdb_data/"
+        dictionary_write["dataset_transfer"]["lmdb_dir"] = "./lmdb_data_transfer/"
         dictionary_write = dict(sorted(dictionary_write.items()))
         write_one(dictionary_write, target)
 
@@ -263,7 +302,7 @@ def generate_and_write(options):
         put_file_slurm_in_every_subfolder(
             folder=folder,
             project_name=options["project_name"],
-            file_loc=options["dataset_loc"],
+            file_loc=options["data_dir"],
             gpu=options["gpu"],
         )
 
@@ -303,10 +342,10 @@ def main():
         raise ValueError("Must have 3 or 5 categories for classifier")
 
     if hydro:
-        options["dataset_loc"] = "../../../../dataset/qm_9_merge_3_qtaim.json"
+        options["data_dir"] = "../../../../dataset/qm_9_merge_3_final_qtaim.json"
 
     else:
-        options["dataset_loc"] = "../../../../dataset/mg_dataset/mg_qtaim_complete.json"
+        options["data_dir"] = "../../../../dataset/mg_dataset/mg_qtaim_complete.json"
 
     generate_and_write(options)
 

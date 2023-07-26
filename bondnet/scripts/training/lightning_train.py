@@ -1,5 +1,6 @@
 import wandb, argparse, torch, json
 import numpy as np
+from copy import deepcopy
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
@@ -9,18 +10,18 @@ from pytorch_lightning.callbacks import (
     ModelCheckpoint,
 )
 
-from bondnet.data.dataset import ReactionNetworkDatasetPrecomputed
-from bondnet.data.dataloader import DataLoaderPrecomputedReactionGraphs
-from bondnet.data.dataset import train_validation_test_split
+from bondnet.data.dataset import (
+    BondNetLightningDataModule,
+)
 from bondnet.utils import seed_torch
 from bondnet.model.training_utils import (
-    get_grapher,
     LogParameters,
     load_model_lightning,
 )
 
 seed_torch()
 torch.set_float32_matmul_precision("high")  # might have to disable on older GPUs
+torch.multiprocessing.set_sharing_strategy("file_system")
 
 
 if __name__ == "__main__":
@@ -44,48 +45,28 @@ if __name__ == "__main__":
     config = args.config
     config = json.load(open(config, "r"))
 
-    precision = config["precision"]
-    if precision == "16" or precision == "32":
-        precision = int(precision)
+    if config["model"]["precision"] == "16" or config["model"]["precision"] == "32":
+        config["model"]["precision"] = int(config["model"]["precision"])
 
     if on_gpu:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     else:
         device = torch.device("cpu")
 
-    extra_keys = config["extra_features"]
+    extra_keys = config["model"]["extra_features"]
 
-    dataset = ReactionNetworkDatasetPrecomputed(
-        grapher=get_grapher(extra_keys),
-        file=dataset_loc,
-        target=config["target_var"],
-        classifier=config["classifier"],
-        classif_categories=config["classif_categories"],
-        filter_species=config["filter_species"],
-        filter_outliers=config["filter_outliers"],
-        filter_sparse_rxns=False,
-        debug=debug,
-        device=device,
-        extra_keys=extra_keys,
-        extra_info=config["extra_info"],
-    )
+    # dataset
+    config["dataset"]["data_dir"] = dataset_loc
+    config["model"]["extra_features"] = extra_keys
+    config["model"]["filter_sparse_rxns"] = False
+    config["model"]["debug"] = debug
+    config["dataset_transfer"]["data_dir"] = dataset_loc
+    # config["model"][]
 
-    dict_for_model = {
-        "extra_features": extra_keys,
-        "classifier": config["classifier"],
-        "classif_categories": config["classif_categories"],
-        "filter_species": config["filter_species"],
-        "filter_outliers": config["filter_outliers"],
-        "filter_sparse_rxns": False,
-        "debug": debug,
-        "in_feats": dataset.feature_size,
-    }
-
-    config.update(dict_for_model)
-
-    trainset, valset, testset = train_validation_test_split(
-        dataset, validation=0.15, test=0.15
-    )
+    dm = BondNetLightningDataModule(config)
+    feature_size, feature_names = dm.prepare_data()
+    config["model"]["in_feats"] = feature_size
+    config["dataset"]["feature_names"] = feature_names
 
     print(">" * 40 + "config_settings" + "<" * 40)
     for k, v in config.items():
@@ -93,47 +74,18 @@ if __name__ == "__main__":
 
     print(">" * 40 + "config_settings" + "<" * 40)
 
-    val_loader = DataLoaderPrecomputedReactionGraphs(
-        valset, batch_size=len(valset), shuffle=False
-    )
-    test_loader = DataLoaderPrecomputedReactionGraphs(
-        testset, batch_size=len(testset), shuffle=False
-    )
-    train_loader = DataLoaderPrecomputedReactionGraphs(
-        trainset, batch_size=config["batch_size"], shuffle=True
-    )
-
-    model = load_model_lightning(config, device=device, load_dir=log_save_dir)
+    model = load_model_lightning(config["model"], load_dir=log_save_dir)
     print("model constructed!")
-    if config["transfer"]:
+    if config["model"]["transfer"]:
         with wandb.init(project=project_name + "_transfer") as run_transfer:
-            dataset_transfer = ReactionNetworkDatasetPrecomputed(
-                grapher=get_grapher(extra_keys),
-                file=dataset_loc,
-                target=config["target_var_transfer"],
-                classifier=config["classifier"],
-                classif_categories=config["classif_categories"],
-                filter_species=config["filter_species"],
-                filter_outliers=config["filter_outliers"],
-                filter_sparse_rxns=False,
-                debug=debug,
-                device=device,
-                extra_keys=extra_keys,
-                extra_info=config["extra_info"],
-            )
-            trainset_transfer, valset_transfer, _ = train_validation_test_split(
-                dataset_transfer, validation=0.15, test=0.0
-            )
-            val_transfer_loader = DataLoaderPrecomputedReactionGraphs(
-                valset_transfer, batch_size=len(valset), shuffle=False
-            )
-            train_loader_loader = DataLoaderPrecomputedReactionGraphs(
-                trainset_transfer, batch_size=config["batch_size"], shuffle=True
-            )
+            config_transfer = deepcopy(config)
+            config_transfer["dataset"] = config_transfer["dataset_transfer"]
+
+            dm_transfer = BondNetLightningDataModule(config_transfer)
 
             log_parameters = LogParameters()
             logger_tb_transfer = TensorBoardLogger(
-                log_save_dir, name="test_logs_transfer"
+                config_transfer["dataset"]["log_save_dir"], name="test_logs_transfer"
             )
             logger_wb_transfer = WandbLogger(
                 project=project_name, name="test_logs_transfer"
@@ -141,7 +93,7 @@ if __name__ == "__main__":
             lr_monitor_transfer = LearningRateMonitor(logging_interval="step")
 
             checkpoint_callback_transfer = ModelCheckpoint(
-                dirpath=log_save_dir,
+                dirpath=config_transfer["dataset"]["log_save_dir"],
                 filename="model_lightning_transfer_{epoch:02d}-{val_l1:.2f}",
                 monitor="val_l1",
                 mode="min",
@@ -158,12 +110,16 @@ if __name__ == "__main__":
             )
 
             trainer_transfer = pl.Trainer(
-                max_epochs=config["max_epochs_transfer"],
+                max_epochs=config_transfer["model"]["max_epochs_transfer"],
                 accelerator="gpu",
-                devices=[0],
-                accumulate_grad_batches=5,
+                devices=config_transfer["optim"]["num_devices"],
+                num_nodes=config_transfer["optim"]["num_nodes"],
+                accumulate_grad_batches=config_transfer["optim"][
+                    "accumulate_grad_batches"
+                ],
+                strategy=config["optim"]["strategy"],
                 enable_progress_bar=True,
-                gradient_clip_val=1.0,
+                gradient_clip_val=config_transfer["optim"]["gradient_clip_val"],
                 callbacks=[
                     early_stopping_callback_transfer,
                     lr_monitor_transfer,
@@ -173,37 +129,38 @@ if __name__ == "__main__":
                 enable_checkpointing=True,
                 default_root_dir=log_save_dir,
                 logger=[logger_tb_transfer, logger_wb_transfer],
-                precision=precision,
+                precision=config_transfer["model"]["precision"],
             )
 
-            trainer_transfer.fit(model, train_loader_loader, val_transfer_loader)
-
-            # freezing logic
+            trainer_transfer.fit(model, dm_transfer)
             model_parameters_prior = filter(
                 lambda p: p.requires_grad, model.parameters()
             )
-            params_prior = sum([np.prod(p.size()) for p in model_parameters_prior])
-            if config["freeze"]:
+
+            if config_transfer["model"]["freeze"]:
+                params_prior = sum([np.prod(p.size()) for p in model_parameters_prior])
+                print(">" * 25 + "Freezing Module" + "<" * 25)
+                print("Freezing Gated Layers....")
+                print("Number of Trainable Model Params Prior: {}".format(params_prior))
                 model.gated_layers.requires_grad_(False)
             model_parameters = filter(lambda p: p.requires_grad, model.parameters())
             params = sum([np.prod(p.size()) for p in model_parameters])
-            print(">" * 25 + "Freezing Module" + "<" * 25)
-            print("Freezing Gated Layers....")
-            print("Number of Trainable Model Params Prior: {}".format(params_prior))
             print("Number of Trainable Model Params: {}".format(params))
 
         run_transfer.finish()
 
     with wandb.init(project=project_name) as run:
         log_parameters = LogParameters()
-        logger_tb = TensorBoardLogger(log_save_dir, name="test_logs")
+        logger_tb = TensorBoardLogger(
+            config["dataset"]["log_save_dir"], name="test_logs"
+        )
         logger_wb = WandbLogger(project=project_name, name="test_logs")
         lr_monitor = LearningRateMonitor(logging_interval="step")
 
         checkpoint_callback = ModelCheckpoint(
-            dirpath=log_save_dir,
+            dirpath=config["dataset"]["log_save_dir"],
             filename="model_lightning_{epoch:02d}-{val_l1:.2f}",
-            monitor="val_l1",  # TODO
+            monitor="val_l1",
             mode="min",
             auto_insert_metric_name=True,
             save_last=True,
@@ -214,12 +171,13 @@ if __name__ == "__main__":
         )
 
         trainer = pl.Trainer(
-            max_epochs=config["max_epochs"],
+            max_epochs=config["model"]["max_epochs"],
             accelerator="gpu",
-            devices=[0],
-            accumulate_grad_batches=5,
+            devices=config["optim"]["num_devices"],
+            num_nodes=config["optim"]["num_nodes"],
+            gradient_clip_val=config["optim"]["gradient_clip_val"],
+            accumulate_grad_batches=config["optim"]["accumulate_grad_batches"],
             enable_progress_bar=True,
-            gradient_clip_val=1.0,
             callbacks=[
                 early_stopping_callback,
                 lr_monitor,
@@ -227,12 +185,12 @@ if __name__ == "__main__":
                 checkpoint_callback,
             ],
             enable_checkpointing=True,
-            default_root_dir=log_save_dir,
+            strategy=config["optim"]["strategy"],
+            default_root_dir=config["dataset"]["log_save_dir"],
             logger=[logger_tb, logger_wb],
-            precision=precision,
+            precision=config["model"]["precision"],
         )
 
-        trainer.fit(model, train_loader, val_loader)
-        trainer.test(model, test_loader)
-
+        trainer.fit(model, dm)
+        trainer.test(model, dm)
     run.finish()

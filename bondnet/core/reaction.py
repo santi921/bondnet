@@ -19,8 +19,7 @@ logger = logging.getLogger(__name__)
 
 class Reaction:
     """
-    A reaction that only has one bond break or the type ``A -> B + C``
-    (break a bond not in a ring) or ``A -> B`` (break a bond in a ring).
+    A reaction.
 
     Args:
         reactants (list): MoleculeWrapper instances

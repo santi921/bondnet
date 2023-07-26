@@ -18,8 +18,6 @@ from bondnet.model.training_utils import (
     load_model_lightning,
 )
 
-from pytorch_lightning.strategies import DDPStrategy
-import os
 from pytorch_lightning.loggers import WandbLogger
 from bondnet.utils import merge_dicts
 
@@ -87,11 +85,10 @@ def main():
             "lmdb_dir": "./lmdb_data/",
         },
         "optim": {
-            "batch_size": 4,
-            "num_devices": 2,
+            "batch_size": 128,
+            "num_devices": 1,
             "num_nodes": 1,
-            "num_workers": 8,
-            "device": "cpu",
+            "num_workers": 4,
             "val_size": 0.15,
             "test_size": 0.1,
         },
@@ -106,17 +103,19 @@ def main():
             "filter_outliers": config["model"]["filter_outliers"],
             "filter_sparse_rxns": False,
             "debug": config["model"]["debug"],
-            "in_feats": {"atom": 20, "bond": 8, "global": 7},
+            # "in_feats": {"atom": 20, "bond": 8, "global": 7},
         },
         "optim": {"batch_size": 12},
     }
 
-    config, overrides = merge_dicts(config, dict_for_model)
-    for override_i in overrides:
-        print("overrides:", override_i)
     print(config)
     # config datamodule
     dm = BondNetLightningDataModule(config)
+    feature_size, feature_names = dm.prepare_data()
+    dict_for_model["model"]["in_feats"] = feature_size
+    config, overrides = merge_dicts(config, dict_for_model)
+    for override_i in overrides:
+        print("overrides:", override_i)
 
     # config lightning model
     model = load_model_lightning(
@@ -150,8 +149,8 @@ def main():
         accelerator="gpu",
         devices=config["optim"]["num_devices"],
         num_nodes=config["optim"]["num_nodes"],
-        accumulate_grad_batches=5,
-        enable_progress_bar=False,
+        accumulate_grad_batches=1,
+        enable_progress_bar=True,
         gradient_clip_val=1.0,
         callbacks=[
             early_stopping_callback,
@@ -167,8 +166,7 @@ def main():
         default_root_dir=config["dataset"]["log_save_dir"],
         logger=logger,
         precision=config["model"]["precision"],
-        log_every_n_steps=5,
-        # fast_dev_run=True
+        log_every_n_steps=1,
     )
     trainer.fit(model, dm)
     trainer.test(model, dm)

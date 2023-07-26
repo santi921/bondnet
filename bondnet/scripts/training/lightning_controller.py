@@ -1,8 +1,8 @@
 import wandb, argparse, json, os
 import torch
-
 import numpy as np
 from glob import glob
+from copy import deepcopy
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
@@ -12,25 +12,27 @@ from pytorch_lightning.callbacks import (
     ModelCheckpoint,
 )
 
-from bondnet.data.dataset import ReactionNetworkDatasetPrecomputed
 from bondnet.data.dataloader import DataLoaderPrecomputedReactionGraphs
 from bondnet.data.dataset import train_validation_test_split
 from bondnet.utils import seed_torch
 from bondnet.model.training_utils import (
-    get_grapher,
     LogParameters,
     load_model_lightning,
+)
+from bondnet.data.dataset import (
+    BondNetLightningDataModule,
 )
 
 seed_torch()
 torch.set_float32_matmul_precision("high")  # might have to disable on older GPUs
+torch.multiprocessing.set_sharing_strategy("file_system")
 
 
 def train_single(
     config,
-    dataset=None,
-    dataset_transfer=None,
-    device=None,
+    dm=None,
+    dm_transfer=None,
+    # device=None,
     project_name="hydro_lightning",
     log_save_dir="./logs_lightning/",
     run_name="settings_run_0",
@@ -41,61 +43,22 @@ def train_single(
         print("{}\t\t\t{}".format(str(k).ljust(20), str(v).ljust(20)))
     print(">" * 40 + "config_settings" + "<" * 40)
 
-    if dataset is None:
-        dataset = ReactionNetworkDatasetPrecomputed(
-            grapher=get_grapher(config["extra_features"]),
-            file=config["dataset_loc"],
-            target=config["target_var"],
-            classifier=config["classifier"],
-            classif_categories=config["categories"],
-            filter_species=config["filter_species"],
-            filter_sparse_rxns=config["filter_sparse_rxns"],
-            filter_outliers=config["filter_outliers"],
-            debug=config["debug"],
-            device=config["gpu"],
-            feature_filter=config["featurizer_filter"],
-            extra_keys=config["extra_features"],
-        )
+    if dm is None:
+        dm = BondNetLightningDataModule(config)
 
-    if dataset_transfer is None and config["transfer"]:
-        dataset_transfer = ReactionNetworkDatasetPrecomputed(
-            grapher=get_grapher(config["extra_features"]),
-            file=config["dataset_loc"],
-            target=config["target_var_transfer"],
-            classifier=config["classifier"],
-            classif_categories=config["categories"],
-            filter_species=config["filter_species"],
-            filter_outliers=config["filter_outliers"],
-            filter_sparse_rxns=config["filter_sparse_rxns"],
-            debug=config["debug"],
-            device=device,
-            extra_keys=config["extra_features"],
-            extra_info=config["extra_info"],
-        )
+    feature_size, feature_names = dm.prepare_data()
+    config["model"]["in_feats"] = feature_size
+    config["dataset"]["feature_names"] = feature_names
 
-    if device is None:
-        if config["on_gpu"]:
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        else:
-            device = torch.device("cpu")
-
-    trainset, valset, testset = train_validation_test_split(
-        dataset, validation=0.15, test=0.15
-    )
-    val_loader = DataLoaderPrecomputedReactionGraphs(
-        valset, batch_size=len(valset), shuffle=False
-    )
-    test_loader = DataLoaderPrecomputedReactionGraphs(
-        testset, batch_size=len(testset), shuffle=False
-    )
-    train_loader = DataLoaderPrecomputedReactionGraphs(
-        trainset, batch_size=config["batch_size"], shuffle=True
-    )
+    if dm_transfer is None and config["model"]["transfer"]:
+        config_transfer = deepcopy(config)
+        config_transfer["dataset"] = config_transfer["dataset_transfer"]
+        dm_transfer = BondNetLightningDataModule(config_transfer)
 
     if restore:
-        config["restore"] = True
+        config["model"]["restore"] = True
         # get all files
-        config["restore_dir"] = log_save_dir
+        config["model"]["restore_dir"] = log_save_dir
         print(
             "\n extracting latest checkpoint from {}\n".format(
                 log_save_dir + run_name + ".ckpt"
@@ -105,32 +68,24 @@ def train_single(
         # get latest file
         files_ckpt.sort(key=os.path.getmtime)
         if len(files_ckpt) == 0:
-            config["restore"] = False
+            config["model"]["restore"] = False
         else:
-            config["restore_file"] = files_ckpt[-1]
+            config["model"]["restore_file"] = files_ckpt[-1]
 
-    model = load_model_lightning(config, device=device, load_dir=log_save_dir)
+    model = load_model_lightning(config["model"], load_dir=log_save_dir)
 
-    if config["transfer"]:
+    if config["model"]["transfer"]:
         with wandb.init(project=project_name + "_transfer") as run_transfer:
             # log config
             wandb.config.update(config)
-            trainset_transfer, valset_transfer, _ = train_validation_test_split(
-                dataset_transfer, validation=0.15, test=0.0
-            )
-            val_transfer_loader = DataLoaderPrecomputedReactionGraphs(
-                valset_transfer, batch_size=len(valset), shuffle=False
-            )
-            train_loader_loader = DataLoaderPrecomputedReactionGraphs(
-                trainset_transfer, batch_size=config["batch_size"], shuffle=True
-            )
 
             log_parameters = LogParameters()
             logger_tb_transfer = TensorBoardLogger(
-                log_save_dir, name="test_logs_transfer"
+                config_transfer["dataset"]["log_save_dir"],
+                name="test_logs_transfer",
             )
             logger_wb_transfer = WandbLogger(
-                project=project_name, name="test_logs_transfer"
+                project=project_name + "_transfer", name="test_logs_transfer"
             )
             lr_monitor_transfer = LearningRateMonitor(logging_interval="step")
 
@@ -153,12 +108,16 @@ def train_single(
             )
 
             trainer_transfer = pl.Trainer(
-                max_epochs=config["max_epochs_transfer"],
+                max_epochs=config_transfer["model"]["max_epochs_transfer"],
                 accelerator="gpu",
-                devices=[0],
-                accumulate_grad_batches=5,
+                devices=config_transfer["optim"]["num_devices"],
+                num_nodes=config_transfer["optim"]["num_nodes"],
+                accumulate_grad_batches=config_transfer["optim"][
+                    "accumulate_grad_batches"
+                ],
+                strategy=config["optim"]["strategy"],
                 enable_progress_bar=True,
-                gradient_clip_val=1.0,
+                gradient_clip_val=config_transfer["optim"]["gradient_clip_val"],
                 callbacks=[
                     early_stopping_callback_transfer,
                     lr_monitor_transfer,
@@ -168,49 +127,55 @@ def train_single(
                 enable_checkpointing=True,
                 default_root_dir=log_save_dir,
                 logger=[logger_tb_transfer, logger_wb_transfer],
-                precision=config["precision"],
+                precision=config_transfer["model"]["precision"],
             )
+            trainer_transfer.fit(model, dm_transfer)
 
-            trainer_transfer.fit(model, train_loader_loader, val_transfer_loader)
-
-            if config["freeze"]:
+            if config["model"]["freeze"]:
+                params_prior = sum([np.prod(p.size()) for p in model_parameters_prior])
+                print(">" * 25 + "Freezing Module" + "<" * 25)
+                print("Freezing Gated Layers....")
+                print("Number of Trainable Model Params Prior: {}".format(params_prior))
                 model.gated_layers.requires_grad_(False)
             model_parameters = filter(lambda p: p.requires_grad, model.parameters())
             params = sum([np.prod(p.size()) for p in model_parameters])
-            print("Freezing Gated Layers....")
             print("Number of Trainable Model Params: {}".format(params))
 
-            config["transfer"] = False  # signals the end of transfer learning
+            config["model"]["transfer"] = False  # signals the end of transfer learning
             with open(run_name + ".json", "w") as f:
                 json.dump(config, f, indent=4)
 
         run_transfer.finish()
 
     with wandb.init(project=project_name) as run:
-        wandb.config.update(config)
         log_parameters = LogParameters()
-        logger_tb = TensorBoardLogger(log_save_dir, name="test_logs")
+        logger_tb = TensorBoardLogger(
+            config["dataset"]["log_save_dir"], name="test_logs"
+        )
         logger_wb = WandbLogger(project=project_name, name="test_logs")
         lr_monitor = LearningRateMonitor(logging_interval="step")
+
         checkpoint_callback = ModelCheckpoint(
-            dirpath=log_save_dir,
-            filename=run_name + "_model_lightning_{epoch:02d}-{val_l1:.2f}",
+            dirpath=config["dataset"]["log_save_dir"],
+            filename="model_lightning_{epoch:02d}-{val_l1:.2f}",
             monitor="val_l1",
             mode="min",
             auto_insert_metric_name=True,
             save_last=True,
         )
+
         early_stopping_callback = EarlyStopping(
             monitor="val_l1", min_delta=0.00, patience=500, verbose=False, mode="min"
         )
 
         trainer = pl.Trainer(
-            max_epochs=config["max_epochs"],
+            max_epochs=config["model"]["max_epochs"],
             accelerator="gpu",
-            devices=[0],
-            accumulate_grad_batches=5,
+            devices=config["optim"]["num_devices"],
+            num_nodes=config["optim"]["num_nodes"],
+            gradient_clip_val=config["optim"]["gradient_clip_val"],
+            accumulate_grad_batches=config["optim"]["accumulate_grad_batches"],
             enable_progress_bar=True,
-            gradient_clip_val=1.0,
             callbacks=[
                 early_stopping_callback,
                 lr_monitor,
@@ -218,15 +183,14 @@ def train_single(
                 checkpoint_callback,
             ],
             enable_checkpointing=True,
-            default_root_dir=log_save_dir,
+            strategy=config["optim"]["strategy"],
+            default_root_dir=config["dataset"]["log_save_dir"],
             logger=[logger_tb, logger_wb],
-            precision=config["precision"],
+            precision=config["model"]["precision"],
         )
 
-        trainer.fit(model, train_loader, val_loader)
-
-        trainer.test(model, test_loader)
-
+        trainer.fit(model, dm)
+        trainer.test(model, dm)
     run.finish()
 
 
@@ -235,63 +199,42 @@ def controller_main(project_name, log_save_dir):
     first_setting = files[0]
     config = json.load(open(first_setting, "r"))
 
-    if config["precision"] == "16" or config["precision"] == "32":
-        config["precision"] = int(config["precision"])
+    # if config["precision"] == "16" or config["precision"] == "32":
+    #    config["precision"] = int(config["precision"])
+    if config["model"]["precision"] == "16" or config["model"]["precision"] == "32":
+        config["model"]["precision"] = int(config["model"]["precision"])
+    dm = BondNetLightningDataModule(config)
+    feature_size, feature_names = dm.prepare_data()
+    config["model"]["in_feats"] = feature_size
+    config["dataset"]["feature_names"] = feature_names
 
-    if config["on_gpu"]:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    else:
-        device = torch.device("cpu")
+    # config["in_feats"] = dataset.feature_size
 
-    extra_keys = config["extra_features"]
-
-    dataset = ReactionNetworkDatasetPrecomputed(
-        grapher=get_grapher(extra_keys),
-        file=config["dataset_loc"],
-        target=config["target_var"],
-        classifier=config["classifier"],
-        classif_categories=config["categories"],
-        filter_species=config["filter_species"],
-        filter_outliers=config["filter_outliers"],
-        filter_sparse_rxns=config["filter_sparse_rxns"],
-        debug=config["debug"],
-        device=device,
-        extra_keys=extra_keys,
-        extra_info=config["extra_info"],
-    )
-
-    config["in_feats"] = dataset.feature_size
-
-    dataset_transfer = None
-
-    if config["transfer"]:
-        dataset_transfer = ReactionNetworkDatasetPrecomputed(
-            grapher=get_grapher(extra_keys),
-            file=config["dataset_loc"],
-            target=config["target_var_transfer"],
-            classifier=config["classifier"],
-            classif_categories=config["categories"],
-            filter_species=config["filter_species"],
-            filter_outliers=config["filter_outliers"],
-            filter_sparse_rxns=config["filter_sparse_rxns"],
-            debug=config["debug"],
-            device=device,
-            extra_keys=extra_keys,
-            extra_info=config["extra_info"],
-        )
+    # dataset_transfer = None
+    dm_transfer = None
+    if config["model"]["transfer"]:
+        config_transfer = deepcopy(config)
+        config_transfer["dataset"] = config_transfer["dataset_transfer"]
+        dm_transfer = BondNetLightningDataModule(config_transfer)
 
     for ind, file in enumerate(files):
         # try:
         print("loading file {}".format(file))
         dict_train = json.load(open(file, "r"))
-        dict_train["precision"] = config["precision"]
-        dict_train["in_feats"] = dataset.feature_size
+
+        if (
+            dict_train["model"]["precision"] == "16"
+            or dict_train["model"]["precision"] == "32"
+        ):
+            dict_train["model"]["precision"] = int(dict_train["model"]["precision"])
+        # dict_train["precision"] = config["precision"]
+        dict_train["in_feats"] = feature_size
 
         train_single(
             dict_train,
-            dataset=dataset,
-            dataset_transfer=dataset_transfer,
-            device=device,
+            dm=dm,
+            dm_transfer=dm_transfer,
+            # device=device,
             project_name=project_name,
             log_save_dir=log_save_dir,
             run_name=file.split(".")[0],
