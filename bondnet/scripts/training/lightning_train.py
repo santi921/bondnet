@@ -13,10 +13,8 @@ from pytorch_lightning.callbacks import (
 from bondnet.data.dataset import (
     BondNetLightningDataModule,
 )
-from bondnet.data.dataset import train_validation_test_split
 from bondnet.utils import seed_torch
 from bondnet.model.training_utils import (
-    get_grapher,
     LogParameters,
     load_model_lightning,
 )
@@ -119,6 +117,7 @@ if __name__ == "__main__":
                 accumulate_grad_batches=config_transfer["optim"][
                     "accumulate_grad_batches"
                 ],
+                strategy=config["optim"]["strategy"],
                 enable_progress_bar=True,
                 gradient_clip_val=config_transfer["optim"]["gradient_clip_val"],
                 callbacks=[
@@ -161,7 +160,7 @@ if __name__ == "__main__":
         checkpoint_callback = ModelCheckpoint(
             dirpath=config["dataset"]["log_save_dir"],
             filename="model_lightning_{epoch:02d}-{val_l1:.2f}",
-            monitor="val_l1",  # TODO
+            monitor="val_l1",
             mode="min",
             auto_insert_metric_name=True,
             save_last=True,
@@ -186,6 +185,7 @@ if __name__ == "__main__":
                 checkpoint_callback,
             ],
             enable_checkpointing=True,
+            strategy=config["optim"]["strategy"],
             default_root_dir=config["dataset"]["log_save_dir"],
             logger=[logger_tb, logger_wb],
             precision=config["model"]["precision"],

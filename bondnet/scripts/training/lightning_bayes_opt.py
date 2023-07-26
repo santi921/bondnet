@@ -19,12 +19,13 @@ from bondnet.model.training_utils import (
     load_model_lightning,
 )
 
-# from bondnet.model.gated_reaction_network_lightning import (
-#    GatedGCNReactionNetworkLightning,
-# )
+from bondnet.model.gated_reaction_network_lightning import (
+    GatedGCNReactionNetworkLightning,
+)
 
 seed_torch()
 torch.set_float32_matmul_precision("high")  # might have to disable on older GPUs
+torch.multiprocessing.set_sharing_strategy("file_system")
 
 
 class TrainingObject:

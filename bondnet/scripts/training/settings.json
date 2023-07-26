@@ -40,7 +40,7 @@
   },
   "optim": {
     "batch_size": 128,
-    "num_devices": 1,
+    "num_devices": 2,
     "num_nodes": 1,
     "num_workers": 2,
     "val_size": 0.15,
