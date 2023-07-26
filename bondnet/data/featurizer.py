@@ -476,7 +476,7 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
                         feats_info["environment"], self.solvent_environment
                     )
             if self.functional_g_basis is not None:
-                print("functional group info", self.functional_g_basis)
+                # print("functional group info", self.functional_g_basis)
                 g += one_hot_encoding(mol.functional_group, self.functional_g_basis)
 
         feats = torch.tensor([g], dtype=getattr(torch, self.dtype))
