@@ -10,9 +10,11 @@ from pytorch_lightning.callbacks import (
     ModelCheckpoint,
 )
 
-from bondnet.data.dataset import (
+from bondnet.data.datamodule import (
     BondNetLightningDataModule,
+    BondNetLightningDataModuleLMDB,
 )
+
 from bondnet.utils import seed_torch
 from bondnet.model.training_utils import (
     LogParameters,
@@ -28,17 +30,22 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--on_gpu", default=False, action="store_true")
     parser.add_argument("--debug", default=False, action="store_true")
+
     parser.add_argument("-project_name", type=str, default="hydro_lightning")
     parser.add_argument(
         "-dataset_loc", type=str, default="../../dataset/qm_9_merge_3_qtaim.json"
     )
     parser.add_argument("-log_save_dir", type=str, default="./logs_lightning/")
     parser.add_argument("-config", type=str, default="./settings.json")
+    parser.add_argument(
+        "--lmdb", default=False, action="store_true", help="use lmdb for dataset"
+    )
 
     args = parser.parse_args()
 
     on_gpu = bool(args.on_gpu)
     debug = bool(args.debug)
+    use_lmdb = bool(args.lmdb)
     project_name = args.project_name
     dataset_loc = args.dataset_loc
     log_save_dir = args.log_save_dir
@@ -61,9 +68,12 @@ if __name__ == "__main__":
     config["model"]["filter_sparse_rxns"] = False
     config["model"]["debug"] = debug
     config["dataset_transfer"]["data_dir"] = dataset_loc
-    # config["model"][]
 
-    dm = BondNetLightningDataModule(config)
+    if use_lmdb:
+        dm = BondNetLightningDataModuleLMDB(config)
+    else:
+        dm = BondNetLightningDataModule(config)
+
     feature_size, feature_names = dm.prepare_data()
     config["model"]["in_feats"] = feature_size
     config["dataset"]["feature_names"] = feature_names
@@ -81,7 +91,10 @@ if __name__ == "__main__":
             config_transfer = deepcopy(config)
             config_transfer["dataset"] = config_transfer["dataset_transfer"]
 
-            dm_transfer = BondNetLightningDataModule(config_transfer)
+            if use_lmdb:
+                dm_transfer = BondNetLightningDataModuleLMDB(config_transfer)
+            else:
+                dm_transfer = BondNetLightningDataModule(config_transfer)
 
             log_parameters = LogParameters()
             logger_tb_transfer = TensorBoardLogger(

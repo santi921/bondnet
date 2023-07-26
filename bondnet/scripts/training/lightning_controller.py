@@ -12,15 +12,15 @@ from pytorch_lightning.callbacks import (
     ModelCheckpoint,
 )
 
-from bondnet.data.dataloader import DataLoaderPrecomputedReactionGraphs
-from bondnet.data.dataset import train_validation_test_split
+from bondnet.data.datamodule import (
+    BondNetLightningDataModule,
+    BondNetLightningDataModuleLMDB,
+)
+
 from bondnet.utils import seed_torch
 from bondnet.model.training_utils import (
     LogParameters,
     load_model_lightning,
-)
-from bondnet.data.dataset import (
-    BondNetLightningDataModule,
 )
 
 seed_torch()
@@ -37,6 +37,7 @@ def train_single(
     log_save_dir="./logs_lightning/",
     run_name="settings_run_0",
     restore=True,
+    use_lmdb=False,
 ):
     print(">" * 40 + "config_settings" + "<" * 40)
     for k, v in config.items():
@@ -44,7 +45,10 @@ def train_single(
     print(">" * 40 + "config_settings" + "<" * 40)
 
     if dm is None:
-        dm = BondNetLightningDataModule(config)
+        if use_lmdb:
+            dm = BondNetLightningDataModuleLMDB(config)
+        else:
+            dm = BondNetLightningDataModule(config)
 
     feature_size, feature_names = dm.prepare_data()
     config["model"]["in_feats"] = feature_size
@@ -53,7 +57,12 @@ def train_single(
     if dm_transfer is None and config["model"]["transfer"]:
         config_transfer = deepcopy(config)
         config_transfer["dataset"] = config_transfer["dataset_transfer"]
+
         dm_transfer = BondNetLightningDataModule(config_transfer)
+        if use_lmdb:
+            dm_transfer = BondNetLightningDataModuleLMDB(config_transfer)
+        else:
+            dm_transfer = BondNetLightningDataModule(config_transfer)
 
     if restore:
         config["model"]["restore"] = True
@@ -132,6 +141,9 @@ def train_single(
             trainer_transfer.fit(model, dm_transfer)
 
             if config["model"]["freeze"]:
+                model_parameters_prior = filter(
+                    lambda p: p.requires_grad, model.parameters()
+                )
                 params_prior = sum([np.prod(p.size()) for p in model_parameters_prior])
                 print(">" * 25 + "Freezing Module" + "<" * 25)
                 print("Freezing Gated Layers....")
@@ -251,7 +263,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-project_name", type=str, default="hydro_lightning")
     parser.add_argument("-log_save_dir", type=str, default="./logs_lightning/")
+    parser.add_argument(
+        "--lmdb", default=False, action="store_true", help="use lmdb for dataset"
+    )
     args = parser.parse_args()
     project_name = args.project_name
     log_save_dir = args.log_save_dir
-    controller_main(project_name, log_save_dir)
+    controller_main(project_name, log_save_dir, use_lmdb=bool(args.lmdb))
