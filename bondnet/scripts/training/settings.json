@@ -29,7 +29,6 @@
     "loss": "mse",
     "num_lstm_iters": 3,
     "num_lstm_layers": 1,
-    "on_gpu": true,
     "restore": false,
     "weight_decay": 0.0,
     "max_epochs": 10,

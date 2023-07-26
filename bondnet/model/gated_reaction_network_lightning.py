@@ -387,13 +387,13 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         if self.hparams.loss_fn == "mse":
             # loss_fn = WeightedMSELoss(reduction="mean")
             loss_fn = torchmetrics.MeanSquaredError()
-        elif self.hparams.loss_fn == "huber":
-            loss_fn = WeightedSmoothL1Loss(reduction="mean")
+        elif self.hparams.loss_fn == "smape":
+            loss_fn = torchmetrics.SymmetricMeanAbsolutePercentageError()
         elif self.hparams.loss_fn == "mae":
             # loss_fn = WeightedL1Loss(reduction="mean")
             loss_fn = torchmetrics.MeanAbsoluteError()
         else:
-            loss_fn = WeightedMSELoss(reduction="mean")
+            loss_fn = torchmetrics.MeanSquaredError()
 
         return loss_fn
 
@@ -492,7 +492,6 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         plt.xlabel("Predicted")
         plt.ylabel("True")
         plt.savefig("./{}.png".format("./test"))
-
         return self.shared_step(batch, mode="test")
 
     def training_epoch_end(self, outputs):
