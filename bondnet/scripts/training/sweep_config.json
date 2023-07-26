@@ -37,7 +37,7 @@
   "target_var_transfer": { "values": ["diff"] },
   "transfer": { "values": [true] },
   "extra_features": { "values": [["bond_length"]] },
-  "extra_info": { "values": ["functional_group_reacted"] },
+  "extra_info": { "values": [["functional_group_reacted"]] },
   "precision": { "values": [16, "bf16"] },
   "classif_categories": { "values": [3] },
   "filter_species": { "values": [[3, 6]] },

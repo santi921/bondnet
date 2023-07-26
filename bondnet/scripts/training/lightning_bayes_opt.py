@@ -17,8 +17,9 @@ from bondnet.model.training_utils import (
     load_model_lightning,
 )
 
-from bondnet.data.dataset import (
+from bondnet.data.datamodule import (
     BondNetLightningDataModule,
+    BondNetLightningDataModuleLMDB,
 )
 
 
@@ -29,13 +30,14 @@ torch.multiprocessing.set_sharing_strategy("file_system")
 
 class TrainingObject:
     def __init__(
-        self, sweep_config, log_save_dir, project_name, dataset_loc, lmdb_root
+        self, sweep_config, log_save_dir, project_name, dataset_loc, lmdb_root, use_lmdb
     ):
         self.sweep_config = sweep_config
         self.log_save_dir = log_save_dir
         self.wandb_name = project_name
         self.dataset_loc = dataset_loc
         self.lmdb_root = lmdb_root
+        self.use_lmdb = use_lmdb
 
         # if self.config["parameters"]["on_gpu"]:
         #    self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -104,7 +106,11 @@ class TrainingObject:
                 "test_size": self.sweep_config["parameters"]["test_size"]["values"][0],
             },
         }
-        self.dm = BondNetLightningDataModule(dm_config)
+        if self.use_lmdb:
+            self.dm = BondNetLightningDataModuleLMDB(dm_config)
+        else:
+            self.dm = BondNetLightningDataModule(dm_config)
+
         feature_size, feature_names = self.dm.prepare_data()
         # config["model"]["in_feats"] = feature_size
         # config["dataset"]["feature_names"] = feature_names
@@ -116,7 +122,11 @@ class TrainingObject:
             config_transfer["dataset"]["target_var"] = self.sweep_config["parameters"][
                 "target_var_transfer"
             ]["values"][0]
-            self.dm_transfer = BondNetLightningDataModule(config_transfer)
+
+            if self.use_lmdb:
+                self.dm = BondNetLightningDataModuleLMDB(config_transfer)
+            else:
+                self.dm = BondNetLightningDataModule(config_transfer)
 
     def make_model(self, config):
         # convert old config to new config TODO
@@ -337,11 +347,15 @@ if __name__ == "__main__":
     parser.add_argument("-project_name", type=str, default="hydro_lightning")
     parser.add_argument("-sweep_config", type=str, default="./sweep_config.json")
     parser.add_argument("-lmdb_root", type=str, default="./lmdb_out/")
+    parser.add_argument(
+        "--lmdb", default=False, action="store_true", help="use lmdb for dataset"
+    )
 
     args = parser.parse_args()
     method = str(args.method)
     # on_gpu = bool(args.on_gpu)
     debug = bool(args.debug)
+    use_lmdb = bool(args.lmdb)
     lmdb_root = args.lmdb_root
 
     dataset_loc = args.dataset_loc
@@ -366,6 +380,7 @@ if __name__ == "__main__":
         dataset_loc=dataset_loc,
         project_name=wandb_project_name,
         lmdb_root=lmdb_root,
+        use_lmdb=use_lmdb,
     )
 
     print("method: {}".format(method))

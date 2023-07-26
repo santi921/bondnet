@@ -33,15 +33,15 @@
     "weight_decay": 0.0,
     "max_epochs": 10,
     "max_epochs_transfer": 10,
-    "transfer": true,
+    "transfer": false,
     "filter_outliers": true,
     "freeze": true
   },
   "optim": {
     "batch_size": 128,
-    "num_devices": 2,
+    "num_devices": 1,
     "num_nodes": 1,
-    "num_workers": 2,
+    "num_workers": 1,
     "val_size": 0.15,
     "test_size": 0.1,
     "strategy": "ddp",
@@ -51,7 +51,7 @@
   "dataset": {
     "log_save_dir": "./test_lmdb/",
     "lmdb_dir": "./lmdb_data/",
-    "target_var": "ts",
+    "target_var": "dG_sp",
     "overwrite": true
   },
   "dataset_transfer": {
