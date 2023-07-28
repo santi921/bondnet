@@ -9,7 +9,7 @@ from pytorch_lightning.callbacks import (
     ModelCheckpoint,
 )
 
-from bondnet.data.dataset import (
+from bondnet.data.datamodule import (
     BondNetLightningDataModule,
 )
 from bondnet.utils import seed_torch
@@ -71,8 +71,6 @@ def main():
             "num_lstm_layers": 1,
             "on_gpu": True,
             "restore": False,
-            "target_var": "ts",
-            "target_var_transfer": "diff",
             "weight_decay": 0.0,
             "max_epochs": 100,
             "max_epochs_transfer": 100,
@@ -83,6 +81,7 @@ def main():
             "log_save_dir": "./test_lmdb/",
             "data_dir": "../../../tests/data/testdata/barrier_100.json",
             "lmdb_dir": "./lmdb_data/",
+            "target_var": "ts",
         },
         "optim": {
             "batch_size": 128,
@@ -119,7 +118,7 @@ def main():
 
     # config lightning model
     model = load_model_lightning(
-        config["model"], device=device, load_dir=config["dataset"]["log_save_dir"]
+        config["model"], load_dir=config["dataset"]["log_save_dir"]
     )
 
     # config, logger, lr_monitor, checkpoint, early_stopping.
@@ -171,6 +170,9 @@ def main():
     trainer.fit(model, dm)
     trainer.test(model, dm)
     # run.finish()
+
+
+main()
 
 
 main()
