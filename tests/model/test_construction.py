@@ -60,7 +60,6 @@ def test_model_construction():
 def test_model_save_load():
     precision = 16
     dataset_loc = "../data/testdata/barrier_100.json"
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     dataset = ReactionNetworkDatasetPrecomputed(
         grapher=get_grapher([]),
@@ -114,7 +113,6 @@ def test_model_save_load():
 def test_transfer_learning():
     precision = 16
     dataset_loc = "../data/testdata/barrier_100.json"
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     dataset = ReactionNetworkDatasetPrecomputed(
         grapher=get_grapher([]),
@@ -191,7 +189,6 @@ def test_transfer_learning():
 def test_augmentation():
     precision = 16
     dataset_loc = "../data/testdata/barrier_100.json"
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     dataset = ReactionNetworkDatasetPrecomputed(
         grapher=get_grapher([]),
