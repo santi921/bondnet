@@ -332,6 +332,8 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         norm_bond = label["norm_bond"]
         stdev = label["scaler_stdev"]
         mean = label["scaler_mean"]
+        if self.stdev is None:
+            self.stdev = stdev[0]
 
         pred = self(
             batched_graph,
@@ -374,8 +376,6 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             sync_dist=True,
         )
         self.update_metrics(target, pred, mode)
-        if self.stdev is None:
-            self.stdev = stdev[0]
 
         return all_loss
 
@@ -569,8 +569,11 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             self.test_torch_mse.reset()
 
         if self.stdev is not None:
+            print("stdev", self.stdev)
             torch_l1 = torch_l1 * self.stdev
             torch_mse = torch_mse * self.stdev * self.stdev
+        else:
+            print("scaling is 1!" + "*" * 20)
 
         # if self.mean is not None:
         #    #torch_l1 = torch_l1 + self.mean
