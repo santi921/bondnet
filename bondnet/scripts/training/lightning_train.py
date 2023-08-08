@@ -55,10 +55,10 @@ if __name__ == "__main__":
     if config["model"]["precision"] == "16" or config["model"]["precision"] == "32":
         config["model"]["precision"] = int(config["model"]["precision"])
 
-    if on_gpu:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    else:
-        device = torch.device("cpu")
+    ##if on_gpu:
+    #    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    #else:
+    #    device = torch.device("cpu")
 
     extra_keys = config["model"]["extra_features"]
 

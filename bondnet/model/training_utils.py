@@ -345,7 +345,7 @@ def get_grapher(features):
         fg_list = None
 
     global_featurizer = GlobalFeaturizerGraph(
-        allowed_charges=[-2, -1, 0, 1], functional_g_basis=fg_list
+        allowed_charges=[-2, -1, 0, 1, 2], functional_g_basis=fg_list
     )
     grapher = HeteroCompleteGraphFromMolWrapper(
         atom_featurizer, bond_featurizer, global_featurizer

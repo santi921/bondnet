@@ -2,7 +2,7 @@ import pytorch_lightning as pl
 import torch.distributed as dist
 import os
 from bondnet.data.dataset import (
-    ReactionNetworkDatasetPrecomputed,
+    ReactionNetworkDatasetGraphs,
     train_validation_test_split,
 )
 
@@ -10,9 +10,8 @@ from bondnet.data.lmdb_dataset import LmdbDataset, CRNs2lmdb
 
 
 from bondnet.data.dataloader import (
-    DataLoaderPrecomputedReactionGraphs,
-    DataLoaderPrecomputedReactionGraphsParallel,
     collate_parallel,
+    DataLoaderReactionNetworkParallel
 )
 
 from bondnet.model.training_utils import (
@@ -60,7 +59,7 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
         ):
             # Load json file, preprocess data, and write to lmdb file
 
-            entire_dataset = ReactionNetworkDatasetPrecomputed(
+            entire_dataset = ReactionNetworkDatasetGraphs(
                 grapher=get_grapher(self.config["model"]["extra_features"]),
                 file=self.config["dataset"]["data_dir"],
                 target=self.config["dataset"]["target_var"],
@@ -128,7 +127,7 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
         #     )
 
     def train_dataloader(self):
-        return DataLoaderPrecomputedReactionGraphsParallel(
+        return DataLoaderReactionNetworkParallel(
             dataset=self.train_ds,
             batch_size=self.config["optim"]["batch_size"],
             shuffle=True,
@@ -139,7 +138,7 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
     # return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=0)
 
     def test_dataloader(self):
-        return DataLoaderPrecomputedReactionGraphsParallel(
+        return DataLoaderReactionNetworkParallel(
             dataset=self.test_ds,
             batch_size=len(self.test_ds),
             shuffle=False,
@@ -150,7 +149,7 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
     # return DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=False)
 
     def val_dataloader(self):
-        return DataLoaderPrecomputedReactionGraphsParallel(
+        return DataLoaderReactionNetworkParallel(
             dataset=self.val_ds,
             batch_size=len(self.val_ds),
             shuffle=False,
@@ -166,7 +165,7 @@ class BondNetLightningDataModule(pl.LightningDataModule):
         self.prepared = False
 
     def prepare_data(self):
-        entire_dataset = ReactionNetworkDatasetPrecomputed(
+        entire_dataset = ReactionNetworkDatasetGraphs(
             grapher=get_grapher(self.config["model"]["extra_features"]),
             file=self.config["dataset"]["data_dir"],
             target=self.config["dataset"]["target_var"],
@@ -203,7 +202,7 @@ class BondNetLightningDataModule(pl.LightningDataModule):
             self.test_ds = self.test_dataset
 
     def train_dataloader(self):
-        return DataLoaderPrecomputedReactionGraphsParallel(
+        return DataLoaderReactionNetworkParallel(
             dataset=self.train_ds,
             batch_size=self.config["optim"]["batch_size"],
             shuffle=True,
@@ -214,7 +213,7 @@ class BondNetLightningDataModule(pl.LightningDataModule):
     # return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=0)
 
     def test_dataloader(self):
-        return DataLoaderPrecomputedReactionGraphsParallel(
+        return DataLoaderReactionNetworkParallel(
             dataset=self.test_ds,
             batch_size=len(self.test_ds),
             shuffle=False,
@@ -225,7 +224,7 @@ class BondNetLightningDataModule(pl.LightningDataModule):
     # return DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=False)
 
     def val_dataloader(self):
-        return DataLoaderPrecomputedReactionGraphsParallel(
+        return DataLoaderReactionNetworkParallel(
             dataset=self.val_ds,
             batch_size=len(self.val_ds),
             shuffle=False,

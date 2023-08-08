@@ -467,7 +467,6 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         classifier=False,
         debug=False,
         classif_categories=None,
-        device=None,
         extra_keys=None,
         dataset_atom_types=None,
         extra_info=None,
@@ -516,7 +515,10 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         self._failed = None
         self.classifier = classifier
         self.classif_categories = classif_categories
-        self.device = device
+        if torch.cuda.is_available(): 
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        else: 
+            self.device = None
         self._load()
 
     def _load(self):
@@ -538,12 +540,12 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
 
         # get species
         # species = get_dataset_species_from_json(self.pandas_df)
-        # system_species = set()
-        # for mol in self.molecules:
-        #    species = list(set(mol.species))
-        #    system_species.update(species)
+        system_species = set()
+        for mol in self.molecules:
+            species = list(set(mol.species))
+            system_species.update(species)
 
-        # self._species = sorted(system_species)
+        self._species = sorted(system_species)
         # this is hard coded and potentially needs to be adjusted for other datasets, this is to have fixed size and order of the species
         self._species = ["C", "F", "H", "N", "O", "Mg", "Li", "S", "Cl", "P", "O", "Br"]
 
@@ -675,9 +677,6 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                 self._failed.append(False)
 
         self.reaction_ids = list(range(len(reactions)))
-
-        # create reaction network
-        self.reaction_network = ReactionNetwork(graphs, reactions, molecules_final)
 
         # feature transformers
         if self.label_transformer:
@@ -1056,7 +1055,28 @@ class ReactionNetworkDataset(BaseDataset):
         return len(self.reaction_ids)
 
 
-class ReactionNetworkDatasetPrecomputed(BaseDataset):
+class Subset(BaseDataset):
+    def __init__(self, dataset, indices):
+        self.dtype = dataset.dtype
+        self.dataset = dataset
+        self.indices = indices
+
+    @property
+    def feature_size(self):
+        return self.dataset.feature_size
+
+    @property
+    def feature_name(self):
+        return self.dataset.feature_name
+
+    def __getitem__(self, idx):
+        return self.dataset[self.indices[idx]]
+
+    def __len__(self):
+        return len(self.indices)
+
+
+class ReactionNetworkDatasetGraphs(BaseDataset):
     def __init__(
         self,
         grapher,
@@ -1072,7 +1092,6 @@ class ReactionNetworkDatasetPrecomputed(BaseDataset):
         classifier=False,
         debug=False,
         classif_categories=None,
-        # device=None,
         extra_keys=None,
         dataset_atom_types=None,
         extra_info=None,
@@ -1098,6 +1117,7 @@ class ReactionNetworkDatasetPrecomputed(BaseDataset):
             extra_keys=extra_keys,
             extra_info=extra_info,
         )
+
         self.molecules = all_mols
         self.raw_labels = all_labels
         self.extra_features = features
@@ -1120,7 +1140,6 @@ class ReactionNetworkDatasetPrecomputed(BaseDataset):
         self._failed = None
         self.classifier = classifier
         self.classif_categories = classif_categories
-        # self.device = device
         self._load()
 
     def _load(self):
@@ -1192,7 +1211,7 @@ class ReactionNetworkDatasetPrecomputed(BaseDataset):
                 graphs[i] = g
             self.molecules_ordered = molecules_final
 
-            # if self.device != None:
+            #if self.device != None:
             #    graph_temp = []
             #    for g in graphs:
             #        graph_temp.append(g.to(self.device))
@@ -1282,10 +1301,6 @@ class ReactionNetworkDatasetPrecomputed(BaseDataset):
 
         # create reaction network
         self.reaction_network = ReactionNetwork(graphs, reactions, molecules_final)
-        print("prebuilding reaction graphs")
-        self.reaction_graphs, self.reaction_features = self.build_reaction_graphs(
-            graphs, reactions
-        )
 
         # feature transformers
         if self.label_transformer:
@@ -1370,101 +1385,13 @@ class ReactionNetworkDatasetPrecomputed(BaseDataset):
         return features
 
     def __getitem__(self, item):
-        rn, rxn, lb = (
-            self.reaction_graphs[item],
-            self.reaction_features[item],
-            self.labels[item],
-        )
+        rn, rxn, lb = self.reaction_network, self.reaction_ids[item], self.labels[item]
         return rn, rxn, lb
 
     def __len__(self):
         return len(self.reaction_ids)
 
-    @staticmethod
-    def build_reaction_graphs(graphs, reactions):
-        reaction_graphs = []
-        reaction_fts = []
 
-        for rxn in reactions:
-            reactants = [graphs[i] for i in rxn.reactants]
-            products = [graphs[i] for i in rxn.products]
-            mappings = {
-                "bond_map": rxn.bond_mapping,
-                "atom_map": rxn.atom_mapping,
-                "total_bonds": rxn.total_bonds,
-                "total_atoms": rxn.total_atoms,
-                "num_bonds_total": rxn.num_bonds_total,
-                "num_atoms_total": rxn.num_atoms_total,
-            }
-            has_bonds = {
-                "reactants": [
-                    True if len(mp) > 0 else False for mp in rxn.bond_mapping[0]
-                ],
-                "products": [
-                    True if len(mp) > 0 else False for mp in rxn.bond_mapping[1]
-                ],
-            }
-            if len(has_bonds["reactants"]) != len(reactants) or len(
-                has_bonds["products"]
-            ) != len(products):
-                print("unequal mapping & graph len")
-
-            g, fts = create_rxn_graph(
-                reactants,
-                products,
-                mappings,
-                has_bonds,
-                reverse=False,
-                ft_name="feat",
-            )
-            reaction_graphs.append(g)
-            reaction_fts.append(fts)
-
-        for i, g, ind in zip(reaction_fts, reaction_graphs, range(len(reaction_fts))):
-            feat_len_dict = {}
-            total_feats = 0
-
-            for nt, ft in i.items():
-                # print(nt)
-                total_feats += i[nt].shape[0]
-                feat_len_dict[nt] = i[nt].shape[0]
-                # write to graph
-                g.nodes[nt].data.update({"ft": ft})
-
-                # g.nodes["bond"].data.update(i["bond"])
-                # g.nodes["global"].data.update(i["global"])
-
-            if total_feats != g.number_of_nodes():  # error checking
-                print(g)
-                print(feat_len_dict)
-                print(reactions[ind].atom_mapping)
-                print(reactions[ind].bond_mapping)
-                print(reactions[ind].total_bonds)
-                print(reactions[ind].total_atoms)
-                print("--" * 20)
-
-        return reaction_graphs, reaction_fts
-
-
-class Subset(BaseDataset):
-    def __init__(self, dataset, indices):
-        self.dtype = dataset.dtype
-        self.dataset = dataset
-        self.indices = indices
-
-    @property
-    def feature_size(self):
-        return self.dataset.feature_size
-
-    @property
-    def feature_name(self):
-        return self.dataset.feature_name
-
-    def __getitem__(self, idx):
-        return self.dataset[self.indices[idx]]
-
-    def __len__(self):
-        return len(self.indices)
 
 
 def train_validation_test_split(dataset, validation=0.1, test=0.1, random_seed=None):

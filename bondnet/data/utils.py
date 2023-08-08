@@ -209,7 +209,7 @@ def ring_features_for_bonds_full(bonds, no_metal_binary, cycles, allowed_ring_si
     """
     ret_dict = {}
     for i, bond in enumerate(bonds):
-        if no_metal_binary[i] == 0:
+        if no_metal_binary[i] == 1:
             inclusion, ring_one_hot = ring_features_from_bond(
                 bond, cycles, allowed_ring_size
             )
@@ -435,7 +435,7 @@ def mol_graph_to_rxn_graph(graph, feats, reactions, device=None, reverse=False):
             print("unequal mapping & graph len")
 
         g, fts = create_rxn_graph(
-            reactants, products, mappings, has_bonds, device, reverse=reverse
+            reactants=reactants, products=products, mappings=mappings, device=device, has_bonds=has_bonds, reverse=reverse        
         )
 
         reaction_graphs.append(g)
@@ -523,6 +523,7 @@ def create_rxn_graph(
     products,
     mappings,
     has_bonds,
+    device=None,
     ntypes=("global", "atom", "bond"),
     ft_name="ft",
     reverse=False,
@@ -554,7 +555,7 @@ def create_rxn_graph(
     # note, this assumes we have one reactant
     num_products = int(len(products))
     num_reactants = int(len(reactants))
-    graph = construct_rxn_graph_empty(mappings)
+    graph = construct_rxn_graph_empty(mappings, device=device)
     if verbose:
         print(
             "# reactions: {}, # products: {}".format(
@@ -566,9 +567,9 @@ def create_rxn_graph(
         reactants_ft = [p.nodes[nt].data[ft_name] for p in reactants]
         products_ft = [p.nodes[nt].data[ft_name] for p in products]
 
-        # if device is not None:
-        #    reactants_ft = [r.to(device) for r in reactants_ft]
-        #    products_ft = [p.to(device) for p in products_ft]
+        if device is not None:
+           reactants_ft = [r.to(device) for r in reactants_ft]
+           products_ft = [p.to(device) for p in products_ft]
 
         if nt == "bond":
             if num_products > 1:
@@ -597,9 +598,9 @@ def create_rxn_graph(
             products_ft = [
                 torch.sum(product_ft, dim=0, keepdim=True) for product_ft in products_ft
             ]
-            # if device is not None:
-            #    reactants_ft = [r.to(device) for r in reactants_ft]
-            #    products_ft = [p.to(device) for p in products_ft]
+            if device is not None:
+               reactants_ft = [r.to(device) for r in reactants_ft]
+               products_ft = [p.to(device) for p in products_ft]
 
         len_feature_nt = reactants_ft[0].shape[1]
         # if(len_feature_nt!=64): print(mappings)
@@ -611,25 +612,34 @@ def create_rxn_graph(
         else:
             net_ft_full = torch.zeros(mappings["num_atoms_total"], len_feature_nt)
 
-        # if device is not None:
-        #    net_ft_full = net_ft_full.to(device)
+        if device is not None:
+           net_ft_full = net_ft_full.to(device)
 
         if nt == "global":
-            coef = 1
+            coef = torch.tensor([1])
             if reverse == True:
-                coef = -1
-
+                coef = torch.tensor([-1])
+            if device is not None:
+                coef = coef.to(device)
             for product_ft in products_ft:
+
                 net_ft_full += coef * torch.sum(product_ft, dim=0, keepdim=True)
             for reactant_ft in reactants_ft:
                 net_ft_full -= coef * torch.sum(reactant_ft, dim=0, keepdim=True)
 
         else:
-            net_ft_full_temp = copy.deepcopy(net_ft_full)
-            coef = 1
+            net_ft_full_zeros = copy.deepcopy(net_ft_full) 
+            #print(coef.device)
+            #print(net_ft_full.device)
+            coef = torch.tensor([1])
             if reverse == True:
-                coef = -1
+                coef = torch.tensor([-1])
+                
+            if device is not None:
+                coef = coef.to(device)
+            
             for ind, reactant_ft in enumerate(reactants_ft):
+                net_ft_full_temp = copy.deepcopy(net_ft_full_zeros)
                 mappings_raw = mappings[nt + "_map"][0][ind]
                 mappings_react = list(mappings_raw.keys())
                 mappings_total = [mappings_raw[mapping] for mapping in mappings_react]
@@ -637,9 +647,10 @@ def create_rxn_graph(
                     net_ft_full_temp
                 ), f"invalid index  {mappings}"
                 net_ft_full_temp[mappings_total] = reactant_ft[mappings_react]
-                net_ft_full -= coef * net_ft_full_temp
+                net_ft_full[mappings_total] -= coef * net_ft_full_temp[mappings_total]
 
             for ind, product_ft in enumerate(products_ft):
+                net_ft_full_temp = copy.deepcopy(net_ft_full_zeros)
                 mappings_raw = mappings[nt + "_map"][1][ind]
                 mappings_prod = list(mappings_raw.keys())
                 mappings_total = [mappings_raw[mapping] for mapping in mappings_prod]
@@ -647,7 +658,7 @@ def create_rxn_graph(
                     net_ft_full_temp
                 ), f"invalid index  {mappings}"
                 net_ft_full_temp[mappings_total] = product_ft[mappings_prod]
-                net_ft_full += coef * net_ft_full_temp
+                net_ft_full[mappings_total] += coef * net_ft_full_temp[mappings_total]
 
         feats[nt] = net_ft_full
     return graph, feats
