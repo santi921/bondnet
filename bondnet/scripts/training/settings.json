@@ -31,7 +31,7 @@
     "num_lstm_layers": 1,
     "restore": false,
     "weight_decay": 0.0,
-    "max_epochs": 10,
+    "max_epochs": 1000,
     "max_epochs_transfer": 10,
     "transfer": false,
     "filter_outliers": true,
