@@ -13,12 +13,6 @@ import matplotlib.pyplot as plt
 from bondnet.layer.gatedconv import GatedGCNConv, GatedGCNConv1, GatedGCNConv2
 from bondnet.layer.readout import Set2SetThenCat
 from bondnet.layer.utils import UnifySize
-from bondnet.model.metric import (
-    WeightedL1Loss,
-    WeightedMSELoss,
-    WeightedSmoothL1Loss,
-    Metrics_WeightedMAE,
-)
 
 from bondnet.data.utils import (
     _split_batched_output,
@@ -236,6 +230,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         self,
         graph,
         feats,
+        reactions,
         norm_atom=None,
         norm_bond=None,
         reverse=False,
@@ -262,6 +257,12 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         # gated layer
         for layer in self.gated_layers:
             feats = layer(graph, feats, norm_atom, norm_bond)
+        
+        # get device 
+        device = feats["bond"].device
+
+        # convert mol graphs to reaction graphs
+        graph, feats = mol_graph_to_rxn_graph(graph=graph, feats=feats, reactions=reactions, device=device, reverse=reverse)
 
         # readout layer
         feats = self.readout_layer(graph, feats)
@@ -271,7 +272,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
 
         return feats
 
-    def feature_before_fc(self, graph, feats, norm_atom, norm_bond):
+    def feature_before_fc(self, graph, feats, reactions, norm_atom, norm_bond):
         """
         Get the features before the final fully-connected.
 
@@ -282,12 +283,15 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         # gated layer
         for layer in self.gated_layers:
             feats = layer(graph, feats, norm_atom, norm_bond)
-
+        # get device
+        device = feats["bond"].device
+        graph, feats = mol_graph_to_rxn_graph(graph=graph, feats=feats, reactions=reactions, reverse=False, device=device )
+        
         # readout layer
         feats = self.readout_layer(graph, feats)
         return feats
 
-    def feature_at_each_layer(self, graph, feats, norm_atom, norm_bond):
+    def feature_at_each_layer(self, graph, feats, reactions, norm_atom, norm_bond):
         """
         Get the features at each layer before the final fully-connected layer.
 
@@ -323,7 +327,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         # ========== compute predictions ==========
         batched_graph, label = batch
         nodes = ["atom", "bond", "global"]
-        feats = {nt: batched_graph.nodes[nt].data["ft"] for nt in nodes}
+        feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
         target = label["value"].view(-1)
         target_aug = label["value_rev"].view(-1)
         empty_aug = torch.isnan(target_aug).tolist()
@@ -332,12 +336,15 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         norm_bond = label["norm_bond"]
         stdev = label["scaler_stdev"]
         mean = label["scaler_mean"]
+        reactions = label["reaction"]
+
         if self.stdev is None:
             self.stdev = stdev[0]
 
         pred = self(
-            batched_graph,
-            feats,
+            graph=batched_graph,
+            feats=feats,
+            reactions=reactions,
             reverse=False,
             norm_bond=norm_bond,
             norm_atom=norm_atom,
@@ -349,8 +356,9 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             # target_aug_new_shape = (len(target_aug), 1)
             # target_aug = target_aug.view(target_aug_new_shape)
             pred_aug = self(
-                batched_graph,
-                feats,
+                graph=batched_graph,
+                feats=feats,
+                reactions=reactions,
                 reverse=True,
                 norm_bond=norm_bond,
                 norm_atom=norm_atom,
@@ -457,19 +465,22 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         # ========== compute predictions ==========
         batched_graph, label = batch
         nodes = ["atom", "bond", "global"]
-        feats = {nt: batched_graph.nodes[nt].data["ft"] for nt in nodes}
+        feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
         target = label["value"].view(-1)
         target_aug = label["value_rev"].view(-1)
         empty_aug = torch.isnan(target_aug).tolist()
         empty_aug = True in empty_aug
         norm_atom = label["norm_atom"]
         norm_bond = label["norm_bond"]
+        reactions = label["reaction"]
 
-        stdev = label["scaler_stdev"]
+        if self.stdev is not None:
+            stdev = self.stdev
 
         pred = self(
             batched_graph,
             feats,
+            reactions,
             reverse=False,
             norm_bond=norm_bond,
             norm_atom=norm_atom,
@@ -486,8 +497,17 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         plt.scatter(pred_np * stdev_np, target_np * stdev_np)
         min_val = np.min([np.min(pred_np), np.min(target_np)]) - 0.5
         max_val = np.max([np.max(pred_np), np.max(target_np)]) + 0.5
-        # plt.ylim(min_val,max_val)
-        # plt.xlim(min_val,max_val)
+        # manually compute mae and mse
+        mae = np.mean(np.abs(pred_np * stdev_np - target_np * stdev_np))
+        mse = np.mean((pred_np * stdev_np - target_np * stdev_np) ** 2)
+        r2  = np.corrcoef(pred_np, target_np)[0, 1] ** 2
+        print("-"*30)
+        print("MANUALLY COMPUTED METRICS")
+        print("-"*30)
+        print("mae: ", mae)
+        print("mse: ", mse)
+        print("r2: ", r2) 
+
         plt.title("Predicted vs. True")
         plt.xlabel("Predicted")
         plt.ylabel("True")
@@ -569,7 +589,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             self.test_torch_mse.reset()
 
         if self.stdev is not None:
-            print("stdev", self.stdev)
+            #print("stdev", self.stdev)
             torch_l1 = torch_l1 * self.stdev
             torch_mse = torch_mse * self.stdev * self.stdev
         else:
