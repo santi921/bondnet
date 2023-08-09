@@ -10,7 +10,6 @@ from pytorch_lightning.callbacks import (
 )
 from copy import deepcopy
 
-from bondnet.data.dataloader import DataLoaderPrecomputedReactionGraphs
 from bondnet.utils import seed_torch
 from bondnet.model.training_utils import (
     LogParameters,
