@@ -1300,7 +1300,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         self.reaction_ids = list(range(len(reactions)))
 
         # create reaction network
-        self.reaction_network = ReactionNetwork(graphs, reactions, molecules_final)
+        self.reaction_network = ReactionNetwork(molecules=graphs, reactions=reactions, wrappers=molecules_final)
 
         # feature transformers
         if self.label_transformer:
@@ -1387,7 +1387,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
     def __getitem__(self, item):
         rn, rxn, lb = self.reaction_network, self.reaction_ids[item], self.labels[item]
         return rn, rxn, lb
-
+    
     def __len__(self):
         return len(self.reaction_ids)
 

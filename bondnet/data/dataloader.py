@@ -322,9 +322,9 @@ class DataLoaderPrecomputedReactionGraphsParallel(DataLoader):
 
 def collate_parallel(samples):
     #reaction_graph, reaction_features, labels = map(list, zip(*samples))  # old
-    reaction, rxn_ids, labels = map(list, zip(*samples)) # new
+    reaction_network, rxn_ids, labels = map(list, zip(*samples)) # new
 
-    reactions, graphs = reaction[0].subselect_reactions(rxn_ids)
+    reactions, graphs = reaction_network[0].subselect_reactions(rxn_ids)
     batched_graphs = dgl.batch(graphs)
     sizes_atom = [g.number_of_nodes("atom") for g in graphs]
     sizes_bond = [g.number_of_nodes("bond") for g in graphs]
