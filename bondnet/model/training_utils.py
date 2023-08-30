@@ -51,7 +51,7 @@ class LogParameters(pl.Callback):
 
 def evaluate_breakdown(model, nodes, data_loader, device=None):
     """
-    basic loop for training a classifier. Gets mae
+    basic loop for evaluating performance across a trained model. Get mae
 
     Args:
         model(pytorch model): pytorch model

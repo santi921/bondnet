@@ -1,9 +1,6 @@
-import torch, json
+import torch
 import pytorch_lightning as pl
-from bondnet.data.dataset import ReactionNetworkDatasetGraphs
-from bondnet.data.dataloader import DataLoaderReactionNetwork
 from bondnet.model.training_utils import (
-    get_grapher,
     load_model_lightning,
 )
 from bondnet.data.datamodule import BondNetLightningDataModule
@@ -27,9 +24,8 @@ torch.set_float32_matmul_precision("high")  # might have to disable on older GPU
 
 
 def get_defaults():
-    
     config = {
-        "model" : {
+        "model": {
             "augment": False,
             "classifier": False,
             "classif_categories": 3,
@@ -65,11 +61,11 @@ def get_defaults():
             "max_epochs_transfer": 10,
             "transfer": False,
             "filter_outliers": True,
-            "freeze": True
+            "freeze": True,
         }
     }
-    #config = "./settings.json"
-    #config = json.load(open(config, "r"))
+    # config = "./settings.json"
+    # config = json.load(open(config, "r"))
     return config
 
 
@@ -79,27 +75,24 @@ def test_model_construction():
         "dataset": {
             "data_dir": dataset_loc,
             "target_var": "dG_barrier",
-
         },
-        "model": 
-            {
-                "extra_features": [],
-                "extra_info": [],
-                "debug": False,
-                "classifier": False,
-                "classif_categories": 3,
-                "filter_species": [3, 6],
-                "filter_outliers": False,
-                "filter_sparse_rxns": False,
-                "restore": False
-
-            },
+        "model": {
+            "extra_features": [],
+            "extra_info": [],
+            "debug": False,
+            "classifier": False,
+            "classif_categories": 3,
+            "filter_species": [3, 6],
+            "filter_outliers": False,
+            "filter_sparse_rxns": False,
+            "restore": False,
+        },
         "optim": {
             "val_size": 0.1,
             "test_size": 0.1,
             "batch_size": 4,
             "num_workers": 1,
-        }
+        },
     }
     config_model = get_defaults()
     # update config with model settings
@@ -108,7 +101,7 @@ def test_model_construction():
 
     dm = BondNetLightningDataModule(config)
     feat_size, feat_name = dm.prepare_data()
-    #config = get_defaults()
+    # config = get_defaults()
     config["model"]["in_feats"] = feat_size
     model = load_model_lightning(config["model"], load_dir="./test_checkpoints/")
     assert type(model) == GatedGCNReactionNetworkLightning
@@ -120,27 +113,24 @@ def test_model_save_load():
         "dataset": {
             "data_dir": dataset_loc,
             "target_var": "dG_barrier",
-
         },
-        "model": 
-            {
-                "extra_features": [],
-                "extra_info": [],
-                "debug": False,
-                "classifier": False,
-                "classif_categories": 3,
-                "filter_species": [3, 6],
-                "filter_outliers": False,
-                "filter_sparse_rxns": False,
-                "restore": False
-
-            },
+        "model": {
+            "extra_features": [],
+            "extra_info": [],
+            "debug": False,
+            "classifier": False,
+            "classif_categories": 3,
+            "filter_species": [3, 6],
+            "filter_outliers": False,
+            "filter_sparse_rxns": False,
+            "restore": False,
+        },
         "optim": {
             "val_size": 0.1,
             "test_size": 0.1,
             "batch_size": 4,
             "num_workers": 1,
-        }
+        },
     }
     config_model = get_defaults()
     # update config with model settings
@@ -187,57 +177,51 @@ def test_transfer_learning():
         "dataset": {
             "data_dir": dataset_loc,
             "target_var": "dG_barrier",
-
         },
-        "model": 
-            {
-                "extra_features": [],
-                "extra_info": [],
-                "debug": False,
-                "classifier": False,
-                "classif_categories": 3,
-                "filter_species": [3, 6],
-                "filter_outliers": False,
-                "filter_sparse_rxns": False,
-                "augment": False,
-                "restore": False
-
-            },
+        "model": {
+            "extra_features": [],
+            "extra_info": [],
+            "debug": False,
+            "classifier": False,
+            "classif_categories": 3,
+            "filter_species": [3, 6],
+            "filter_outliers": False,
+            "filter_sparse_rxns": False,
+            "augment": False,
+            "restore": False,
+        },
         "optim": {
             "val_size": 0.2,
             "test_size": 0.2,
             "batch_size": 4,
             "num_workers": 1,
-        }
+        },
     }
 
     config_transfer = {
         "dataset": {
             "data_dir": dataset_loc,
             "target_var": "dG",
-
         },
-        "model": 
-            {
-                "extra_features": [],
-                "extra_info": [],
-                "debug": False,
-                "classifier": False,
-                "classif_categories": 3,
-                "filter_species": [3, 6],
-                "filter_outliers": False,
-                "filter_sparse_rxns": False,
-                "restore": False
-
-            },
+        "model": {
+            "extra_features": [],
+            "extra_info": [],
+            "debug": False,
+            "classifier": False,
+            "classif_categories": 3,
+            "filter_species": [3, 6],
+            "filter_outliers": False,
+            "filter_sparse_rxns": False,
+            "restore": False,
+        },
         "optim": {
             "val_size": 0.2,
             "test_size": 0.2,
             "batch_size": 4,
             "num_workers": 1,
-        }
+        },
     }
-    
+
     config_model = get_defaults()
     # update config with model settings
     for key, value in config_model["model"].items():
@@ -252,7 +236,9 @@ def test_transfer_learning():
 
     config["model"]["in_feats"] = feat_size
     config_transfer["model"]["in_feats"] = feat_size
-    model = load_model_lightning(config_transfer["model"], load_dir="./test_checkpoints/")
+    model = load_model_lightning(
+        config_transfer["model"], load_dir="./test_checkpoints/"
+    )
 
     trainer_transfer = pl.Trainer(
         max_epochs=3,
@@ -282,8 +268,8 @@ def test_transfer_learning():
         log_every_n_steps=1,
     )
     """
-    #trainer.fit(model, dm)
-    #trainer.test(model, dm)
+    # trainer.fit(model, dm)
+    # trainer.test(model, dm)
     print("training transfer works!")
 
 
@@ -293,33 +279,30 @@ def test_augmentation():
         "dataset": {
             "data_dir": dataset_loc,
             "target_var": "dG_barrier",
-
         },
-        "model": 
-            {
-                "extra_features": [],
-                "extra_info": [],
-                "debug": False,
-                "classifier": False,
-                "classif_categories": 3,
-                "filter_species": [3, 6],
-                "filter_outliers": False,
-                "filter_sparse_rxns": False,
-                "restore": False
-
-            },
+        "model": {
+            "extra_features": [],
+            "extra_info": [],
+            "debug": False,
+            "classifier": False,
+            "classif_categories": 3,
+            "filter_species": [3, 6],
+            "filter_outliers": False,
+            "filter_sparse_rxns": False,
+            "restore": False,
+        },
         "optim": {
             "val_size": 0.1,
             "test_size": 0.1,
             "batch_size": 4,
             "num_workers": 1,
-        }
+        },
     }
     config_model = get_defaults()
     # update config with model settings
     for key, value in config_model["model"].items():
         config["model"][key] = value
-        
+
     dm = BondNetLightningDataModule(config)
     feat_size, feat_name = dm.prepare_data()
 
@@ -343,6 +326,7 @@ def test_augmentation():
 
     trainer.fit(model, dm)
     trainer.test(model, dm)
+
 
 # TODO: lmdb tests
 # TODO: test multi-gpu
@@ -400,4 +384,3 @@ def test_classifier():
 
     trainer.fit(model, train_loader, train_loader)
 """
-
