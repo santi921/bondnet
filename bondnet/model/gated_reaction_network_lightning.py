@@ -177,6 +177,8 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         if set2set_ntypes_direct is not None:
             readout_out_size += gated_hidden_size[-1] * len(set2set_ntypes_direct)
 
+        self.readout_out_size = readout_out_size
+
         # need dropout?
         delta = 1e-3
         if fc_dropout < delta:
@@ -257,12 +259,18 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         # gated layer
         for layer in self.gated_layers:
             feats = layer(graph, feats, norm_atom, norm_bond)
-        
-        # get device 
+
+        # get device
         device = feats["bond"].device
 
         # convert mol graphs to reaction graphs
-        graph, feats = mol_graph_to_rxn_graph(graph=graph, feats=feats, reactions=reactions, device=device, reverse=reverse)
+        graph, feats = mol_graph_to_rxn_graph(
+            graph=graph,
+            feats=feats,
+            reactions=reactions,
+            device=device,
+            reverse=reverse,
+        )
 
         # readout layer
         feats = self.readout_layer(graph, feats)
@@ -285,8 +293,14 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             feats = layer(graph, feats, norm_atom, norm_bond)
         # get device
         device = feats["bond"].device
-        graph, feats = mol_graph_to_rxn_graph(graph=graph, feats=feats, reactions=reactions, reverse=False, device=device )
-        
+        graph, feats = mol_graph_to_rxn_graph(
+            graph=graph, 
+            feats=feats, 
+            reactions=reactions, 
+            reverse=False, 
+            device=device
+        )
+
         # readout layer
         feats = self.readout_layer(graph, feats)
         return feats
@@ -500,13 +514,13 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         # manually compute mae and mse
         mae = np.mean(np.abs(pred_np * stdev_np - target_np * stdev_np))
         mse = np.mean((pred_np * stdev_np - target_np * stdev_np) ** 2)
-        r2  = np.corrcoef(pred_np, target_np)[0, 1] ** 2
-        print("-"*30)
+        r2 = np.corrcoef(pred_np, target_np)[0, 1] ** 2
+        print("-" * 30)
         print("MANUALLY COMPUTED METRICS")
-        print("-"*30)
+        print("-" * 30)
         print("mae: ", mae)
         print("mse: ", mse)
-        print("r2: ", r2) 
+        print("r2: ", r2)
 
         plt.title("Predicted vs. True")
         plt.xlabel("Predicted")
@@ -589,7 +603,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             self.test_torch_mse.reset()
 
         if self.stdev is not None:
-            #print("stdev", self.stdev)
+            # print("stdev", self.stdev)
             torch_l1 = torch_l1 * self.stdev
             torch_mse = torch_mse * self.stdev * self.stdev
         else:

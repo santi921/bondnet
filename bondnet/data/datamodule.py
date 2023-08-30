@@ -9,15 +9,10 @@ from bondnet.data.dataset import (
 from bondnet.data.lmdb_dataset import LmdbDataset, CRNs2lmdb
 
 
-from bondnet.data.dataloader import (
-    collate_parallel,
-    DataLoaderReactionNetworkParallel
-)
+from bondnet.data.dataloader import collate_parallel, DataLoaderReactionNetworkParallel
 
 from bondnet.model.training_utils import (
     get_grapher,
-    LogParameters,
-    load_model_lightning,
 )
 
 
@@ -210,8 +205,6 @@ class BondNetLightningDataModule(pl.LightningDataModule):
             num_workers=self.config["optim"]["num_workers"],
         )
 
-    # return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=0)
-
     def test_dataloader(self):
         return DataLoaderReactionNetworkParallel(
             dataset=self.test_ds,
@@ -220,8 +213,6 @@ class BondNetLightningDataModule(pl.LightningDataModule):
             collate_fn=collate_parallel,
             num_workers=self.config["optim"]["num_workers"],
         )
-
-    # return DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=False)
 
     def val_dataloader(self):
         return DataLoaderReactionNetworkParallel(
