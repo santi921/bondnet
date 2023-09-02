@@ -294,11 +294,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         # get device
         device = feats["bond"].device
         graph, feats = mol_graph_to_rxn_graph(
-            graph=graph, 
-            feats=feats, 
-            reactions=reactions, 
-            reverse=False, 
-            device=device
+            graph=graph, feats=feats, reactions=reactions, reverse=False, device=device
         )
 
         # readout layer

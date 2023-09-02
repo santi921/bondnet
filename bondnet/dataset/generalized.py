@@ -17,7 +17,7 @@ from bondnet.utils import int_atom, xyz2mol
 
 from rdkit import Chem
 
-Chem.WrapLogs()
+# Chem.WrapLogs()
 
 
 def parse_extra_electronic_feats_atom(extra_feats, inds):

@@ -857,6 +857,9 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         graphs_not_none_indices = [i for i, g in enumerate(graphs) if g is not None]
         print("number of graphs valid: " + str(len(graphs_not_none_indices)))
         print("number of graphs: " + str(len(graphs)))
+        assert len(graphs_not_none_indices) == len(
+            graphs
+        ), "Some graphs are invalid in construction, this should not happen"
         # store feature name and size
         self._feature_name = self.grapher.feature_name
         self._feature_size = self.grapher.feature_size
