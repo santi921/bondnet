@@ -4,7 +4,6 @@ import networkx as nx
 import itertools
 import torch
 from rdkit import Chem
-from collections import deque
 import itertools, copy, dgl
 
 

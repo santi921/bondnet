@@ -51,5 +51,6 @@
   "strategy": { "values": ["ddp"] },
   "val_size": { "values": [0.15] },
   "test_size": { "values": [0.1] },
-  "overwrite": { "values": [false] }
+  "overwrite": { "values": [false] },
+  "conv": { "values": ["GatedGCNConv"] }
 }

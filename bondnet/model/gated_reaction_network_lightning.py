@@ -133,10 +133,13 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
 
         # gated layer
         if conv == "GatedGCNConv":
+            print("NB: using GatedGCNConv")
             conv_fn = GatedGCNConv
         elif conv == "GatedGCNConv1":
+            print("NB: using GatedGCNConv1")
             conv_fn = GatedGCNConv1
         elif conv == "GatedGCNConv2":
+            print("NB: using GatedGCNConv2")
             conv_fn = GatedGCNConv2
         else:
             raise ValueError()

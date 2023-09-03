@@ -1,5 +1,6 @@
 {
   "model": {
+    "conv": "GatedGCNConv1",
     "augment": true,
     "classifier": false,
     "classif_categories": 3,

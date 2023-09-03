@@ -207,6 +207,7 @@ def load_model_lightning(dict_train, load_dir=None):
             augment=dict_train["augment"],
             # device=device,
             cat_weights=dict_train["cat_weights"],
+            conv=dict_train["conv"],
         )
 
     else:
@@ -236,6 +237,7 @@ def load_model_lightning(dict_train, load_dir=None):
             eta_min=1e-6,
             loss_fn=dict_train["loss"],
             augment=dict_train["augment"],
+            conv=dict_train["conv"],
             # device=device,
         )
     # model.to(device)
