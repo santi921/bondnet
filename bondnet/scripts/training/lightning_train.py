@@ -55,18 +55,12 @@ if __name__ == "__main__":
     if config["model"]["precision"] == "16" or config["model"]["precision"] == "32":
         config["model"]["precision"] = int(config["model"]["precision"])
 
-    ##if on_gpu:
-    #    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    #else:
-    #    device = torch.device("cpu")
-
-    extra_keys = config["model"]["extra_features"]
-
     # dataset
     config["dataset"]["data_dir"] = dataset_loc
-    config["model"]["extra_features"] = extra_keys
+    extra_keys = config["model"]["extra_features"]
     config["model"]["filter_sparse_rxns"] = False
     config["model"]["debug"] = debug
+
     config["dataset_transfer"]["data_dir"] = dataset_loc
 
     if use_lmdb:

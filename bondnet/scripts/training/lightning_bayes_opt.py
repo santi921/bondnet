@@ -31,8 +31,6 @@ class TrainingObject:
     def __init__(
         self, sweep_config, log_save_dir, project_name, dataset_loc, lmdb_root, use_lmdb
     ):
-        
-    
         self.sweep_config = sweep_config
         self.log_save_dir = log_save_dir
         self.wandb_name = project_name
@@ -130,7 +128,6 @@ class TrainingObject:
                 self.dm_transfer = BondNetLightningDataModule(config_transfer)
 
     def make_model(self, config):
-        # convert old config to new config TODO
         config["model"]["in_feats"] = self.in_feats
         model = load_model_lightning(config["model"], load_dir=self.log_save_dir)
         return model
@@ -179,6 +176,7 @@ class TrainingObject:
                     "restore": init_config["restore"],
                     "weight_decay": init_config["weight_decay"],
                     "filter_outliers": init_config["filter_outliers"],
+                    "conv": init_config["conv"],
                 },
                 "dataset": {
                     "data_dir": self.dataset_loc,
@@ -214,14 +212,14 @@ class TrainingObject:
             model = self.make_model(config)
             # log dataset
             wandb.log({"dataset": self.dataset_loc})
-            
+
             if config["model"]["transfer"]:
                 # print("transfer learning -- " * 10)
 
                 config_transfer = deepcopy(config)
                 config_transfer["dataset"] = config_transfer["dataset_transfer"]
                 log_parameters_transfer = LogParameters()
-                
+
                 logger_tb_transfer = TensorBoardLogger(
                     self.log_save_dir,
                     name="test_logs_transfer",
