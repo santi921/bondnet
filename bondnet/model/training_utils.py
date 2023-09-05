@@ -6,7 +6,7 @@ import warnings
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-from bondnet.model.metric import WeightedL1Loss, WeightedMSELoss, WeightedSmoothL1Loss
+from bondnet.model.metric import WeightedL1Loss
 
 from bondnet.model.gated_reaction_network_lightning_classifier import (
     GatedGCNReactionNetworkLightningClassifier,
@@ -207,6 +207,7 @@ def load_model_lightning(dict_train, load_dir=None):
             augment=dict_train["augment"],
             # device=device,
             cat_weights=dict_train["cat_weights"],
+            conv=dict_train["conv"],
         )
 
     else:
@@ -236,6 +237,7 @@ def load_model_lightning(dict_train, load_dir=None):
             eta_min=1e-6,
             loss_fn=dict_train["loss"],
             augment=dict_train["augment"],
+            conv=dict_train["conv"],
             # device=device,
         )
     # model.to(device)

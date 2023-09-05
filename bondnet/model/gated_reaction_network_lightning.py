@@ -133,10 +133,13 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
 
         # gated layer
         if conv == "GatedGCNConv":
+            print("NB: using GatedGCNConv")
             conv_fn = GatedGCNConv
         elif conv == "GatedGCNConv1":
+            print("NB: using GatedGCNConv1")
             conv_fn = GatedGCNConv1
         elif conv == "GatedGCNConv2":
+            print("NB: using GatedGCNConv2")
             conv_fn = GatedGCNConv2
         else:
             raise ValueError()
@@ -294,11 +297,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         # get device
         device = feats["bond"].device
         graph, feats = mol_graph_to_rxn_graph(
-            graph=graph, 
-            feats=feats, 
-            reactions=reactions, 
-            reverse=False, 
-            device=device
+            graph=graph, feats=feats, reactions=reactions, reverse=False, device=device
         )
 
         # readout layer

@@ -4,7 +4,6 @@ import networkx as nx
 import itertools
 import torch
 from rdkit import Chem
-from collections import deque
 import itertools, copy, dgl
 
 
@@ -383,6 +382,7 @@ def _split_batched_output(graph, value):
 
     """
     nbonds = graph.batch_num_nodes("bond")
+
     return torch.split(value, nbonds)
 
 
@@ -435,7 +435,12 @@ def mol_graph_to_rxn_graph(graph, feats, reactions, device=None, reverse=False):
             print("unequal mapping & graph len")
 
         g, fts = create_rxn_graph(
-            reactants=reactants, products=products, mappings=mappings, device=device, has_bonds=has_bonds, reverse=reverse        
+            reactants=reactants,
+            products=products,
+            mappings=mappings,
+            device=device,
+            has_bonds=has_bonds,
+            reverse=reverse,
         )
 
         reaction_graphs.append(g)
@@ -451,14 +456,7 @@ def mol_graph_to_rxn_graph(graph, feats, reactions, device=None, reverse=False):
             total_feats += i[nt].shape[0]
             feat_len_dict[nt] = i[nt].shape[0]
 
-        if total_feats != g.number_of_nodes():  # error checking
-            print(g)
-            print(feat_len_dict)
-            print(reactions[ind].atom_mapping)
-            print(reactions[ind].bond_mapping)
-            print(reactions[ind].total_bonds)
-            print(reactions[ind].total_atoms)
-            print("--" * 20)
+        assert total_feats == g.number_of_nodes(), "error in graph construction"
 
     batched_graph = dgl.batch(reaction_graphs)
 
@@ -568,8 +566,8 @@ def create_rxn_graph(
         products_ft = [p.nodes[nt].data[ft_name] for p in products]
 
         if device is not None:
-           reactants_ft = [r.to(device) for r in reactants_ft]
-           products_ft = [p.to(device) for p in products_ft]
+            reactants_ft = [r.to(device) for r in reactants_ft]
+            products_ft = [p.to(device) for p in products_ft]
 
         if nt == "bond":
             if num_products > 1:
@@ -599,8 +597,8 @@ def create_rxn_graph(
                 torch.sum(product_ft, dim=0, keepdim=True) for product_ft in products_ft
             ]
             if device is not None:
-               reactants_ft = [r.to(device) for r in reactants_ft]
-               products_ft = [p.to(device) for p in products_ft]
+                reactants_ft = [r.to(device) for r in reactants_ft]
+                products_ft = [p.to(device) for p in products_ft]
 
         len_feature_nt = reactants_ft[0].shape[1]
         # if(len_feature_nt!=64): print(mappings)
@@ -613,7 +611,7 @@ def create_rxn_graph(
             net_ft_full = torch.zeros(mappings["num_atoms_total"], len_feature_nt)
 
         if device is not None:
-           net_ft_full = net_ft_full.to(device)
+            net_ft_full = net_ft_full.to(device)
 
         if nt == "global":
             coef = torch.tensor([1])
@@ -622,22 +620,21 @@ def create_rxn_graph(
             if device is not None:
                 coef = coef.to(device)
             for product_ft in products_ft:
-
                 net_ft_full += coef * torch.sum(product_ft, dim=0, keepdim=True)
             for reactant_ft in reactants_ft:
                 net_ft_full -= coef * torch.sum(reactant_ft, dim=0, keepdim=True)
 
         else:
-            net_ft_full_zeros = copy.deepcopy(net_ft_full) 
-            #print(coef.device)
-            #print(net_ft_full.device)
+            net_ft_full_zeros = copy.deepcopy(net_ft_full)
+            # print(coef.device)
+            # print(net_ft_full.device)
             coef = torch.tensor([1])
             if reverse == True:
                 coef = torch.tensor([-1])
-                
+
             if device is not None:
                 coef = coef.to(device)
-            
+
             for ind, reactant_ft in enumerate(reactants_ft):
                 net_ft_full_temp = copy.deepcopy(net_ft_full_zeros)
                 mappings_raw = mappings[nt + "_map"][0][ind]
