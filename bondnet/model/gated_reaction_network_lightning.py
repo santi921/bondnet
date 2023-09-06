@@ -85,6 +85,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         # device="cpu",
         wandb=True,
         augment=False,
+        reactant_only=False,
     ):
         super().__init__()
         self.learning_rate = learning_rate
@@ -119,6 +120,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             # "device": device,
             "wandb": wandb,
             "augment": augment,
+            "reactant_only": reactant_only,
         }
         self.hparams.update(params)
         self.save_hyperparameters()
@@ -273,6 +275,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             reactions=reactions,
             device=device,
             reverse=reverse,
+            reactant_only=self.hparams.reactant_only,
         )
 
         # readout layer
@@ -297,7 +300,12 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         # get device
         device = feats["bond"].device
         graph, feats = mol_graph_to_rxn_graph(
-            graph=graph, feats=feats, reactions=reactions, reverse=False, device=device
+            graph=graph,
+            feats=feats,
+            reactions=reactions,
+            reverse=False,
+            device=device,
+            reactant_only=self.hparams.reactant_only,
         )
 
         # readout layer

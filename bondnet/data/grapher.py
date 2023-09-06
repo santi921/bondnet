@@ -138,9 +138,10 @@ class HeteroCompleteGraphFromMolWrapper(BaseGraph):
 
         return g
 
-    def featurize(self, g, row, ret_feat_names=False, **kwargs):
+    def featurize(self, g, row, ret_feat_names=False, element_set=[], **kwargs):
+        # print(element_set)
         if self.atom_featurizer is not None:
-            feat_dict, feat_atom = self.atom_featurizer(row, **kwargs)
+            feat_dict, feat_atom = self.atom_featurizer(row, element_set, **kwargs)
             g.nodes["atom"].data.update(feat_dict)
 
         if self.bond_featurizer is not None:

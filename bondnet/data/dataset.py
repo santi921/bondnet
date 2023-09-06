@@ -230,7 +230,7 @@ class BaseDataset:
         for i, (m, feats) in tqdm(enumerate(zip(molecules, features))):
             if m is not None:
                 g = grapher.build_graph_and_featurize(
-                    m, extra_feats_info=feats, dataset_species=species
+                    m, extra_feats_info=feats, element_set=species
                 )
                 # add this for check purpose; some entries in the sdf file may fail
                 g.graph_id = i
@@ -328,7 +328,7 @@ class MoleculeDataset(BaseDataset):
 
             # graph
             g = self.grapher.build_graph_and_featurize(
-                mol, extra_feats_info=feats, dataset_species=species
+                mol, extra_feats_info=feats, element_set=species
             )
             # we add this for check purpose, because some entries in the sdf file may fail
             g.graph_id = i
@@ -470,7 +470,7 @@ class ReactionDataset(BaseDataset):
 
             if mol is not None:
                 g = self.grapher.build_graph_and_featurize(
-                    mol, extra_feats_info=feats, dataset_species=species
+                    mol, extra_feats_info=feats, element_set=species
                 )
                 # add this for check purpose; some entries in the sdf file may fail
                 g.graph_id = i
@@ -702,7 +702,7 @@ class ReactionNetworkDataset(BaseDataset):
         for i, (m, feats) in enumerate(zip(molecules, features)):
             if m is not None:
                 g = grapher.build_graph_and_featurize(
-                    m, extra_feats_info=feats, dataset_species=species
+                    m, extra_feats_info=feats, element_set=species
                 )
                 # add this for check purpose; some entries in the sdf file may fail
                 g.graph_id = i
@@ -773,6 +773,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         extra_keys=None,
         dataset_atom_types=None,
         extra_info=None,
+        species=["C", "F", "H", "N", "O", "Mg", "Li", "S", "Cl", "P", "O", "Br"],
     ):
         if dtype not in ["float32", "float64"]:
             raise ValueError(f"`dtype {dtype}` should be `float32` or `float64`.")
@@ -813,7 +814,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         self._feature_scaler_std = None
         self._label_scaler_mean = None
         self._label_scaler_std = None
-        self._species = None
+        self._species = species
         self._elements = dataset_atom_types
         self._failed = None
         self.classifier = classifier
@@ -846,7 +847,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
 
         self._species = sorted(system_species)
         # this is hard coded and potentially needs to be adjusted for other datasets, this is to have fixed size and order of the species
-        self._species = ["C", "F", "H", "N", "O", "Mg", "Li", "S", "Cl", "P", "O", "Br"]
+        self._species
 
         # create dgl graphs
         print("constructing graphs & features....")
@@ -1043,7 +1044,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
             feats = features[count]
             if mol is not None:
                 g = grapher.build_graph_and_featurize(
-                    mol, extra_feats_info=feats, dataset_species=species
+                    mol, extra_feats_info=feats, element_set=species
                 )
 
                 # add this for check purpose; some entries in the sdf file may fail

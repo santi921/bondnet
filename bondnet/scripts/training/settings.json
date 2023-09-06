@@ -1,6 +1,6 @@
 {
   "model": {
-    "conv": "GatedGCNConv1",
+    "conv": "GatedGCNConv",
     "augment": true,
     "classifier": false,
     "classif_categories": 3,
@@ -36,7 +36,8 @@
     "max_epochs_transfer": 10,
     "transfer": false,
     "filter_outliers": true,
-    "freeze": true
+    "freeze": true,
+    "reactant_only": false
   },
   "optim": {
     "batch_size": 128,
