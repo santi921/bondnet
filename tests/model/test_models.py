@@ -402,4 +402,3 @@ def test_reactant_only_construction():
 
 # TODO: lmdb tests
 # TODO: test multi-gpu
-test_reactant_only_construction()
