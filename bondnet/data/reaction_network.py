@@ -5,13 +5,15 @@ import dgl
 
 class ReactionInNetwork:
     def __init__(
-        self, reactants, products, 
-        atom_mapping=None, 
+        self,
+        reactants,
+        products,
+        atom_mapping=None,
         bond_mapping=None,
-        total_bonds=None, 
+        total_bonds=None,
         total_atoms=None,
         id=None,
-        extra_info=None
+        extra_info=None,
     ):
         """
         A class to represent a chemical reaction in reaction network.
@@ -36,7 +38,7 @@ class ReactionInNetwork:
                 Could be changed.
         """
 
-        # atom mapping to overall reaction network 
+        # atom mapping to overall reaction network
         # bond mapping of bond in species to overall reaction
         self._init_reactants = self._reactants = reactants
         self._init_products = self._products = products
@@ -46,22 +48,22 @@ class ReactionInNetwork:
         self.atom_mapping = atom_mapping
         self.bond_mapping = bond_mapping
 
-        if(total_atoms != None):
+        if total_atoms != None:
             self.total_atoms = total_atoms
             self.num_atoms_total = len(self.total_atoms)
             self.num_bonds_total = len(total_bonds)
         else:
-            if(total_bonds!=None): 
+            if total_bonds != None:
                 self.total_atoms = list(set(list(np.concatenate(total_bonds).flat)))
                 self.num_atoms_total = len(self.total_atoms)
                 self.num_bonds_total = len(total_bonds)
-            else: 
+            else:
                 self.total_atoms = None
                 self.num_atoms_total = None
                 self.num_bonds_total = None
         self.id = id
-        
-        self.total_bonds = total_bonds    
+
+        self.total_bonds = total_bonds
         self._atom_mapping_list = None
         self._bond_mapping_list = None
 
@@ -155,25 +157,25 @@ class ReactionInNetwork:
         combined_mapping = {}
         for i, mp in enumerate(mappings):
             for p, r in mp.items():
-                #assert p < len(mp), "product item not smaller than size"
+                # assert p < len(mp), "product item not smaller than size"
                 combined_mapping[p + accumulate[i]] = r
 
         # determine the missing item (in reactant) for empty mapping
         if mode == "bond":
             existing = np.concatenate([list(mp.values()) for mp in mappings])
             N = len(existing)
-            #expected = range(N)
+            # expected = range(N)
             expected = range(N + 1)
             missing_item_list = []
             for i in expected:
                 if i not in existing:
                     missing_item_list.append(i)
-                    #break # this only finds first item 
-                    
+                    # break # this only finds first item
+
             # add the missing item as the last element (of products)
-            for ind, missing in enumerate(missing_item_list): 
+            for ind, missing in enumerate(missing_item_list):
                 combined_mapping[N + ind] = missing
-            #combined_mapping[N] = missing_item[]
+            # combined_mapping[N] = missing_item[]
 
         # r2p mapping as a list, where the reactant item is indexed by the list index
         mp_list = sorted(combined_mapping, key=lambda k: combined_mapping[k])
@@ -192,7 +194,6 @@ class ReactionNetwork:
         self.molecules = molecules
         self.reactions = reactions
         self.molecule_wrapper = wrappers
-
 
     @staticmethod
     def _get_mol_ids_from_reactions(reactions):

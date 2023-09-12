@@ -52,5 +52,6 @@
   "val_size": { "values": [0.15] },
   "test_size": { "values": [0.1] },
   "overwrite": { "values": [false] },
-  "conv": { "values": ["GatedGCNConv"] }
+  "conv": { "values": ["GatedGCNConv"] },
+  "reactant_only": { "values": [false] }
 }

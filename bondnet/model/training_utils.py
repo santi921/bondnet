@@ -122,17 +122,7 @@ def load_model_lightning(dict_train, load_dir=None):
         model (pytorch model): model to train
         optimizer (pytorch optimizer obj): optimizer
     """
-
-    """    if device == None:
-        if dict_train["on_gpu"]:
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            dict_train["gpu"] = "gpu"
-        else:
-            device = torch.device("cpu")
-            dict_train["gpu"] = "cpu"
-    else:
-        dict_train["gpu"] = "gpu"
-    """
+    # print(dict_train)
     if dict_train["restore"]:
         print(":::RESTORING MODEL FROM EXISTING FILE:::")
 
@@ -208,6 +198,7 @@ def load_model_lightning(dict_train, load_dir=None):
             # device=device,
             cat_weights=dict_train["cat_weights"],
             conv=dict_train["conv"],
+            reactant_only=dict_train["reactant_only"],
         )
 
     else:
@@ -238,6 +229,7 @@ def load_model_lightning(dict_train, load_dir=None):
             loss_fn=dict_train["loss"],
             augment=dict_train["augment"],
             conv=dict_train["conv"],
+            reactant_only=dict_train["reactant_only"],
             # device=device,
         )
     # model.to(device)
@@ -245,7 +237,7 @@ def load_model_lightning(dict_train, load_dir=None):
     return model
 
 
-def get_grapher(features):
+def get_grapher(features, allowed_charges=[-2, -1, 0, 1, 2]):
     """keys_selected_bonds = [
     "Lagrangian_K", "Hamiltonian_K", "e_density", "lap_e_density",
     "e_loc_func", "ave_loc_ion_E", "delta_g_promolecular",
@@ -311,12 +303,11 @@ def get_grapher(features):
                 keys_selected_bonds.append(key[5:])
         else:
             if "indices" not in key:
-                if key == "functional_group_reacted":
-                    keys_selected_global.append(key)
-                elif key == "charge":
-                    keys_selected_global.append(key)
-                else:
-                    keys_selected_atoms.append(key)
+                if key != "functional_group_reacted":
+                    if key == "charge":
+                        keys_selected_global.append(key)
+                    else:
+                        keys_selected_atoms.append(key)
 
     # print("keys_selected_atoms", keys_selected_atoms)
     # print("keys_selected_bonds", keys_selected_bonds)
@@ -347,7 +338,9 @@ def get_grapher(features):
         fg_list = None
 
     global_featurizer = GlobalFeaturizerGraph(
-        allowed_charges=[-2, -1, 0, 1, 2], functional_g_basis=fg_list
+        allowed_charges=allowed_charges,
+        functional_g_basis=fg_list,
+        selected_keys=keys_selected_global,
     )
     grapher = HeteroCompleteGraphFromMolWrapper(
         atom_featurizer, bond_featurizer, global_featurizer

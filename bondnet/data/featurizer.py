@@ -19,7 +19,6 @@ from bondnet.data.utils import (
     h_count_and_degree,
     ring_features_from_atom_full,
     ring_features_for_bonds_full,
-    rdkit_bond_desc,
     find_rings,
 )
 from rdkit import RDLogger
@@ -198,12 +197,13 @@ class BondAsNodeGraphFeaturizerGeneral(BondFeaturizer):
         length_featurizer_args=None,
         dtype="float32",
         selected_keys=[],
+        allowed_ring_size=[3, 4, 5, 6, 7],
     ):
         super(BondFeaturizer, self).__init__(dtype)
         self._feature_size = None
         self._feature_name = None
         self.selected_keys = selected_keys
-
+        self.allowed_ring_size = allowed_ring_size
         if length_featurizer == "bin":
             if length_featurizer_args is None:
                 length_featurizer_args = {"low": 0.0, "high": 2.5, "num_bins": 10}
@@ -233,7 +233,7 @@ class BondAsNodeGraphFeaturizerGeneral(BondFeaturizer):
         feats, bond_list_only_metal, no_metal_binary = [], [], []
         num_atoms = 0
         # num_feats = 18
-        allowed_ring_size = [3, 4, 5, 6, 7]
+        allowed_ring_size = self.allowed_ring_size
 
         bond_list = list(mol.bonds)
         num_bonds = len(bond_list)
@@ -282,18 +282,16 @@ class BondAsNodeGraphFeaturizerGeneral(BondFeaturizer):
 
             for ind, bond in enumerate(bond_list):
                 ft = []
-
-                if tuple(bond) in ring_dict_keys:
-                    ft.append(ring_dict[tuple(bond)][0])  # metal
-                    ft.append(ring_dict[tuple(bond)][1])  #
-                    ft += ring_dict[tuple(bond)][2]  # one hot ring
-                else:
-                    ft += [0, 0]
-                    ft += [0 for i in range(len(allowed_ring_size))]
+                if self.allowed_ring_size != []:
+                    if tuple(bond) in ring_dict_keys:
+                        ft.append(ring_dict[tuple(bond)][0])  # metal
+                        ft.append(ring_dict[tuple(bond)][1])  #
+                        ft += ring_dict[tuple(bond)][2]  # one hot ring
+                    else:
+                        ft += [0, 0]
+                        ft += [0 for i in range(len(allowed_ring_size))]
 
                 # check that features_flatten isn't empty lists
-                if features_flatten[ind] != []:
-                    ft += features_flatten[ind]
 
                 if "bond_length" in self.selected_keys:
                     bond_len = np.sqrt(
@@ -304,21 +302,35 @@ class BondAsNodeGraphFeaturizerGeneral(BondFeaturizer):
                             )
                         )
                     )
-
                     ft.append(bond_len)
+
+                if features_flatten[ind] != []:
+                    ft += features_flatten[ind]
 
                 # ft += features[bond[0]] # check that index is correct
                 feats.append(ft)
 
         feats = torch.tensor(feats, dtype=getattr(torch, self.dtype))
-        self._feature_size = feats.shape[1]
-        self._feature_name = (
-            ["metal bond"] + ["ring inclusion"] + ["ring size"] * 5 + self.selected_keys
-        )
+        # self._feature_size = feats.shape[1]
 
-        if self.length_featurizer:
-            self._feature_name += self.length_featurizer.feature_name
+        if self.allowed_ring_size != []:
+            self._feature_name = ["metal bond"]
+            self._feature_name += ["ring inclusion"] + [
+                "ring size_{}".format(i) for i in self.allowed_ring_size
+            ]
 
+        if "bond_length" in self.selected_keys:
+            self._feature_name += ["bond_length"]
+
+        if self.selected_keys != []:
+            for key in self.selected_keys:
+                if key != "bond_length":
+                    if self.length_featurizer:
+                        self._feature_name += self.length_featurizer.feature_name
+                    else:
+                        self._feature_name.append(key)
+
+        self._feature_size = len(self._feature_name)
         return {"feat": feats}, self._feature_name
 
 
@@ -330,7 +342,13 @@ class AtomFeaturizerGraphGeneral(BaseFeaturizer):
     Mimimum set of info without hybridization info.
     """
 
-    def __init__(self, selected_keys=[], dtype="float32"):
+    def __init__(
+        self,
+        selected_keys=[],
+        dtype="float32",
+        allowed_ring_size=[3, 4, 5, 6, 7],
+        element_set=[],
+    ):
         if dtype not in ["float32", "float64"]:
             raise ValueError(
                 "`dtype` should be `float32` or `float64`, but got `{}`.".format(dtype)
@@ -338,9 +356,11 @@ class AtomFeaturizerGraphGeneral(BaseFeaturizer):
         self.dtype = dtype
         self._feature_size = None
         self._feature_name = None
+        self.allowed_ring_size = allowed_ring_size
+        self.element_set = element_set
         self.selected_keys = selected_keys
 
-    def __call__(self, mol, **kwargs):
+    def __call__(self, mol, element_set=[], **kwargs):
         """
         Args:
             mol: molecular wraper object w/electronic info
@@ -351,14 +371,21 @@ class AtomFeaturizerGraphGeneral(BaseFeaturizer):
             Dictionary of atom features
         """
 
-        try:
-            species = sorted(kwargs["dataset_species"])
-        except KeyError as e:
-            raise KeyError(
-                "{} `dataset_species` needed for {}.".format(e, self.__class__.__name__)
-            )
+        # try:
+        #    species = sorted(kwargs["dataset_species"])
+        # except KeyError as e:
+        #    raise KeyError(
+        #        "{} `dataset_species` needed for {}.".format(e, self.__class__.__name__)
+        #    )
+        # print(element_set)
+        assert (
+            element_set != [] or self.element_set != []
+        ), "element set must be provided at call or init for atom featurizer"
 
-        allowed_ring_size = [3, 4, 5, 6, 7]
+        if element_set != []:
+            self.element_set = element_set
+
+        allowed_ring_size = self.allowed_ring_size
 
         features = mol.atom_features
         features_flatten, feats, bond_list = [], [], []
@@ -369,7 +396,6 @@ class AtomFeaturizerGraphGeneral(BaseFeaturizer):
         for i in range(num_atoms):
             feats_flatten_temp = []
             for key in self.selected_keys:
-                # print(key, features[key])
                 feats_flatten_temp.append(features[key][i])
             features_flatten.append(feats_flatten_temp)
 
@@ -384,23 +410,35 @@ class AtomFeaturizerGraphGeneral(BaseFeaturizer):
             h_count, degree = h_count_and_degree(atom_ind, bond_list, species_sites)
             ring_inclusion, ring_size_list = ring_info[atom_ind]
             ft.append(degree)
-            ft.append(ring_inclusion)
             ft.append(h_count)
 
+            if self.allowed_ring_size != []:
+                ring_inclusion, ring_size_list = ring_info[atom_ind]
+                ft.append(ring_inclusion)
+                ft += ring_size_list
+
+            ft += one_hot_encoding((atom_element), element_set)
             ft += features_flatten[atom_ind]
-            ft += one_hot_encoding((atom_element), species)
-            ft += ring_size_list
+
             feats.append(ft)
 
         feats = torch.tensor(feats, dtype=getattr(torch, self.dtype))
-        self._feature_size = feats.shape[1]
-        self._feature_name = (
-            ["total degree", "is in ring", "total H"]
-            + self.selected_keys
-            + ["chemical symbol"] * len(species)
-            + ["ring size"] * len(allowed_ring_size)
-        )
+        # self._feature_size = feats.shape[1]
 
+        if self.allowed_ring_size != []:
+            self._feature_name = (
+                ["total_degree", "total_H", "is_in_ring"]
+                + ["ring_size_{}".format(i) for i in self.allowed_ring_size]
+                + ["chemical_symbol_{}".format(i) for i in list(self.element_set)]
+            )
+        else:
+            self._feature_name = ["total_degree", "total_H"] + [
+                "chemical_symbol_{}".format(i) for i in list(self.element_set)
+            ]
+
+        if self.selected_keys != None:
+            self._feature_name += self.selected_keys
+        self._feature_size = len(self._feature_name)
         return {"feat": feats}, self._feature_name
 
 
@@ -421,12 +459,14 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
         allowed_charges=None,
         solvent_environment=None,
         functional_g_basis=None,
+        selected_keys=[],
         dtype="float32",
     ):
         super(GlobalFeaturizerGraph, self).__init__(dtype)
         self.allowed_charges = allowed_charges
         self.solvent_environment = solvent_environment
         self.functional_g_basis = functional_g_basis
+        self.selected_keys = selected_keys
 
     def __call__(self, mol, **kwargs):
         """
@@ -443,7 +483,6 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
 
         g = [
             num_atoms,
-            # len(mol[bond_key]),
             len(mol.bonds),
             mw,
         ]
@@ -481,7 +520,7 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
 
         feats = torch.tensor([g], dtype=getattr(torch, self.dtype))
 
-        self._feature_size = feats.shape[1]
+        # self._feature_size = feats.shape[1]
         self._feature_name = ["num atoms", "num bonds", "molecule weight"]
         if self.allowed_charges is not None:
             self._feature_name += ["charge one hot"] * len(self.allowed_charges)
@@ -497,4 +536,10 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
             else:
                 self._feature_name += ["solvent"] * len(self.solvent_environment)
 
+        if self.selected_keys != []:
+            for key in self.selected_keys:
+                self._feature_name.append(key)
+                g += [mol.global_features[key]]
+
+        self._feature_size = len(self._feature_name)
         return {"feat": feats}, self._feature_name

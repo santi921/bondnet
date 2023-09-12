@@ -1,6 +1,6 @@
 {
   "model": {
-    "conv": "GatedGCNConv1",
+    "conv": "GatedGCNConv",
     "augment": true,
     "classifier": false,
     "classif_categories": 3,
@@ -36,7 +36,8 @@
     "max_epochs_transfer": 10,
     "transfer": false,
     "filter_outliers": true,
-    "freeze": true
+    "freeze": true,
+    "reactant_only": false
   },
   "optim": {
     "batch_size": 128,
@@ -50,13 +51,13 @@
     "accumulate_grad_batches": 3
   },
   "dataset": {
-    "log_save_dir": "./test_lmdb/",
+    "log_save_dir": "./model_log/",
     "lmdb_dir": "./lmdb_data/",
     "target_var": "dG_sp",
     "overwrite": true
   },
   "dataset_transfer": {
-    "log_save_dir": "./test_lmdb_transfer/",
+    "log_save_dir": "./model_log_transfer/",
     "lmdb_dir": "./lmdb_data_transfer/",
     "target_var": "diff",
     "overwrite": true

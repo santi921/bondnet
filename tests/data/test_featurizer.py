@@ -58,7 +58,7 @@ def get_data(
             g, feat_names = grapher.build_graph_and_featurize(
                 mol,
                 extra_feats_info=feats,
-                dataset_species=species,
+                element_set=species,
                 ret_feat_names=True,
             )
             feat_name_list.append(feat_names)
@@ -68,6 +68,7 @@ def get_data(
             g = None
         graphs.append(g)
         count += 1
+    # print("feature names: ", feat_name_list)
     return graphs, feat_name_list
 
 
@@ -85,7 +86,7 @@ def test_extra_atom_featurizer():
         elif k == "bond":
             assert len(v[0]) == 7
         elif k == "global":
-            assert len(v[0]) == 7
+            assert len(v[0]) == 8
 
 
 def test_extra_bond_featurizer():
@@ -104,6 +105,4 @@ def test_extra_bond_featurizer():
         elif k == "bond":
             assert len(v[0]) == 9
         elif k == "global":
-            assert len(v[0]) == 7
-
-
+            assert len(v[0]) == 8
