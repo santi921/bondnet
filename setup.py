@@ -40,6 +40,7 @@ setup(
         "./bondnet/scripts/training/lightning_controller.py",
         "./bondnet/scripts/training/lightning_generate_settings.py",
         "./bondnet/scripts/training/launch_sbatch.py",
+        "./bondnet/scripts/helpers/json_dataset_to_lmdb.py",
     ],
     zip_safe=False,
 )
