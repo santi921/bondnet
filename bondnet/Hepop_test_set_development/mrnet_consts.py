@@ -7,7 +7,7 @@
 ROOM_TEMP = 298.15
 
 # Boltzmann constant in eV / K
-KB = 8.617333262 * 10 ** -5
+KB = 8.617333262 * 10**-5
 
 # Planck constant in eV * s
-PLANCK = 4.135667696 * 10 ** -15
+PLANCK = 4.135667696 * 10**-15

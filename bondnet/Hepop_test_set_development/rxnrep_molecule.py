@@ -30,7 +30,6 @@ class Molecule:
         id: Optional[Union[int, str]] = None,
         properties: Optional[Dict[str, Any]] = None,
     ):
-
         self._mol = mol
         self._id = id
         self._properties = properties

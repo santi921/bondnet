@@ -2,25 +2,12 @@ import abc
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
-from sklearn.manifold import TSNE
-from sklearn.cluster import KMeans
 from umap import UMAP
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from bondnet.layer.readout import ConcatenateMeanMax
 from bondnet.analysis import umap_plot
-from bondnet.analysis.utils import TexWriter
-from bondnet.utils import to_path, yaml_load
-from rdkit import Chem
-from bondnet.data.utils import get_dataset_species
-from bondnet.data.featurizer import (
-    AtomFeaturizerMinimum,
-    AtomFeaturizerFull,
-    BondAsNodeFeaturizerMinimum,
-    BondAsNodeFeaturizerFull,
-    GlobalFeaturizer,
-)
-from bondnet.data.grapher import HeteroMoleculeGraph
+from bondnet.utils import to_path
 
 
 class FeatureAggregator:
@@ -191,25 +178,6 @@ class PCAAnalyzer(BaseAnalyzer):
         return self.embedding
 
 
-class TSNEAnalyzer(BaseAnalyzer):
-    """
-    TSNE analysis for features.
-    """
-
-    def compute(self, n_components=2, perplexity=30, init="pca", verbose=2, **kwargs):
-        self.model = TSNE(
-            n_components=n_components,
-            perplexity=perplexity,
-            init=init,
-            verbose=verbose,
-            **kwargs,
-        )
-        embedding = self.model.fit_transform(self.features)
-        self.embedding = embedding
-
-        return self.embedding
-
-
 class UMAPAnalyzer(BaseAnalyzer):
     """
     UMAP analysis for features.
@@ -319,32 +287,6 @@ class PearsonCorrelation(FeatureAggregator):
             data = np.delete(data, exclude, axis=1)
         corr = np.corrcoef(data, rowvar=False)
         return corr
-
-
-class KMeansAnalyzer(FeatureAggregator):
-    """
-    KMeans analysis to cluster the features (bond + mean(atom) + max(atom)).
-
-    This only works for the electrolyte dataset.
-    """
-
-    def compute(self):
-        features, labels = self._stack_bond_feature_plus_atom_feature_and_label()
-        return self.embedding(features, labels)
-
-    @staticmethod
-    def embedding(features, labels, text_filename="kmeans_electrolyte.txt"):
-        """
-        Args:
-            features (2D array)
-            labels: (1D array)
-        """
-        model = KMeans(n_clusters=10, random_state=35)
-        kmeans = model.fit(features)
-        clusters = kmeans.predict(features)
-        centers = kmeans.cluster_centers_
-
-        return features, clusters, centers, labels
 
 
 def plot_scatter(features, labels, filename):

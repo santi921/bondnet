@@ -328,12 +328,10 @@ class MoleculeEntry(MSONable):
         fragments = self.get_fragments() if fragments is None else fragments
 
         if fragments:
-
             iso_bonds = []  # type: List[List[Tuple[int, int]]]
 
             for current_bond, current_frags in fragments.items():
                 for group in iso_bonds:
-
                     # compare to the first element in a group to determine whether they are
                     # isomorphic to each other
                     existing_bond = group[0]
@@ -366,7 +364,6 @@ class MoleculeEntry(MSONable):
             return None
 
     def __repr__(self):
-
         output = [
             f"MoleculeEntry {self.entry_id} - {self.formula}",
             f"Number of bonds = {self.num_bonds}",

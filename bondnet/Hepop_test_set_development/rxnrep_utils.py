@@ -61,7 +61,6 @@ Atom_Mapping_Dict = Dict[int, int]
 def get_atom_mapping(
     reactant: Molecule, products: List[Molecule], broken_bond: Tuple[int, int] = None
 ) -> Tuple[Atom_Mapping_Dict, List[Atom_Mapping_Dict]]:
-
     """
     Generate rdkit style atom mapping for reactions with one reactant and one or two
     products.
