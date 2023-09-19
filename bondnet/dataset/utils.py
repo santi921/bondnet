@@ -30,6 +30,8 @@ def divide_to_list(a, b):
     Returns:
         result: list of int
     """
+    if b == 0:
+        b = 1
     quotient = a // b
     remainder = a % b
 

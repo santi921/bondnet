@@ -1,24 +1,15 @@
-import wandb, argparse, torch, json
-import numpy as np
-
-import pickle
 import argparse
-import multiprocessing as mp
-import os
-import pickle
-from tqdm import tqdm
-import lmdb
+import torch
+import json
+import numpy as np
+import argparse
 import dgl
 
 import torch
 from torch.utils.data import random_split
 import torch.multiprocessing
-import pytorch_lightning as pl
-from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 
 from bondnet.data.dataset import ReactionNetworkDatasetGraphs
-from bondnet.data.dataloader import DataLoaderReactionNetworkParallel
-from bondnet.data.dataset import train_validation_test_split
 from bondnet.utils import seed_torch
 from bondnet.data.utils import find_rings
 from bondnet.model.training_utils import get_grapher
@@ -27,7 +18,7 @@ from bondnet.dataset.utils import (
     clean_op,
 )
 
-from bondnet.dataset.lmdb import (
+from bondnet.data.lmdb import (
     parallel2reactionlmdb,
     parallel2moleculelmdb,
 )
@@ -35,10 +26,12 @@ from bondnet.dataset.lmdb import (
 
 torch.set_float32_matmul_precision("high")  # might have to disable on older GPUs
 seed_torch()
+import torch.multiprocessing
+
 torch.multiprocessing.set_sharing_strategy("file_system")
 
 
-def construct_lmdb_and_save(dataset, lmdb_dir):
+def construct_lmdb_and_save(dataset, lmdb_dir, workers=8):
     # List of Molecules
     dgl_graphs = []
     pmg_objects = []
@@ -145,6 +138,7 @@ def construct_lmdb_and_save(dataset, lmdb_dir):
         empty_reaction_graphs.append(empty_graph)
         empty_reaction_fts.append(empty_fts)
 
+    print("...> writing molecules to lmdb")
     parallel2moleculelmdb(
         molecule_ind_list,
         dgl_graphs,
@@ -152,11 +146,11 @@ def construct_lmdb_and_save(dataset, lmdb_dir):
         charge_set,
         ring_size_set,
         element_set,
-        num_workers=2,
+        num_workers=workers,
         lmdb_dir=lmdb_dir,
         lmdb_name="molcule.lmdb",
     )
-
+    print("...> writing reactions to lmdb")
     parallel2reactionlmdb(
         reaction_indicies,
         empty_reaction_graphs,
@@ -165,7 +159,7 @@ def construct_lmdb_and_save(dataset, lmdb_dir):
         label_list,
         reverse_list,
         extra_info,
-        2,
+        num_workers=workers,
         lmdb_dir=lmdb_dir,
         lmdb_name="reaction.lmdb",
     )
@@ -233,4 +227,4 @@ if __name__ == "__main__":
         extra_info=config["extra_info"],
     )
 
-    construct_lmdb_and_save(dataset, lmdb_dir)
+    construct_lmdb_and_save(dataset, lmdb_dir, workers=16)

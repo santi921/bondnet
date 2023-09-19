@@ -136,6 +136,7 @@ class DataLoaderReactionNetwork(DataLoader):
             dataset, collate_fn=collate, **kwargs
         )
 
+
 class DataLoaderReactionNetworkParallel(DataLoader):
     """
     This dataloader works specifically for the reaction network where a the reactions
@@ -143,14 +144,12 @@ class DataLoaderReactionNetworkParallel(DataLoader):
     """
 
     def __init__(self, dataset, **kwargs):
-        super(DataLoaderReactionNetworkParallel, self).__init__(
-            dataset, **kwargs
-        )
+        super(DataLoaderReactionNetworkParallel, self).__init__(dataset, **kwargs)
 
 
 def collate_parallel(samples):
-    #reaction_graph, reaction_features, labels = map(list, zip(*samples))  # old
-    reaction_network, rxn_ids, labels = map(list, zip(*samples)) # new
+    # reaction_graph, reaction_features, labels = map(list, zip(*samples))  # old
+    reaction_network, rxn_ids, labels = map(list, zip(*samples))  # new
 
     reactions, graphs = reaction_network[0].subselect_reactions(rxn_ids)
     batched_graphs = dgl.batch(graphs)

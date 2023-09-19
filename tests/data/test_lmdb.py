@@ -12,7 +12,7 @@ from bondnet.dataset.utils import (
     divide_to_list,
 )
 
-from bondnet.dataset.lmdb import parallel2moleculelmdb, parallel2reactionlmdb
+from bondnet.data.lmdb import parallel2moleculelmdb, parallel2reactionlmdb
 
 from bondnet.test_utils import get_test_reaction_network_data
 
