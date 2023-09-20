@@ -8,6 +8,7 @@ from bondnet.data.utils import mol_graph_to_rxn_graph
 from bondnet.model.gated_reaction_network_lightning import (
     GatedGCNReactionNetworkLightning,
 )
+from bondnet.test_utils import get_defaults
 
 # suppress warnings
 import warnings
@@ -21,54 +22,6 @@ warnings.filterwarnings(
 )
 
 torch.set_float32_matmul_precision("high")  # might have to disable on older GPUs
-
-
-def get_defaults():
-    config = {
-        "model": {
-            "conv": "GatedGCNConv",
-            "augment": False,
-            "classifier": False,
-            "classif_categories": 3,
-            "cat_weights": [1.0, 1.0, 1.0],
-            "embedding_size": 24,
-            "epochs": 100,
-            "extra_features": ["bond_length"],
-            "extra_info": [],
-            "filter_species": [3, 5],
-            "fc_activation": "ReLU",
-            "fc_batch_norm": True,
-            "fc_dropout": 0.2,
-            "fc_hidden_size_1": 256,
-            "fc_hidden_size_shape": "flat",
-            "fc_num_layers": 1,
-            "gated_activation": "ReLU",
-            "gated_batch_norm": False,
-            "gated_dropout": 0.1,
-            "gated_graph_norm": False,
-            "gated_hidden_size_1": 512,
-            "gated_hidden_size_shape": "flat",
-            "gated_num_fc_layers": 1,
-            "gated_num_layers": 2,
-            "gated_residual": True,
-            "learning_rate": 0.003,
-            "precision": 32,
-            "loss": "mse",
-            "num_lstm_iters": 3,
-            "num_lstm_layers": 1,
-            "restore": False,
-            "weight_decay": 0.0,
-            "max_epochs": 1000,
-            "max_epochs_transfer": 10,
-            "transfer": False,
-            "filter_outliers": True,
-            "freeze": True,
-            "reactant_only": False,
-        }
-    }
-    # config = "./settings.json"
-    # config = json.load(open(config, "r"))
-    return config
 
 
 def test_model_construction():
@@ -257,19 +210,6 @@ def test_transfer_learning():
 
     trainer_transfer.fit(model, dm_transfer)
 
-    """trainer = pl.Trainer(
-        max_epochs=3,
-        accelerator="gpu",
-        devices=1,
-        accumulate_grad_batches=5,
-        enable_progress_bar=True,
-        gradient_clip_val=1.0,
-        enable_checkpointing=True,
-        default_root_dir="./test_checkpoints/",
-        precision=config["model"]["precision"],
-        log_every_n_steps=1,
-    )
-    """
     # trainer.fit(model, dm)
     # trainer.test(model, dm)
     print("training transfer works!")
@@ -390,15 +330,14 @@ def test_reactant_only_construction():
         for node_type in nodes:
             assert rxn_graph.num_nodes(node_type) == reactant_graph.num_nodes(node_type)
             zero_mat = torch.zeros_like(rxn_feats[node_type])
+            assert not torch.allclose(
+                reactant_feat[node_type], zero_mat
+            ), "{}: {}".format(node_type, reactant_feat[node_type], atol=1e-3, rtol=0)
+
             assert torch.allclose(rxn_feats[node_type], zero_mat), "{}: {}".format(
-                node_type, rxn_feats[node_type], rtol=1e-5
+                node_type, rxn_feats[node_type], atol=1e-3, rtol=0
             )
             # test that reactant_feat is not all zeros
 
-            assert not torch.allclose(
-                reactant_feat[node_type], zero_mat
-            ), "{}: {}".format(node_type, reactant_feat[node_type], rtol=1e-5)
 
-
-# TODO: lmdb tests
 # TODO: test multi-gpu

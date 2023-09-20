@@ -92,14 +92,16 @@ class TestLMDB(unittest.TestCase):
 
             molecule_info_temp = {
                 "reactants": {
-                    "molecule_index": rxn.reactants,
+                    "reactants": rxn.reactants,
                     "atom_map": rxn.atom_mapping[0],
                     "bond_map": rxn.bond_mapping[0],
+                    "init_reactants": rxn.init_reactants,
                 },
                 "products": {
-                    "molecule_index": rxn.products,
+                    "products": rxn.products,
                     "atom_map": rxn.atom_mapping[1],
                     "bond_map": rxn.bond_mapping[1],
+                    "init_products": rxn.init_products,
                 },
             }
 

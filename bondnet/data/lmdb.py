@@ -207,6 +207,7 @@ def parallel2moleculelmdb(
     charges,
     ring_sizes,
     elements,
+    feature_info,
     num_workers,
     lmdb_dir,
     lmdb_name,
@@ -230,6 +231,7 @@ def parallel2moleculelmdb(
         "charges": charges,
         "ring_sizes": ring_sizes,
         "elements": elements,
+        "feature_info": feature_info,
     }
 
     mp_args = [
@@ -271,6 +273,11 @@ def parallel2reactionlmdb(
         "reverse_label",
         "extra_info",
     ]
+    # TODO: add global keys for scaling info to dataset
+    """global_keys = {
+        "label_scaler_mean": ,
+        "label_scaler_std": ,
+    }"""
 
     dataset = [
         {k: v for k, v in zip(key_tempalte, values)}

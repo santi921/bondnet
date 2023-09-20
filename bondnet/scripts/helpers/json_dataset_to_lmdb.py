@@ -6,21 +6,19 @@ import argparse
 import dgl
 
 import torch
-from torch.utils.data import random_split
 import torch.multiprocessing
-
-from bondnet.data.dataset import ReactionNetworkDatasetGraphs
-from bondnet.utils import seed_torch
-from bondnet.data.utils import find_rings
-from bondnet.model.training_utils import get_grapher
-from bondnet.dataset.utils import (
-    clean,
-    clean_op,
-)
 
 from bondnet.data.lmdb import (
     parallel2reactionlmdb,
     parallel2moleculelmdb,
+)
+from bondnet.data.dataset import ReactionNetworkDatasetGraphs
+from bondnet.utils import seed_torch
+from bondnet.data.utils import create_rxn_graph, find_rings
+from bondnet.model.training_utils import get_grapher
+from bondnet.dataset.utils import (
+    clean,
+    clean_op,
 )
 
 
@@ -39,6 +37,15 @@ def construct_lmdb_and_save(dataset, lmdb_dir, workers=8):
     charge_set = set()
     ring_size_set = set()
     element_set = set()
+    feature_size = dataset._feature_size
+    feature_scaler_mean = dataset._feature_scaler_mean
+    feature_scaler_std = dataset._feature_scaler_std
+    label_scaler_mean = dataset._label_scaler_mean
+    label_scaler_std = dataset._label_scaler_std
+
+    # add these to global keys
+    print("label_scaler_mean: ", dataset._label_scaler_mean)
+    print("label_scaler_std: ", dataset._label_scaler_std)
 
     for ind, molecule_in_rxn_network in enumerate(
         dataset.reaction_network.molecule_wrapper
@@ -71,7 +78,6 @@ def construct_lmdb_and_save(dataset, lmdb_dir, workers=8):
     for nt, ft in feats.items():
         batched_graph.nodes[nt].data.update({"ft": ft})
     graphs = dgl.unbatch(batched_graph)
-    from bondnet.data.utils import create_rxn_graph
 
     extra_info = []
     reaction_molecule_info = []
@@ -96,22 +102,6 @@ def construct_lmdb_and_save(dataset, lmdb_dir, workers=8):
             "num_bonds_total": rxn.num_bonds_total,
             "num_atoms_total": rxn.num_atoms_total,
         }
-
-        molecule_info_temp = {
-            "reactants": {
-                "molecule_index": rxn.reactants,
-                "atom_map": rxn.atom_mapping[0],
-                "bond_map": rxn.bond_mapping[0],
-            },
-            "products": {
-                "molecule_index": rxn.products,
-                "atom_map": rxn.atom_mapping[1],
-                "bond_map": rxn.bond_mapping[1],
-            },
-        }
-
-        reaction_molecule_info.append(molecule_info_temp)
-
         #### taken from create_rxn_graph in bondnet
         reactants = [graphs[i] for i in rxn.reactants]
         products = [graphs[i] for i in rxn.products]
@@ -120,6 +110,26 @@ def construct_lmdb_and_save(dataset, lmdb_dir, workers=8):
             "reactants": [True if len(mp) > 0 else False for mp in rxn.bond_mapping[0]],
             "products": [True if len(mp) > 0 else False for mp in rxn.bond_mapping[1]],
         }
+
+        molecule_info_temp = {
+            "reactants": {
+                "reactants": rxn.reactants,
+                "atom_map": rxn.atom_mapping[0],
+                "bond_map": rxn.bond_mapping[0],
+                "init_reactants": rxn.init_reactants,
+            },
+            "products": {
+                "products": rxn.products,
+                "atom_map": rxn.atom_mapping[1],
+                "bond_map": rxn.bond_mapping[1],
+                "init_products": rxn.init_products,
+            },
+            "has_bonds": has_bonds,
+            "mappings": mappings,
+        }
+
+        reaction_molecule_info.append(molecule_info_temp)
+
         if len(has_bonds["reactants"]) != len(reactants) or len(
             has_bonds["products"]
         ) != len(products):
@@ -132,20 +142,26 @@ def construct_lmdb_and_save(dataset, lmdb_dir, workers=8):
             device=None,
             has_bonds=has_bonds,
             reverse=False,
+            zero_fts=True,
         )
 
-        reaction_indicies.append(rxn.id)
+        reaction_indicies.append(int(rxn.id[0]))
         empty_reaction_graphs.append(empty_graph)
         empty_reaction_fts.append(empty_fts)
 
     print("...> writing molecules to lmdb")
     parallel2moleculelmdb(
-        molecule_ind_list,
-        dgl_graphs,
-        pmg_objects,
-        charge_set,
-        ring_size_set,
-        element_set,
+        indices=molecule_ind_list,
+        graphs=dgl_graphs,
+        pmgs=pmg_objects,
+        charges=charge_set,
+        ring_sizes=ring_size_set,
+        elements=element_set,
+        feature_info={
+            "feature_size": feature_size,
+            "feature_scaler_mean": feature_scaler_mean,
+            "feature_scaler_std": feature_scaler_std,
+        },
         num_workers=workers,
         lmdb_dir=lmdb_dir,
         lmdb_name="molcule.lmdb",

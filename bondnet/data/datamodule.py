@@ -6,7 +6,7 @@ from bondnet.data.dataset import (
     train_validation_test_split,
 )
 
-from bondnet.data.lmdb_dataset import LmdbDataset, CRNs2lmdb
+# from bondnet.data.lmdb import LmdbDataset, CRNs2lmdb
 
 
 from bondnet.data.dataloader import collate_parallel, DataLoaderReactionNetworkParallel
@@ -15,6 +15,7 @@ from bondnet.model.training_utils import (
     get_grapher,
 )
 
+"""
 
 class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
     def __init__(self, config):
@@ -151,6 +152,8 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
             collate_fn=collate_parallel,
             num_workers=self.config["optim"]["num_workers"],
         )
+
+"""
 
 
 class BondNetLightningDataModule(pl.LightningDataModule):

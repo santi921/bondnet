@@ -718,3 +718,51 @@ def get_test_reaction_network_data(dir=None):
         extra_info=config["extra_info"],
     )
     return dataset
+
+
+def get_defaults():
+    config = {
+        "model": {
+            "conv": "GatedGCNConv",
+            "augment": False,
+            "classifier": False,
+            "classif_categories": 3,
+            "cat_weights": [1.0, 1.0, 1.0],
+            "embedding_size": 24,
+            "epochs": 100,
+            "extra_features": ["bond_length"],
+            "extra_info": [],
+            "filter_species": [3, 5],
+            "fc_activation": "ReLU",
+            "fc_batch_norm": True,
+            "fc_dropout": 0.2,
+            "fc_hidden_size_1": 256,
+            "fc_hidden_size_shape": "flat",
+            "fc_num_layers": 1,
+            "gated_activation": "ReLU",
+            "gated_batch_norm": False,
+            "gated_dropout": 0.1,
+            "gated_graph_norm": False,
+            "gated_hidden_size_1": 512,
+            "gated_hidden_size_shape": "flat",
+            "gated_num_fc_layers": 1,
+            "gated_num_layers": 2,
+            "gated_residual": True,
+            "learning_rate": 0.003,
+            "precision": 32,
+            "loss": "mse",
+            "num_lstm_iters": 3,
+            "num_lstm_layers": 1,
+            "restore": False,
+            "weight_decay": 0.0,
+            "max_epochs": 1000,
+            "max_epochs_transfer": 10,
+            "transfer": False,
+            "filter_outliers": True,
+            "freeze": True,
+            "reactant_only": False,
+        }
+    }
+    # config = "./settings.json"
+    # config = json.load(open(config, "r"))
+    return config

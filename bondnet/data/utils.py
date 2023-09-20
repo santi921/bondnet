@@ -387,7 +387,12 @@ def _split_batched_output(graph, value):
 
 
 def mol_graph_to_rxn_graph(
-    graph, feats, reactions, device=None, reverse=False, reactant_only=False
+    graph,
+    feats,
+    reactions,
+    device=None,
+    reverse=False,
+    reactant_only=False,
 ):
     """
     Convert a batched molecule graph to a batched reaction graph.
@@ -416,35 +421,69 @@ def mol_graph_to_rxn_graph(
     batched_feats = {}
 
     for rxn in reactions:
-        reactants = [graphs[i] for i in rxn.reactants]
-        products = [graphs[i] for i in rxn.products]
+        # print("rxn keys: ", rxn.keys())
+        if type(rxn) == dict:
+            if "reaction_molecule_info" in rxn.keys():
+                reactants = [
+                    graphs[i]
+                    for i in rxn["reaction_molecule_info"]["reactants"]["reactants"]
+                ]
+                products = [
+                    graphs[i]
+                    for i in rxn["reaction_molecule_info"]["products"]["products"]
+                ]
 
-        mappings = {
-            "bond_map": rxn.bond_mapping,
-            "atom_map": rxn.atom_mapping,
-            "total_bonds": rxn.total_bonds,
-            "total_atoms": rxn.total_atoms,
-            "num_bonds_total": rxn.num_bonds_total,
-            "num_atoms_total": rxn.num_atoms_total,
-        }
-        has_bonds = {
-            "reactants": [True if len(mp) > 0 else False for mp in rxn.bond_mapping[0]],
-            "products": [True if len(mp) > 0 else False for mp in rxn.bond_mapping[1]],
-        }
-        if len(has_bonds["reactants"]) != len(reactants) or len(
-            has_bonds["products"]
-        ) != len(products):
-            print("unequal mapping & graph len")
+                mappings = rxn["reaction_molecule_info"]["mappings"]
+                has_bonds = rxn["reaction_molecule_info"]["has_bonds"]
 
-        g, fts = create_rxn_graph(
-            reactants=reactants,
-            products=products,
-            mappings=mappings,
-            device=device,
-            has_bonds=has_bonds,
-            reverse=reverse,
-            reactant_only=reactant_only,
-        )
+                g, fts = create_rxn_graph(
+                    reactants=reactants,
+                    products=products,
+                    mappings=mappings,
+                    device=device,
+                    has_bonds=has_bonds,
+                    reverse=reverse,
+                    reactant_only=reactant_only,
+                    empty_graph_fts={
+                        "empty_graph": rxn["reaction_graph"],
+                        "zero_feats": rxn["reaction_feature"],
+                    },
+                )
+        # check if reaction has key "mappings"
+        else:
+            reactants = [graphs[i] for i in rxn.reactants]
+            products = [graphs[i] for i in rxn.products]
+            mappings = {
+                "bond_map": rxn.bond_mapping,
+                "atom_map": rxn.atom_mapping,
+                "total_bonds": rxn.total_bonds,
+                "total_atoms": rxn.total_atoms,
+                "num_bonds_total": rxn.num_bonds_total,
+                "num_atoms_total": rxn.num_atoms_total,
+            }
+            has_bonds = {
+                "reactants": [
+                    True if len(mp) > 0 else False for mp in rxn.bond_mapping[0]
+                ],
+                "products": [
+                    True if len(mp) > 0 else False for mp in rxn.bond_mapping[1]
+                ],
+            }
+
+            if len(has_bonds["reactants"]) != len(reactants) or len(
+                has_bonds["products"]
+            ) != len(products):
+                print("unequal mapping & graph len")
+
+            g, fts = create_rxn_graph(
+                reactants=reactants,
+                products=products,
+                mappings=mappings,
+                device=device,
+                has_bonds=has_bonds,
+                reverse=reverse,
+                reactant_only=reactant_only,
+            )
 
         reaction_graphs.append(g)
         # if(device !=None):
@@ -530,6 +569,8 @@ def create_rxn_graph(
     ft_name="ft",
     reverse=False,
     reactant_only=False,
+    zero_fts=False,
+    empty_graph_fts=None,
 ):
     """
     A reaction is represented by:
@@ -546,6 +587,7 @@ def create_rxn_graph(
         ntypes (list): node types of which the feature are manipulated
         ft_name (str): key of feature inf data dict
         reverse (bool): whether to reverse the reaction direction
+        zero_fts (bool): whether to zero out the features of the reactants and products
 
     Returns:
         graph (DGLHeteroGraph): a reaction graph with feats constructed from between
@@ -562,7 +604,11 @@ def create_rxn_graph(
     # note, this assumes we have one reactant
     num_products = int(len(products))
     num_reactants = int(len(reactants))
-    graph = construct_rxn_graph_empty(mappings, device=device)
+    if empty_graph_fts is None:
+        graph = construct_rxn_graph_empty(mappings, device=device)
+    else:
+        graph = empty_graph_fts["empty_graph"]
+
     if verbose:
         print(
             "# reactions: {}, # products: {}".format(
@@ -611,68 +657,75 @@ def create_rxn_graph(
 
         len_feature_nt = reactants_ft[0].shape[1]
         # if(len_feature_nt!=64): print(mappings)
-
+        # if empty_graph_fts is None:
         if nt == "global":
             net_ft_full = torch.zeros(1, len_feature_nt)
         elif nt == "bond":
             net_ft_full = torch.zeros(mappings["num_bonds_total"], len_feature_nt)
         else:
             net_ft_full = torch.zeros(mappings["num_atoms_total"], len_feature_nt)
+        # else:
+        #    net_ft_full = empty_graph_fts["zero_feats"][nt]
 
         if device is not None:
             net_ft_full = net_ft_full.to(device)
 
-        if nt == "global":
-            coef = torch.tensor([1])
-            if reverse == True:
-                coef = torch.tensor([-1])
-            if device is not None:
-                coef = coef.to(device)
-            # don't add product features if we're only looking at reactants
-            if reactant_only == False:
-                for product_ft in products_ft:
-                    net_ft_full += coef * torch.sum(product_ft, dim=0, keepdim=True)
+        if not zero_fts:
+            if nt == "global":
+                coef = torch.tensor([1])
+                if reverse == True:
+                    coef = torch.tensor([-1])
+                if device is not None:
+                    coef = coef.to(device)
+                # don't add product features if we're only looking at reactants
+                if reactant_only == False:
+                    for product_ft in products_ft:
+                        net_ft_full += coef * torch.sum(product_ft, dim=0, keepdim=True)
 
-            for reactant_ft in reactants_ft:
-                net_ft_full -= coef * torch.sum(reactant_ft, dim=0, keepdim=True)
+                for reactant_ft in reactants_ft:
+                    net_ft_full -= coef * torch.sum(reactant_ft, dim=0, keepdim=True)
 
-        else:
-            net_ft_full_zeros = copy.deepcopy(net_ft_full)
+            else:
+                net_ft_full_zeros = copy.deepcopy(net_ft_full)
 
-            coef = torch.tensor([1])
-            if reverse == True:
-                coef = torch.tensor([-1])
+                coef = torch.tensor([1])
+                if reverse == True:
+                    coef = torch.tensor([-1])
 
-            if device is not None:
-                coef = coef.to(device)
-            # reactants
-            for ind, reactant_ft in enumerate(reactants_ft):
-                net_ft_full_temp = copy.deepcopy(net_ft_full_zeros)
-                mappings_raw = mappings[nt + "_map"][0][ind]
-                mappings_react = list(mappings_raw.keys())
-                mappings_total = [mappings_raw[mapping] for mapping in mappings_react]
-                assert np.max(np.array(mappings_total)) < len(
-                    net_ft_full_temp
-                ), f"invalid index  {mappings}"
-                net_ft_full_temp[mappings_total] = reactant_ft[mappings_react]
-                net_ft_full[mappings_total] -= coef * net_ft_full_temp[mappings_total]
-
-            # products
-            if reactant_only == False:
-                for ind, product_ft in enumerate(products_ft):
+                if device is not None:
+                    coef = coef.to(device)
+                # reactants
+                for ind, reactant_ft in enumerate(reactants_ft):
                     net_ft_full_temp = copy.deepcopy(net_ft_full_zeros)
-                    mappings_raw = mappings[nt + "_map"][1][ind]
-                    mappings_prod = list(mappings_raw.keys())
+                    mappings_raw = mappings[nt + "_map"][0][ind]
+                    mappings_react = list(mappings_raw.keys())
                     mappings_total = [
-                        mappings_raw[mapping] for mapping in mappings_prod
+                        mappings_raw[mapping] for mapping in mappings_react
                     ]
                     assert np.max(np.array(mappings_total)) < len(
                         net_ft_full_temp
                     ), f"invalid index  {mappings}"
-                    net_ft_full_temp[mappings_total] = product_ft[mappings_prod]
-                    net_ft_full[mappings_total] += (
+                    net_ft_full_temp[mappings_total] = reactant_ft[mappings_react]
+                    net_ft_full[mappings_total] -= (
                         coef * net_ft_full_temp[mappings_total]
                     )
+
+                # products
+                if reactant_only == False:
+                    for ind, product_ft in enumerate(products_ft):
+                        net_ft_full_temp = copy.deepcopy(net_ft_full_zeros)
+                        mappings_raw = mappings[nt + "_map"][1][ind]
+                        mappings_prod = list(mappings_raw.keys())
+                        mappings_total = [
+                            mappings_raw[mapping] for mapping in mappings_prod
+                        ]
+                        assert np.max(np.array(mappings_total)) < len(
+                            net_ft_full_temp
+                        ), f"invalid index  {mappings}"
+                        net_ft_full_temp[mappings_total] = product_ft[mappings_prod]
+                        net_ft_full[mappings_total] += (
+                            coef * net_ft_full_temp[mappings_total]
+                        )
 
         feats[nt] = net_ft_full
     return graph, feats
