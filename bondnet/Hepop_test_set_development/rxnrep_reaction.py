@@ -14,7 +14,7 @@ from rdkit.Chem.Draw import rdMolDraw2D
 from rxnrep_molecule import Molecule, find_functional_group
 from rxnrep_typing import BondIndex
 
-#logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 
 class Reaction:
@@ -41,7 +41,6 @@ class Reaction:
         id: Optional[Union[int, str]] = None,
         properties: Optional[Dict[str, Any]] = None,
     ):
-
         self._reactants = reactants
         self._products = products
         self._reagents = reagents
@@ -181,7 +180,6 @@ class Reaction:
         The atoms are ordered according to atom map number.
         """
         if self._atom_distance_to_reaction_center is None:
-
             atoms_in_reaction_center = set(
                 [
                     i
@@ -237,7 +235,6 @@ class Reaction:
         """
 
         if self._bond_distance_to_reaction_center is None:
-
             atom_distances = self.atom_distance_to_reaction_center
 
             reactants_bond_map_number = self.get_reactants_bond_map_number(
@@ -443,7 +440,6 @@ class Reaction:
         """
 
         if self._reaction_center_atom_functional_group is None:
-
             reactants = [m.rdkit_mol for m in self.reactants]
             products = [m.rdkit_mol for m in self.products]
             dist = self.atom_distance_to_reaction_center
@@ -684,7 +680,6 @@ class Reaction:
 
         bond_map_number = []  # map number for all molecules
         for bonds in target_bonds:
-
             number = OrderedDict()  # map number for a one molecule
             for b in bonds:
                 if b in unchanged_bonds:
@@ -860,7 +855,6 @@ class Reaction:
     def _get_reaction_smiles(
         self, clear_atom_map_number: bool = False, include_reagent: bool = True
     ):
-
         if clear_atom_map_number:
             reactants = [m.clear_atom_map_number() for m in self.reactants]
             products = [m.clear_atom_map_number() for m in self.products]

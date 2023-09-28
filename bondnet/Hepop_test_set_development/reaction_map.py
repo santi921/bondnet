@@ -327,8 +327,8 @@ def solve_integer_programing(
 
     # constraints 5 and 6: define each alpha_ijkl variable, permitting it to take the
     # value of one only if the reactant bond (i,j) maps to the product bond (k,l)
-    for (i, j) in reactant_bonds:
-        for (k, l) in product_bonds:
+    for i, j in reactant_bonds:
+        for k, l in product_bonds:
             model += alpha_vars[(i, j, k, l)] <= y_vars[(i, k)] + y_vars[(i, l)]
             model += alpha_vars[(i, j, k, l)] <= y_vars[(j, k)] + y_vars[(j, l)]
 

@@ -1070,10 +1070,45 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
 
     def __getitem__(self, item):
         rn, rxn, lb = self.reaction_network, self.reaction_ids[item], self.labels[item]
+        # reactions, graphs = rn.subselect_reactions([self.reaction_ids[item]])
+        # return rn, rxn, lb, reactions, graphs
         return rn, rxn, lb
+
+    """    def __getitem__(self, item):
+        rn, rxn_ids, lb = (
+            self.reaction_network,
+            self.reaction_ids[item],
+            self.labels[item],
+        )
+        reactions, graphs = rn.subselect_reactions([rxn_ids])
+        return reactions, graphs, lb
+    """
 
     def __len__(self):
         return len(self.reaction_ids)
+
+
+class ReactionNetworkLMDBDataset(BaseDataset):
+    def __init__(self, reaction_network_lmdb):
+        self.reaction_network = reaction_network_lmdb
+        self.elements = self.reaction_network.molecules.elements
+        self.rings = self.reaction_network.molecules.ring_sizes
+        self.charges = self.reaction_network.molecules.charges
+        self.feature_info = self.reaction_network.molecules.feature_info
+        self.reaction_ids = [
+            i["reaction_index"] for i in self.reaction_network.reactions
+        ]  # here we can either use reaction index or the specific id
+        self.reaction_ids = [int(i) for i in range(len(self.reaction_ids))]
+
+    def __getitem__(self, item):
+        rxn_ids = self.reaction_ids[item]
+        # print(rxn_ids)
+        # (reactions, graphs) = self.reaction_network.subselect_reactions(rxn_ids)
+        # return reactions, graphs
+        return self.reaction_network, rxn_ids
+
+    def __len__(self):
+        return len(self.reaction_network.reactions)
 
 
 def train_validation_test_split(dataset, validation=0.1, test=0.1, random_seed=None):

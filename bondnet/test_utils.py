@@ -1,3 +1,4 @@
+import os
 from rdkit import Chem
 import torch
 import dgl
@@ -8,6 +9,10 @@ from bondnet.core.molwrapper import create_wrapper_mol_from_atoms_and_bonds
 from bondnet.core.molwrapper import create_rdkit_mol_from_mol_graph
 from bondnet.core.reaction import Reaction
 from bondnet.layer.utils import UnifySize
+from bondnet.model.training_utils import get_grapher
+from bondnet.data.dataset import ReactionNetworkDatasetGraphs
+
+import torch
 
 
 def test_unify_size():
@@ -663,3 +668,101 @@ def make_homo_CH2O():
     feats["edge"] = ft
 
     return g, feats
+
+
+def get_test_reaction_network_data(dir=None):
+    config = {
+        "debug": False,
+        "classifier": False,
+        "classif_categories": 3,
+        "cat_weights": [1.0, 1.0, 1.0],
+        "extra_features": ["bond_length"],
+        "extra_info": [],
+        "filter_species": [3, 5],
+        "precision": 32,
+        "on_gpu": True,
+        "target_var": "ts",
+        "target_var_transfer": "diff",
+        "transfer": False,
+        "filter_outliers": True,
+    }
+    # get current directory
+    if dir is None:
+        dataset_loc = "./testdata/barrier_100.json"
+    else:
+        dataset_loc = dir
+
+    on_gpu = config["on_gpu"]
+    extra_keys = config["extra_features"]
+    debug = config["debug"]
+    precision = config["precision"]
+    if precision == "16" or precision == "32":
+        precision = int(precision)
+    if on_gpu:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    else:
+        device = torch.device("cpu")
+
+    extra_keys = config["extra_features"]
+    dataset = ReactionNetworkDatasetGraphs(
+        grapher=get_grapher(extra_keys),
+        file=dataset_loc,
+        target=config["target_var"],
+        classifier=config["classifier"],
+        classif_categories=config["classif_categories"],
+        filter_species=config["filter_species"],
+        filter_outliers=config["filter_outliers"],
+        filter_sparse_rxns=False,
+        debug=debug,
+        extra_keys=extra_keys,
+        extra_info=config["extra_info"],
+    )
+    return dataset
+
+
+def get_defaults():
+    config = {
+        "model": {
+            "conv": "GatedGCNConv",
+            "augment": False,
+            "classifier": False,
+            "classif_categories": 3,
+            "cat_weights": [1.0, 1.0, 1.0],
+            "embedding_size": 24,
+            "epochs": 100,
+            "extra_features": ["bond_length"],
+            "extra_info": [],
+            "filter_species": [3, 5],
+            "fc_activation": "ReLU",
+            "fc_batch_norm": True,
+            "fc_dropout": 0.2,
+            "fc_hidden_size_1": 256,
+            "fc_hidden_size_shape": "flat",
+            "fc_num_layers": 1,
+            "gated_activation": "ReLU",
+            "gated_batch_norm": False,
+            "gated_dropout": 0.1,
+            "gated_graph_norm": False,
+            "gated_hidden_size_1": 512,
+            "gated_hidden_size_shape": "flat",
+            "gated_num_fc_layers": 1,
+            "gated_num_layers": 2,
+            "gated_residual": True,
+            "learning_rate": 0.003,
+            "precision": 32,
+            "loss": "mse",
+            "num_lstm_iters": 3,
+            "num_lstm_layers": 1,
+            "restore": False,
+            "weight_decay": 0.0,
+            "max_epochs": 1000,
+            "max_epochs_transfer": 10,
+            "transfer": False,
+            "filter_outliers": True,
+            "freeze": True,
+            "reactant_only": False,
+        }
+    }
+    # config = "./settings.json"
+    # config = json.load(open(config, "r"))
+    return config
