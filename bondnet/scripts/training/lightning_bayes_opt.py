@@ -86,6 +86,9 @@ class TrainingObject:
                 "extra_info": self.sweep_config["parameters"]["extra_info"]["values"][
                     0
                 ],
+                "reactant_only": self.sweep_config["parameters"]["reactant_only"][
+                    "values"
+                ][0],
             },
             "optim": {
                 "batch_size": self.sweep_config["parameters"]["batch_size"]["values"][
