@@ -1,8 +1,5 @@
-Use the pretrained model:
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/mjwen/bondnet/pretrained?filepath=bondnet%2Fscripts%2Fpredict_binder.ipynb)
-
-Train the model:
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/mjwen/bondnet/pretrained?filepath=bondnet%2Fscripts%2Ftrain_bde.ipynb)
+# Generalized Bondnet
+This is the repository for the generalized variant of Bondnet. Here we have iterated on the original algorithm with generalized treatment of atom mappings, bonding, and descriptors. This variant still works with a minimal set of features and can handle rdkit for vanilla bond definitions but can also intake custom bond definitions to work with metals, noncovalent bonds, etc. We can also now handle arbitrary number of species on each side of the reaction. 
 
 # Table of Contents
 
