@@ -16,10 +16,7 @@ from bondnet.model.training_utils import (
     load_model_lightning,
 )
 
-from bondnet.data.datamodule import (
-    BondNetLightningDataModule,
-    BondNetLightningDataModuleLMDB,
-)
+from bondnet.data.datamodule import BondNetLightningDataModule
 
 
 seed_torch()
@@ -105,10 +102,10 @@ class TrainingObject:
                 "test_size": self.sweep_config["parameters"]["test_size"]["values"][0],
             },
         }
-        if self.use_lmdb:
-            self.dm = BondNetLightningDataModuleLMDB(dm_config)
-        else:
-            self.dm = BondNetLightningDataModule(dm_config)
+        # if self.use_lmdb:
+        #    self.dm = BondNetLightningDataModuleLMDB(dm_config)
+        # else:
+        self.dm = BondNetLightningDataModule(dm_config)
 
         feature_size, feature_names = self.dm.prepare_data()
         # config["model"]["in_feats"] = feature_size
@@ -122,10 +119,10 @@ class TrainingObject:
                 "target_var_transfer"
             ]["values"][0]
 
-            if self.use_lmdb:
-                self.dm_transfer = BondNetLightningDataModuleLMDB(config_transfer)
-            else:
-                self.dm_transfer = BondNetLightningDataModule(config_transfer)
+            # if self.use_lmdb:
+            #    self.dm_transfer = BondNetLightningDataModuleLMDB(config_transfer)
+            # else:
+            self.dm_transfer = BondNetLightningDataModule(config_transfer)
 
     def make_model(self, config):
         config["model"]["in_feats"] = self.in_feats

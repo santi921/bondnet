@@ -10,10 +10,7 @@ from pytorch_lightning.callbacks import (
     ModelCheckpoint,
 )
 
-from bondnet.data.datamodule import (
-    BondNetLightningDataModule,
-    BondNetLightningDataModuleLMDB,
-)
+from bondnet.data.datamodule import BondNetLightningDataModule
 
 from bondnet.utils import seed_torch
 from bondnet.model.training_utils import (
@@ -63,10 +60,10 @@ if __name__ == "__main__":
 
     config["dataset_transfer"]["data_dir"] = dataset_loc
 
-    if use_lmdb:
-        dm = BondNetLightningDataModuleLMDB(config)
-    else:
-        dm = BondNetLightningDataModule(config)
+    # if use_lmdb:
+    #    dm = BondNetLightningDataModuleLMDB(config)
+    # else:
+    dm = BondNetLightningDataModule(config)
 
     feature_size, feature_names = dm.prepare_data()
     config["model"]["in_feats"] = feature_size
@@ -85,10 +82,10 @@ if __name__ == "__main__":
             config_transfer = deepcopy(config)
             config_transfer["dataset"] = config_transfer["dataset_transfer"]
 
-            if use_lmdb:
-                dm_transfer = BondNetLightningDataModuleLMDB(config_transfer)
-            else:
-                dm_transfer = BondNetLightningDataModule(config_transfer)
+            # if use_lmdb:
+            #    dm_transfer = BondNetLightningDataModuleLMDB(config_transfer)
+            # else:
+            dm_transfer = BondNetLightningDataModule(config_transfer)
 
             log_parameters = LogParameters()
             logger_tb_transfer = TensorBoardLogger(
