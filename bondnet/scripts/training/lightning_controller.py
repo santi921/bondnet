@@ -12,10 +12,7 @@ from pytorch_lightning.callbacks import (
     ModelCheckpoint,
 )
 
-from bondnet.data.datamodule import (
-    BondNetLightningDataModule,
-    BondNetLightningDataModuleLMDB,
-)
+from bondnet.data.datamodule import BondNetLightningDataModule
 
 from bondnet.utils import seed_torch
 from bondnet.model.training_utils import (
@@ -45,10 +42,10 @@ def train_single(
     print(">" * 40 + "config_settings" + "<" * 40)
 
     if dm is None:
-        if use_lmdb:
-            dm = BondNetLightningDataModuleLMDB(config)
-        else:
-            dm = BondNetLightningDataModule(config)
+        # if use_lmdb:
+        #    dm = BondNetLightningDataModuleLMDB(config)
+        # else:
+        dm = BondNetLightningDataModule(config)
 
     feature_size, feature_names = dm.prepare_data()
     config["model"]["in_feats"] = feature_size
@@ -59,10 +56,10 @@ def train_single(
         config_transfer["dataset"] = config_transfer["dataset_transfer"]
 
         dm_transfer = BondNetLightningDataModule(config_transfer)
-        if use_lmdb:
-            dm_transfer = BondNetLightningDataModuleLMDB(config_transfer)
-        else:
-            dm_transfer = BondNetLightningDataModule(config_transfer)
+        # if use_lmdb:
+        #    dm_transfer = BondNetLightningDataModuleLMDB(config_transfer)
+        # else:
+        dm_transfer = BondNetLightningDataModule(config_transfer)
 
     if restore:
         config["model"]["restore"] = True

@@ -9,9 +9,8 @@ from pytorch_lightning.callbacks import (
     ModelCheckpoint,
 )
 
-from bondnet.data.datamodule import (
-    BondNetLightningDataModule,
-)
+from bondnet.data.datamodule import BondNetLightningDataModule
+
 from bondnet.utils import seed_torch
 from bondnet.model.training_utils import (
     LogParameters,
