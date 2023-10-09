@@ -177,6 +177,7 @@ class TrainingObject:
                     "weight_decay": init_config["weight_decay"],
                     "filter_outliers": init_config["filter_outliers"],
                     "conv": init_config["conv"],
+                    "reactant_only": init_config["reactant_only"],
                 },
                 "dataset": {
                     "data_dir": self.dataset_loc,
