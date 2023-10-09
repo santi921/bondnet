@@ -86,6 +86,9 @@ class TrainingObject:
                 "extra_info": self.sweep_config["parameters"]["extra_info"]["values"][
                     0
                 ],
+                "reactant_only": self.sweep_config["parameters"]["reactant_only"][
+                    "values"
+                ][0],
             },
             "optim": {
                 "batch_size": self.sweep_config["parameters"]["batch_size"]["values"][
@@ -174,6 +177,7 @@ class TrainingObject:
                     "weight_decay": init_config["weight_decay"],
                     "filter_outliers": init_config["filter_outliers"],
                     "conv": init_config["conv"],
+                    "reactant_only": init_config["reactant_only"],
                 },
                 "dataset": {
                     "data_dir": self.dataset_loc,
