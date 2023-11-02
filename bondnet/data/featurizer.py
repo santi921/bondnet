@@ -535,11 +535,14 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
                 self._feature_name += ["solvent"]
             else:
                 self._feature_name += ["solvent"] * len(self.solvent_environment)
+        # print("mol global", mol.global_features)
 
         if self.selected_keys != []:
             for key in self.selected_keys:
-                self._feature_name.append(key)
-                g += [mol.global_features[key]]
+                if key != "functional_group_reacted":
+                    self._feature_name.append(key)
+                    g += [mol.global_features[key]]
 
+        # print("mol atom", mol.atom_features)
         self._feature_size = len(self._feature_name)
         return {"feat": feats}, self._feature_name
