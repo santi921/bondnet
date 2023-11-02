@@ -975,6 +975,7 @@ def create_reaction_network_files_and_valid_rows(
     categories=5,
     extra_keys=None,
     extra_info=None,
+    return_reactions=False,
 ):
     """
     Processes json file or bson from emmet to use in training bondnet
@@ -1132,5 +1133,6 @@ def create_reaction_network_files_and_valid_rows(
         sdf_mapping=False,
         extra_info=extra_info_tf,
     )
-
+    if return_reactions:
+        return all_mols, all_labels, features, reactions
     return all_mols, all_labels, features
