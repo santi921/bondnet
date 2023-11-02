@@ -475,53 +475,6 @@ class ReactionCollection:
 
         return new_groups
 
-    def group_by_reactant_charge_pair(self):
-        """
-        Group reactions whose reactants are isomorphic to each other but have
-        different charges.
-
-        Then create pairs of reactions where the reactant and products of one reaction is
-        is isomorphic to those of the other reaction in a pair. The pair is indexed by
-        the charges of the reactants of the pair.
-
-        Returns:
-            A dict with a type (charge1, charge2) as the key, and a list of tuples as
-            the value, where each tuple are two reactions (reaction1, reactions2) that
-            have the same breaking bond.
-        """
-
-        grouped_reactions = self.group_by_reactant_lowest_energy()
-
-        # groups is a list of list, where the elements of each inner list are
-        # ReactionsOnePerBond instances and the corresponding reactants are
-        # isomorphic to each other
-        groups = []
-        for rsr in grouped_reactions:
-            find_iso = False
-            for g in groups:
-                old_rsr = g[0]
-                # add to the isomorphic group
-                if rsr.reactant.mol_graph.isomorphic_to(old_rsr.reactant.mol_graph):
-                    g.append(rsr)
-                    find_iso = True
-                    break
-            if not find_iso:
-                g = [rsr]
-                groups.append(g)
-
-        # group by charge of a pair of reactants
-        result = defaultdict(list)
-        for g in groups:
-            for rsr1, rsr2 in itertools.combinations(g, 2):
-                if rsr2.reactant.charge < rsr1.reactant.charge:
-                    rsr1, rsr2 = rsr2, rsr1
-                rxn1 = {r.get_broken_bond(): r for r in rsr1.reactions}
-                rxn2 = {r.get_broken_bond(): r for r in rsr2.reactions}
-                res = get_same_bond_breaking_reactions_between_two_reaction_groups(
-                    rsr1.reactant, rxn1, rsr2.reactant, rxn2
-                )
-                result[(rsr1.reactant.charge, rsr2.reactant.charge)].extend(res)
-        return result
 
     def calculate_broken_bond_fraction(self):
         """
@@ -906,42 +859,3 @@ def get_atom_bond_mapping(rxn):
     bond_mp = rxn.bond_mapping_by_sdf_int_index()
     return atom_mp, bond_mp
 
-
-def get_same_bond_breaking_reactions_between_two_reaction_groups(
-    reactant1, group1, reactant2, group2
-):
-    """
-    Args:
-        reactant1 (MolecularWrapper instance)
-        group1, (dict): A group of reactions that have the same reactant1 but
-            breaking different bonds. the bond indices is the key of the dict.
-        reactant2 (MolecularWrapper instance) reactant2 should have the same
-            isomorphism as that of reactant1, but other property can be different,
-            e.g. (charge).
-        group2 (dict): A group of reactions that have the same reactant2 but
-            breaking different bonds. the bond indices is the key of the dict.
-
-    Returns:
-        A list of tuples (rxn1, rxn2) where rxn1 and rxn2 has the same breaking bond.
-    """
-
-    bonds1 = [tuple(k) for k in group1]
-    bonds2 = [tuple(k) for k in group2]
-    fragments1 = reactant1.fragments[bonds1]
-    fragments2 = reactant2.fragments[bonds2]
-
-    res = []
-    for b1, mgs1 in fragments1.items():
-        for b2, mgs2 in fragments2.items():
-            if len(mgs1) == len(mgs2) == 1:
-                if mgs1[0].isomorphic_to(mgs2[0]):
-                    res.append((group1[b1], group2[b2]))
-
-            if len(mgs1) == len(mgs2) == 2:
-                if (
-                    mgs1[0].isomorphic_to(mgs2[0]) and mgs1[1].isomorphic_to(mgs2[1])
-                ) or (
-                    mgs1[0].isomorphic_to(mgs2[1]) and mgs1[1].isomorphic_to(mgs2[0])
-                ):
-                    res.append((group1[b1], group2[b2]))
-    return res

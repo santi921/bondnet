@@ -17,7 +17,19 @@ from bondnet.utils import int_atom, xyz2mol
 
 from rdkit import Chem
 
+
 # Chem.WrapLogs()
+def parse_extra_global_feats(extra_feats):
+    ret_dict = {}
+    extra_feature_keys = list(extra_feats.keys())
+    # get key as everything after "product_" or "reactant_"
+    extra_feature_keys_trimmed = [i.split("_")[1:] for i in extra_feature_keys]
+    extra_feature_keys_trimmed = ["_".join(i) for i in extra_feature_keys_trimmed]
+    ret_dict = {
+        extra_feature_keys_trimmed[index]: extra_feats[i]
+        for index, i in enumerate(extra_feature_keys)
+    }
+    return ret_dict
 
 
 def parse_extra_electronic_feats_atom(extra_feats, inds):
@@ -216,7 +228,7 @@ def split_and_map(
                 functional_group=functional_group,
                 atom_features=atom_feats,
                 bond_features=bond_feats,
-                global_features=extra_feats_global,
+                global_features=parse_extra_global_feats(extra_feats_global),
                 identifier=id + "_" + str(ind_sg),
             )
 
@@ -285,7 +297,7 @@ def split_and_map(
             functional_group=functional_group,
             atom_features=atom_feats,
             bond_features=bond_feats,
-            global_features=extra_feats_global,
+            global_features=parse_extra_global_feats(extra_feats_global),
             identifier=id,
         )
 
@@ -329,6 +341,7 @@ def process_species_graph(
 
     Args:
         row: the row (series) pandas object
+
 
     Returns:
         mol_list: a list of MolecularWrapper object(s) for product(s) or reactant
@@ -430,6 +443,8 @@ def process_species_graph(
     extra_atom_feats_dict_prod, extra_atom_feats_dict_react = {}, {}
     extra_bond_feats_dict_prod, extra_bond_feats_dict_react = {}, {}
     extra_global_feats_dict_prod, extra_global_feats_dict_react = {}, {}
+    # print("extra keys", extra_keys)
+    # print("extra keys full", extra_keys_full)
 
     for key in extra_keys_full:
         prod = False
@@ -473,6 +488,7 @@ def process_species_graph(
 
         if key.startswith("extra_feat_global"):
             prod = False
+
             # check if next underscore is product or reactant
             # add key to dict if reactant equivalent is also present
             if key.split("_")[3] == "product":
@@ -493,7 +509,8 @@ def process_species_graph(
                     extra_global_feats_dict_prod[final_key] = row[key]
                 else:
                     extra_global_feats_dict_react[final_key] = row[key]
-
+    # print("extra global feats dict prod", extra_global_feats_dict_prod)
+    # print("extra global feats dict react", extra_global_feats_dict_react)
     # print("extra atom feats dict prod", extra_atom_feats_dict_prod)
     # print("extra atom feats dict react", extra_atom_feats_dict_react)
     # print("extra bond feats dict prod", extra_bond_feats_dict_prod)

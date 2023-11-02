@@ -237,7 +237,11 @@ def load_model_lightning(dict_train, load_dir=None):
     return model
 
 
-def get_grapher(features, allowed_charges=[-2, -1, 0, 1, 2]):
+def get_grapher(
+    features,
+    allowed_charges=[-2, -1, 0, 1, 2],
+    global_feats=["charge", "functional_group_reacted"],
+):
     """keys_selected_bonds = [
     "Lagrangian_K", "Hamiltonian_K", "e_density", "lap_e_density",
     "e_loc_func", "ave_loc_ion_E", "delta_g_promolecular",
@@ -303,11 +307,10 @@ def get_grapher(features, allowed_charges=[-2, -1, 0, 1, 2]):
                 keys_selected_bonds.append(key[5:])
         else:
             if "indices" not in key:
-                if key != "functional_group_reacted":
-                    if key == "charge":
-                        keys_selected_global.append(key)
-                    else:
-                        keys_selected_atoms.append(key)
+                if key not in global_feats:
+                    keys_selected_atoms.append(key)
+                else:
+                    keys_selected_global.append(key)
 
     # print("keys_selected_atoms", keys_selected_atoms)
     # print("keys_selected_bonds", keys_selected_bonds)
@@ -316,9 +319,9 @@ def get_grapher(features, allowed_charges=[-2, -1, 0, 1, 2]):
     bond_featurizer = BondAsNodeGraphFeaturizerGeneral(
         selected_keys=keys_selected_bonds
     )
-
+    fg_list = None
     if len(keys_selected_global) > 0:
-        if "functional_group_reacted" in keys_selected_global:
+        if "functional_group_reacted" in features:
             # hard coded for now. Ideally need to implement get_hydro_data_functional_groups
             # this is tough just because not hard-encoding this make it less portable
             fg_list = [
@@ -334,8 +337,8 @@ def get_grapher(features, allowed_charges=[-2, -1, 0, 1, 2]):
                 "nitrile",
                 "urea",
             ]
-    else:
-        fg_list = None
+
+    print("fg_list", fg_list)
 
     global_featurizer = GlobalFeaturizerGraph(
         allowed_charges=allowed_charges,
