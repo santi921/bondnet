@@ -260,6 +260,8 @@ class BondAsNodeGraphFeaturizerGeneral(BondFeaturizer):
                 feats_flatten_temp = []
                 for key in self.selected_keys:
                     if key != "bond_length":
+                        #print("key", key)
+                        #print(features[key])
                         feats_flatten_temp.append(features[key][i])
                 features_flatten.append(feats_flatten_temp)
 

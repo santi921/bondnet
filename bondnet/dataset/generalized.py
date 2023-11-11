@@ -480,11 +480,15 @@ def process_species_graph(
             if opposite_key in extra_keys_full:
                 # remove the "extra_feat_bond" from the key
                 final_key = key.replace("extra_feat_bond_", "")
+                if "indices" in key:
+                    row_data = row[key]
+                else:
+                    row_data = row[key][0]
 
                 if prod:
-                    extra_bond_feats_dict_prod[final_key] = row[key][0]
+                    extra_bond_feats_dict_prod[final_key] = row_data
                 else:
-                    extra_bond_feats_dict_react[final_key] = row[key][0]
+                    extra_bond_feats_dict_react[final_key] = row_data
 
         if key.startswith("extra_feat_global"):
             prod = False
@@ -531,10 +535,10 @@ def process_species_graph(
             if verbose:
                 print("filter rxn bc of missing features")
             return []
-    # print("extra atom feats dict prod", extra_atom_feats_dict_prod)
-    # print("extra atom feats dict react", extra_atom_feats_dict_react)
-    # print("extra bond feats dict prod", extra_bond_feats_dict_prod)
-    # print("extra bond feats dict react", extra_bond_feats_dict_react)
+    #print("extra atom feats dict prod", extra_atom_feats_dict_prod)
+    #print("extra atom feats dict react", extra_atom_feats_dict_react)
+    #print("extra bond feats dict prod", extra_bond_feats_dict_prod)
+    #print("extra bond feats dict react", extra_bond_feats_dict_react)
     products, atoms_products, mapping_products = split_and_map(
         elements=species_products_full,
         coords=coords_products_full,
@@ -995,6 +999,10 @@ def create_reaction_network_files_and_valid_rows(
     if filename.endswith(".json"):
         path_json = filename
         mg_df = pd.read_json(path_json)
+    elif filename.endswith(".pkl"):
+        path_pkl = filename
+        mg_df = pd.read_pickle(path_pkl)
+
     else:
         path_bson = filename
         with open(path_bson, "rb") as f:

@@ -10,10 +10,7 @@ from bondnet.data.dataset import (
 
 
 from bondnet.data.dataloader import collate_parallel, DataLoaderReactionNetworkParallel
-
-from bondnet.model.training_utils import (
-    get_grapher,
-)
+from bondnet.model.training_utils import get_grapher
 
 """
 
