@@ -22,6 +22,9 @@ warnings.filterwarnings(
 )
 
 torch.set_float32_matmul_precision("high")  # might have to disable on older GPUs
+#torch.backends.cudnn.benchmark = True
+torch.backends.cudnn.allow_tf32 = True
+torch.backends.cuda.matmul.allow_tf32 = True
 
 
 def test_model_construction():
@@ -83,8 +86,8 @@ def test_model_save_load():
         "optim": {
             "val_size": 0.1,
             "test_size": 0.1,
-            "batch_size": 4,
-            "num_workers": 1,
+            "batch_size": 256,
+            "num_workers": 16,
         },
     }
     config_model = get_defaults()
@@ -99,7 +102,7 @@ def test_model_save_load():
     model = load_model_lightning(config["model"], load_dir="./test_save_load/")
 
     trainer = pl.Trainer(
-        max_epochs=3,
+        max_epochs=30,
         accelerator="gpu",
         devices=1,
         accumulate_grad_batches=5,
@@ -237,7 +240,7 @@ def test_augmentation():
             "val_size": 0.1,
             "test_size": 0.1,
             "batch_size": 4,
-            "num_workers": 1,
+            "num_workers": 8,
         },
     }
     config_model = get_defaults()
@@ -341,3 +344,6 @@ def test_reactant_only_construction():
 
 
 # TODO: test multi-gpu
+
+
+test_model_save_load()
