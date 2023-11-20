@@ -437,7 +437,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         optimizer = torch.optim.Adam(
             filter(lambda p: p.requires_grad, self.parameters()),
             lr=self.hparams.lr,
-            weight_decay=self.hparams.weight_decay,
+            weight_decay=self.hparams.weight_decay
         )
 
         scheduler = self._config_lr_scheduler(optimizer)
