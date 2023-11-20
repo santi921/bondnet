@@ -1,5 +1,6 @@
 import torch
 import pytorch_lightning as pl
+
 from bondnet.model.training_utils import (
     load_model_lightning,
 )
@@ -22,6 +23,9 @@ warnings.filterwarnings(
 )
 
 torch.set_float32_matmul_precision("high")  # might have to disable on older GPUs
+#torch.backends.cudnn.benchmark = True
+torch.backends.cudnn.allow_tf32 = True
+torch.backends.cuda.matmul.allow_tf32 = True
 
 
 def test_model_construction():
@@ -83,8 +87,8 @@ def test_model_save_load():
         "optim": {
             "val_size": 0.1,
             "test_size": 0.1,
-            "batch_size": 4,
-            "num_workers": 1,
+            "batch_size": 256,
+            "num_workers": 16,
         },
     }
     config_model = get_defaults()
@@ -99,7 +103,7 @@ def test_model_save_load():
     model = load_model_lightning(config["model"], load_dir="./test_save_load/")
 
     trainer = pl.Trainer(
-        max_epochs=3,
+        max_epochs=30,
         accelerator="gpu",
         devices=1,
         accumulate_grad_batches=5,
@@ -109,6 +113,7 @@ def test_model_save_load():
         default_root_dir="./test_save_load/",
         precision=config["model"]["precision"],
         log_every_n_steps=1,
+        profiler='simple'
     )
 
     trainer.fit(model, dm)
@@ -237,7 +242,7 @@ def test_augmentation():
             "val_size": 0.1,
             "test_size": 0.1,
             "batch_size": 4,
-            "num_workers": 1,
+            "num_workers": 8,
         },
     }
     config_model = get_defaults()
@@ -341,3 +346,59 @@ def test_reactant_only_construction():
 
 
 # TODO: test multi-gpu
+
+def test_profiler():
+    dataset_loc = "../data/testdata/barrier_100.json"
+    config = {
+        "dataset": {
+            "data_dir": dataset_loc,
+            "target_var": "dG_barrier",
+        },
+        "model": {
+            "extra_features": [],
+            "extra_info": [],
+            "debug": False,
+            "classifier": False,
+            "classif_categories": 3,
+            "filter_species": [3, 6],
+            "filter_outliers": False,
+            "filter_sparse_rxns": False,
+            "restore": False,
+        },
+        "optim": {
+            "val_size": 0.1,
+            "test_size": 0.1,
+            "batch_size": 256,
+            "num_workers": 16,
+        },
+    }
+    config_model = get_defaults()
+    # update config with model settings
+    for key, value in config_model["model"].items():
+        config["model"][key] = value
+
+    dm = BondNetLightningDataModule(config)
+
+    feat_size, feat_name = dm.prepare_data()
+    config["model"]["in_feats"] = feat_size
+    model = load_model_lightning(config["model"], load_dir="./test_save_load/")
+    #profiler = pl.profiler.AdvancedProfiler(dirpath="./profiler_res/", filename="res.txt")
+
+    trainer = pl.Trainer(
+        max_epochs=30,
+        accelerator="gpu",
+        devices=1,
+        accumulate_grad_batches=5,
+        enable_progress_bar=True,
+        gradient_clip_val=1.0,
+        enable_checkpointing=True,
+        default_root_dir="./test_save_load/",
+        precision=config["model"]["precision"],
+        log_every_n_steps=1,
+        profiler='advanced'
+    )
+
+    trainer.fit(model, dm)
+
+
+#test_profiler()
