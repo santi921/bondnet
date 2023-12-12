@@ -160,33 +160,37 @@ class BondNetLightningDataModule(pl.LightningDataModule):
         self.prepared = False
 
     def prepare_data(self):
-        entire_dataset = ReactionNetworkDatasetGraphs(
-            grapher=get_grapher(self.config["model"]["extra_features"]),
-            file=self.config["dataset"]["data_dir"],
-            target=self.config["dataset"]["target_var"],
-            classifier=self.config["model"]["classifier"],
-            classif_categories=self.config["model"]["classif_categories"],
-            filter_species=self.config["model"]["filter_species"],
-            filter_outliers=self.config["model"]["filter_outliers"],
-            filter_sparse_rxns=False,
-            debug=self.config["model"]["debug"],
-            extra_keys=self.config["model"]["extra_features"],
-            extra_info=self.config["model"]["extra_info"],
-        )
+        if self.prepared:
+            return self.entire_dataset._feature_size, self.entire_dataset._feature_name
+        
+        else:
+            self.entire_dataset = ReactionNetworkDatasetGraphs(
+                grapher=get_grapher(self.config["model"]["extra_features"]),
+                file=self.config["dataset"]["data_dir"],
+                target=self.config["dataset"]["target_var"],
+                classifier=self.config["model"]["classifier"],
+                classif_categories=self.config["model"]["classif_categories"],
+                filter_species=self.config["model"]["filter_species"],
+                filter_outliers=self.config["model"]["filter_outliers"],
+                filter_sparse_rxns=False,
+                debug=self.config["model"]["debug"],
+                extra_keys=self.config["model"]["extra_features"],
+                extra_info=self.config["model"]["extra_info"],
+            )
 
-        (
-            self.train_dataset,
-            self.val_dataset,
-            self.test_dataset,
-        ) = train_validation_test_split(
-            entire_dataset,
-            validation=self.config["optim"]["val_size"],
-            test=self.config["optim"]["test_size"],
-        )
+            (
+                self.train_dataset,
+                self.val_dataset,
+                self.test_dataset,
+            ) = train_validation_test_split(
+                self.entire_dataset,
+                validation=self.config["optim"]["val_size"],
+                test=self.config["optim"]["test_size"],
+            )
 
-        # print("done creating lmdb" * 10)
-        self.prepared = True
-        return entire_dataset._feature_size, entire_dataset._feature_name
+            # print("done creating lmdb" * 10)
+            self.prepared = True
+            return self.entire_dataset._feature_size, self.entire_dataset._feature_name
 
     def setup(self, stage):
         if stage in (None, "fit", "validate"):
