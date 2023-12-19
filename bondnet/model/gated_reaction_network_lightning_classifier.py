@@ -445,7 +445,7 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
         """
         return self.shared_step(batch, mode="test")
 
-    def training_epoch_end(self, outputs):
+    def on_train_epoch_end(self):
         """
         Training epoch end
         """
@@ -454,7 +454,7 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
         self.log("train_acc", acc, prog_bar=True)
         self.log("train_cross", cross, prog_bar=True)
 
-    def validation_epoch_end(self, outputs):
+    def on_validation_epoch_end(self):
         """
         Validation epoch end
         """
@@ -463,7 +463,7 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
         self.log("val_acc", acc, prog_bar=True)
         self.log("val_cross", cross, prog_bar=True)
 
-    def test_epoch_end(self, outputs):
+    def on_test_epoch_end(self):
         """
         Test epoch end
         """
