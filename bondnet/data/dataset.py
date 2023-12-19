@@ -869,8 +869,11 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
 
         count = 0
         graphs = []
-
-        for ind, mol in enumerate(molecules):
+        # use tqdm to show progress bar
+        
+        #for ind, mol in enumerate(molecules):
+        ind = 0 
+        for mol in tqdm(molecules, desc="mol graphs"):
             feats = features[count]
             if mol is not None:
                 g = grapher.build_graph_and_featurize(
@@ -883,7 +886,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
                 g = None
             graphs.append(g)
             count += 1
-
+            ind += 1
         return graphs
 
     @staticmethod

@@ -612,9 +612,9 @@ def process_species_graph(
             id = str(id)
 
         if target == "ts":
-            value = row["transition_state_energy"] - row[reactant_key + "_energy"]
+            value = row["transition_state_free_energy"] - row[reactant_key + "_free_energy"]
             reverse_energy = (
-                row["transition_state_energy"] - row[product_key + "_energy"]
+                row["transition_state_free_energy"] - row[product_key + "_free_energy"]
             )
             if reverse_energy < 0.0:
                 reverse_energy = 0.0
@@ -624,9 +624,9 @@ def process_species_graph(
             value = row["dG_sp"]
             reverse_energy = -value
         elif target == "diff":
-            value = row[product_key + "_energy"] - row[reactant_key + "_energy"]
+            value = row[product_key + "_free_energy"] - row[reactant_key + "_free_energy"]
             reverse_energy = (
-                row[reactant_key + "_energy"] - row[product_key + "_energy"]
+                row[reactant_key + "_free_energy"] - row[product_key + "_free_energy"]
             )
         else:
             value = row[target]
@@ -1018,13 +1018,13 @@ def create_reaction_network_files_and_valid_rows(
 
     if filter_outliers:
         if target == "ts":
-            energy_dist = mg_df["transition_state_energy"] - mg_df["reactant_energy"]
+            energy_dist = mg_df["transition_state_free_energy"] - mg_df["reactant_free_energy"]
 
         elif target == "dG_sp":
             energy_dist = mg_df["dG_sp"]
 
         elif target == "diff":
-            energy_dist = mg_df["product_energy"] - mg_df["reactant_energy"]
+            energy_dist = mg_df["product_free_energy"] - mg_df["reactant_free_energy"]
 
         else:
             energy_dist = mg_df[target]

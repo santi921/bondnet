@@ -2,6 +2,7 @@ import itertools
 import logging
 import multiprocessing
 import numpy as np
+from tqdm import tqdm
 from matplotlib import pyplot as plt
 from collections import defaultdict, OrderedDict
 from bondnet.core.reaction import ReactionsMultiplePerBond, ReactionsOnePerBond
@@ -571,7 +572,9 @@ class ReactionCollection:
         all_mols, all_mol_ids, all_labels = [], [], []
         print("number of grouped reactions: {}".format(len(grouped_rxns)))
 
-        for grp in grouped_rxns:
+        #for grp in grouped_rxns:
+        print("---> generating grouped reactions")
+        for grp in tqdm(grouped_rxns, desc="grouped reactions"):
             reactions = grp.order_reactions(
                 one_per_iso_bond_group, complement_reactions=False
             )
@@ -583,8 +586,14 @@ class ReactionCollection:
                 ] + [str(i.id) + "_" + str(ind) for ind, i in enumerate(rxn.products)]
                 all_mols.extend(mols)
                 all_mol_ids.extend(mols_id)
-
-        for grp in grouped_rxns:
+        print("--> generating labels")
+        
+        for grp in tqdm(grouped_rxns, desc="labeled reactions"):
+        
+        #for grp in grouped_rxns:
+        
+        # tqdm(grouped_rxns, desc="grouped reactions"):
+        
             reactions = grp.order_reactions(
                 one_per_iso_bond_group, complement_reactions=False
             )
