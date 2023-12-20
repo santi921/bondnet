@@ -433,8 +433,8 @@ def mol_graph_to_rxn_graph(
                     for i in rxn["reaction_molecule_info"]["products"]["products"]
                 ]
 
-                mappings = rxn["reaction_molecule_info"]["mappings"]
-                has_bonds = rxn["reaction_molecule_info"]["has_bonds"]
+                mappings = rxn["mappings"]
+                has_bonds = rxn["has_bonds"]
 
                 g, fts = create_rxn_graph(
                     reactants=reactants,
@@ -619,7 +619,9 @@ def create_rxn_graph(
     for nt in ntypes:
         reactants_ft = [p.nodes[nt].data[ft_name] for p in reactants]
         products_ft = [p.nodes[nt].data[ft_name] for p in products]
-
+        # printy number of nodes of a type
+        #print("num nodes of type ", nt, " in reactants: ", [p.num_nodes(nt) for p in reactants])
+        #print("num nodes of type ", nt, " in products: ", [p.num_nodes(nt) for p in reactants])
         if device is not None:
             reactants_ft = [r.to(device) for r in reactants_ft]
             products_ft = [p.to(device) for p in products_ft]
@@ -722,6 +724,7 @@ def create_rxn_graph(
                         assert np.max(np.array(mappings_total)) < len(
                             net_ft_full_temp
                         ), f"invalid index  {mappings}"
+                        #print(product_ft.shape, len(mappings_prod), len(mappings_total), num_products, nt)
                         net_ft_full_temp[mappings_total] = product_ft[mappings_prod]
                         net_ft_full[mappings_total] += (
                             coef * net_ft_full_temp[mappings_total]

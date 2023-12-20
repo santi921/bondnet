@@ -499,9 +499,9 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             stdev = self.stdev
 
         pred = self(
-            batched_graph,
-            feats,
-            reactions,
+            graph=batched_graph,
+            feats=feats,
+            reactions=reactions,
             reverse=False,
             norm_bond=norm_bond,
             norm_atom=norm_atom,
