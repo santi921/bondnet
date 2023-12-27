@@ -188,7 +188,6 @@ def train_single(
             callbacks=[
                 early_stopping_callback,
                 lr_monitor,
-                log_parameters,
                 checkpoint_callback,
             ],
             enable_checkpointing=True,

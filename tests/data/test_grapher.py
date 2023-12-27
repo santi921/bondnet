@@ -1,12 +1,7 @@
 import numpy as np
 from collections import defaultdict
-from bondnet.data.grapher import (
-    HomoBidirectedGraph,
-    HomoCompleteGraph,
-    HeteroMoleculeGraph,
-    HeteroCompleteGraph,
-)
-from bondnet.test_utils import make_a_mol
+from bondnet.data.grapher import HeteroCompleteGraphFromMolWrapper
+from bondnet.test_utils import make_a_mol, make_hetero
 
 
 def get_bond_to_atom_map(g):
@@ -62,75 +57,6 @@ def get_hetero_self_loop_map(g, ntype):
         suc = g.successors(i, etype)
         self_loop_map[i] = list(suc)
     return self_loop_map
-
-
-def test_build_homo_bidirected_graph():
-    def assert_graph(self_loop):
-        m = make_a_mol()
-        natoms = m.GetNumAtoms()
-        nbonds = m.GetNumBonds()
-        if self_loop:
-            nedges = 2 * nbonds + natoms
-        else:
-            nedges = 2 * nbonds
-
-        grapher = HomoBidirectedGraph(self_loop=self_loop)
-        g = grapher.build_graph(m)
-
-        assert g.number_of_nodes() == natoms
-        assert g.number_of_edges() == nedges
-
-        # order matters, connectivity is how we add edges
-        c1 = [[1, 2], [1, 5], [2, 3], [2, 7], [4, 3], [5, 4], [6, 1]]
-        c2 = [list(reversed(i)) for i in c1]
-        connectivity = []
-        for i, j in zip(c1, c2):
-            connectivity.append(i)
-            connectivity.append(j)
-        if self_loop:
-            connectivity += [[i, i] for i in range(1, natoms + 1)]
-        connectivity = np.array(connectivity) - 1  # -1 to convert index to start from 0
-
-        edges = np.array([[int(i), int(j)] for i, j in zip(*g.edges())])
-
-        assert np.array_equal(connectivity, edges)
-
-    assert_graph(False)
-    assert_graph(True)
-
-
-def test_build_homo_complete_graph():
-    def assert_graph(self_loop):
-        m = make_a_mol()
-        natoms = m.GetNumAtoms()
-        if self_loop:
-            nedges = natoms**2
-            edges = zip(
-                [i for i in range(natoms) for j in range(natoms)],
-                [j for i in range(natoms) for j in range(natoms)],
-            )
-            edges = [[int(i), int(j)] for i, j in edges]
-
-        else:
-            nedges = natoms * (natoms - 1)
-            edges = zip(
-                [i for i in range(natoms) for j in range(natoms - 1)],
-                [j for i in range(natoms) for j in range(natoms) if i != j],
-            )
-            edges = [[int(i), int(j)] for i, j in edges]
-
-        grapher = HomoCompleteGraph(self_loop=self_loop)
-        g = grapher.build_graph(m)
-
-        assert g.number_of_nodes() == natoms
-        assert g.number_of_edges() == nedges
-
-        graph_edges = np.array([[int(i), int(j)] for i, j in zip(*g.edges())])
-
-        assert np.array_equal(edges, graph_edges)
-
-    assert_graph(False)
-    assert_graph(True)
 
 
 def test_build_hetero_graph():

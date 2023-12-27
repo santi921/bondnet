@@ -219,8 +219,7 @@ class TrainingObject:
 
                 config_transfer = deepcopy(config)
                 config_transfer["dataset"] = config_transfer["dataset_transfer"]
-                log_parameters_transfer = LogParameters()
-
+                
                 logger_tb_transfer = TensorBoardLogger(
                     self.log_save_dir,
                     name="test_logs_transfer",

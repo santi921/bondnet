@@ -127,7 +127,6 @@ if __name__ == "__main__":
                 callbacks=[
                     early_stopping_callback_transfer,
                     lr_monitor_transfer,
-                    log_parameters,
                     checkpoint_callback_transfer,
                 ],
                 enable_checkpointing=True,

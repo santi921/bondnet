@@ -552,10 +552,11 @@ def construct_rxn_graph_empty(mappings, device=None, self_loop=True):
                 ("global", "g2g", "global"): g2g,
             }
         )
-
-    rxn_graph_zeroed = dgl.heterograph(edges_dict)
     if device is not None:
-        rxn_graph_zeroed = rxn_graph_zeroed.to(device)
+        rxn_graph_zeroed = dgl.heterograph(edges_dict, device=device)
+    else: 
+        rxn_graph_zeroed = dgl.heterograph(edges_dict)
+    
     return rxn_graph_zeroed
 
 
@@ -607,6 +608,7 @@ def create_rxn_graph(
     if empty_graph_fts is None:
         graph = construct_rxn_graph_empty(mappings, device=device)
     else:
+        
         graph = empty_graph_fts["empty_graph"]
 
     if verbose:
@@ -622,9 +624,9 @@ def create_rxn_graph(
         # printy number of nodes of a type
         #print("num nodes of type ", nt, " in reactants: ", [p.num_nodes(nt) for p in reactants])
         #print("num nodes of type ", nt, " in products: ", [p.num_nodes(nt) for p in reactants])
-        if device is not None:
-            reactants_ft = [r.to(device) for r in reactants_ft]
-            products_ft = [p.to(device) for p in products_ft]
+        #if device is not None:
+        #    reactants_ft = [r.to(device) for r in reactants_ft]
+        #    products_ft = [p.to(device) for p in products_ft]
 
         if nt == "bond":
             if num_products > 1:
@@ -653,35 +655,37 @@ def create_rxn_graph(
             products_ft = [
                 torch.sum(product_ft, dim=0, keepdim=True) for product_ft in products_ft
             ]
-            if device is not None:
-                reactants_ft = [r.to(device) for r in reactants_ft]
-                products_ft = [p.to(device) for p in products_ft]
+            #if device is not None:
+            #    reactants_ft = [r.to(device) for r in reactants_ft]
+            #    products_ft = [p.to(device) for p in products_ft]
 
         len_feature_nt = reactants_ft[0].shape[1]
         # if(len_feature_nt!=64): print(mappings)
         # if empty_graph_fts is None:
         if nt == "global":
-            net_ft_full = torch.zeros(1, len_feature_nt)
+            net_ft_full = torch.zeros(1, len_feature_nt).type_as(reactants_ft[0])
         elif nt == "bond":
-            net_ft_full = torch.zeros(mappings["num_bonds_total"], len_feature_nt)
+            net_ft_full = torch.zeros(mappings["num_bonds_total"], len_feature_nt).type_as(reactants_ft[0])
         else:
-            net_ft_full = torch.zeros(mappings["num_atoms_total"], len_feature_nt)
+            net_ft_full = torch.zeros(mappings["num_atoms_total"], len_feature_nt).type_as(reactants_ft[0])
         # else:
         #    net_ft_full = empty_graph_fts["zero_feats"][nt]
 
-        if device is not None:
-            net_ft_full = net_ft_full.to(device)
+        #if device is not None:
+        #    net_ft_full = net_ft_full.to(device)
 
         if not zero_fts:
             if nt == "global":
-                coef = torch.tensor([1])
+                coef = torch.tensor([1]).type_as(reactants_ft[0])
                 if reverse == True:
-                    coef = torch.tensor([-1])
-                if device is not None:
-                    coef = coef.to(device)
+                    coef = torch.tensor([-1]).type_as(reactants_ft[0])
+                #if device is not None:
+                #    coef = coef.to(device)
                 # don't add product features if we're only looking at reactants
                 if reactant_only == False:
                     for product_ft in products_ft:
+                        #print("device coef: ", coef.device, " reactant_ft: ", product_ft.device, "sum: ", torch.sum(product_ft, dim=0, keepdim=True).device)
+
                         net_ft_full += coef * torch.sum(product_ft, dim=0, keepdim=True)
 
                 for reactant_ft in reactants_ft:
@@ -690,12 +694,13 @@ def create_rxn_graph(
             else:
                 net_ft_full_zeros = copy.deepcopy(net_ft_full)
 
-                coef = torch.tensor([1])
+                coef = torch.tensor([1]).type_as(reactants_ft[0])
                 if reverse == True:
-                    coef = torch.tensor([-1])
+                    coef = torch.tensor([-1]).type_as(reactants_ft[0])
 
-                if device is not None:
-                    coef = coef.to(device)
+                #if device is not None:
+                #    coef = coef.to(device)
+                
                 # reactants
                 for ind, reactant_ft in enumerate(reactants_ft):
                     net_ft_full_temp = copy.deepcopy(net_ft_full_zeros)
@@ -731,4 +736,6 @@ def create_rxn_graph(
                         )
 
         feats[nt] = net_ft_full
+
+    #print("graph device: ", graph.device, " feats device: ", feats["atom"].device)
     return graph, feats

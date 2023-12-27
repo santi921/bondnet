@@ -639,36 +639,6 @@ def make_batched_hetero_forming_reaction():
     return g, feats
 
 
-def make_homo_CH2O():
-    r"""
-    Make a bidirected homograph for COHH and featurize it
-            O (0)
-            || (0)
-            C (1)
-        /(1)  \ (2)
-        H (2)  H (3)
-    A global node u is attached to all atoms and bonds.
-    """
-
-    src = [0, 1, 1, 1, 2, 3]
-    dst = [1, 0, 2, 3, 1, 1]
-    g = dgl.graph((src, dst))
-
-    feats = {}
-    N = 4
-    size = 2
-    ft = torch.tensor(np.arange(N * size).reshape(N, size), dtype=torch.float32)
-    g.ndata.update({"feat": ft})
-    feats["node"] = ft
-
-    N = 6
-    size = 3
-    ft = torch.tensor(np.arange(N * size).reshape(N, size), dtype=torch.float32)
-    g.edata.update({"feat": ft})
-    feats["edge"] = ft
-
-    return g, feats
-
 
 def get_test_reaction_network_data(dir=None):
     config = {
