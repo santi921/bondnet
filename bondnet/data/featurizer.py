@@ -236,6 +236,7 @@ class BondAsNodeGraphFeaturizerGeneral(BondFeaturizer):
         allowed_ring_size = self.allowed_ring_size
 
         bond_list = list(mol.bonds)
+        #print(bond_list)
         num_bonds = len(bond_list)
         bond_list_no_metal = mol.nonmetal_bonds
         num_atoms = int(mol.num_atoms)
@@ -272,9 +273,15 @@ class BondAsNodeGraphFeaturizerGeneral(BondFeaturizer):
                     no_metal_binary.append(0)
                 else:
                     no_metal_binary.append(1)
-
+            
+            #print("bond list", bond_list)
+            #print("bond list only metal", bond_list)
+            #print("num atoms", num_atoms)
             cycles = find_rings(
-                num_atoms, bond_list_no_metal, allowed_ring_size, edges=True
+                atom_num=num_atoms, 
+                bond_list=bond_list, 
+                allowed_ring_size=allowed_ring_size, 
+                edges=True
             )
 
             ring_dict = ring_features_for_bonds_full(
@@ -403,7 +410,12 @@ class AtomFeaturizerGraphGeneral(BaseFeaturizer):
 
         atom_num = len(species_sites)
         [bond_list.append(list(bond)) for bond in bond_list_tuple]
-        cycles = find_rings(atom_num, bond_list, edges=False)
+        #print("atom num", atom_num)
+        cycles = find_rings(
+            atom_num=atom_num, 
+            bond_list=bond_list, 
+            edges=False
+        )
         ring_info = ring_features_from_atom_full(num_atoms, cycles, allowed_ring_size)
 
         for atom_ind in range(num_atoms):
@@ -459,6 +471,7 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
     def __init__(
         self,
         allowed_charges=None,
+        allowed_spin=None,
         solvent_environment=None,
         functional_g_basis=None,
         selected_keys=[],
@@ -466,9 +479,11 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
     ):
         super(GlobalFeaturizerGraph, self).__init__(dtype)
         self.allowed_charges = allowed_charges
+        self.allowed_spin = allowed_spin
         self.solvent_environment = solvent_environment
         self.functional_g_basis = functional_g_basis
         self.selected_keys = selected_keys
+
 
     def __call__(self, mol, **kwargs):
         """
@@ -491,21 +506,39 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
 
         if (
             self.allowed_charges is not None
+            or self.allowed_spin is not None 
             or self.solvent_environment is not None
             or self.functional_g_basis is not None
         ):
+            feats_info = {}
             try:
                 feats_info = kwargs["extra_feats_info"]
+            
             except KeyError as e:
                 raise KeyError(
                     "{} `extra_feats_info` needed for {}.".format(
                         e, self.__class__.__name__
                     )
                 )
+            
 
             if self.allowed_charges is not None:
-                g += one_hot_encoding(feats_info["charge"], self.allowed_charges)
-
+                #print("charge info", feats_info["charge"])
+                if "charge" not in feats_info.keys():
+                    charge = mol.charge
+                else: 
+                    charge = feats_info["charge"]
+                #print(charge)
+                g += one_hot_encoding(charge, self.allowed_charges)
+                
+            if self.allowed_spin is not None:
+                if "spin" not in feats_info.keys():
+                    spin = mol.spin
+                else:
+                    spin = feats_info["spin"]
+                    
+                g += one_hot_encoding(spin, self.allowed_spin)
+                
             if self.solvent_environment is not None:
                 # if only two solvent_environment, we use 0/1 to denote the feature
                 if len(self.solvent_environment) == 2:

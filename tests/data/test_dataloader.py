@@ -6,30 +6,21 @@ Here we mainly test the correctness of batch.
 from pathlib import Path
 import torch
 import numpy as np
-from bondnet.data.dataset import BondDataset, ReactionDataset, ReactionNetworkDataset
-from bondnet.data.qm9 import QM9Dataset
-from bondnet.data.dataloader import (
-    DataLoaderBond,
-    DataLoader,
-    DataLoaderReaction,
-    DataLoaderReactionNetwork,
-)
-from bondnet.data.grapher import HeteroMoleculeGraph
+from bondnet.data.dataset import ReactionNetworkDataset
+from bondnet.data.dataloader import DataLoaderReactionNetwork
+from bondnet.data.grapher import HeteroCompleteGraphFromMolWrapper
 from bondnet.data.featurizer import (
-    AtomFeaturizerFull,
-    BondAsNodeFeaturizerFull,
-    GlobalFeaturizer,
     BondAsNodeGraphFeaturizerGeneral,
     AtomFeaturizerGraphGeneral,
     GlobalFeaturizerGraph,
-
 )
 
 test_files = Path(__file__).parent.joinpath("testdata")
 
-
+# TODO:
 def test_dataloader_reaction_network():
-    # TODO: use new grapher, reaction networks
+    
+    get_test_reaction_network_data(dir = )
     """ref_label_class = [0, 1]
 
     dataset = ReactionNetworkDataset(

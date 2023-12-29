@@ -275,6 +275,7 @@ def find_rings(atom_num, bond_list, allowed_ring_size=[], edges=True):
     cycle_graphs, cycle_list = [], []
     nx_graph = nx.Graph()
     [nx_graph.add_node(i) for i in range(atom_num)]
+    #print("find rings: ", bond_list)
     nx_graph.add_edges_from(bond_list)
 
     for i in range(atom_num):

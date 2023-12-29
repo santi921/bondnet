@@ -22,10 +22,11 @@ warnings.filterwarnings(
     lineno=102,
 )
 
-torch.set_float32_matmul_precision("high")  # might have to disable on older GPUs
+
+torch.set_float32_matmul_precision("medium")  # might have to disable on older GPUs
 #torch.backends.cudnn.benchmark = True
-torch.backends.cudnn.allow_tf32 = True
-torch.backends.cuda.matmul.allow_tf32 = True
+#torch.backends.cudnn.allow_tf32 = True
+#torch.backends.cuda.matmul.allow_tf32 = True
 
 
 def test_model_construction():
@@ -49,8 +50,8 @@ def test_model_construction():
         "optim": {
             "val_size": 0.1,
             "test_size": 0.1,
-            "batch_size": 4,
-            "num_workers": 1,
+            "batch_size": 16,
+            "num_workers": 4,
         },
     }
     config_model = get_defaults()
@@ -87,8 +88,8 @@ def test_model_save_load():
         "optim": {
             "val_size": 0.1,
             "test_size": 0.1,
-            "batch_size": 256,
-            "num_workers": 16,
+            "batch_size": 16,
+            "num_workers": 4,
         },
     }
     config_model = get_defaults()
@@ -103,7 +104,7 @@ def test_model_save_load():
     model = load_model_lightning(config["model"], load_dir="./test_save_load/")
 
     trainer = pl.Trainer(
-        max_epochs=30,
+        max_epochs=3,
         accelerator="gpu",
         devices=1,
         accumulate_grad_batches=5,
@@ -122,9 +123,9 @@ def test_model_save_load():
     config["restore"] = True
     model_restart = load_model_lightning(config["model"], load_dir="./test_save_load/")
 
-    trainer_restart = pl.Trainer(resume_from_checkpoint="./test_save_load/test.ckpt")
+    trainer_restart = pl.Trainer()
     trainer_restart.fit_loop.max_epochs = 5
-    trainer_restart.fit(model_restart, dm)
+    trainer_restart.fit(model_restart, dm, ckpt_path="./test_save_load/test.ckpt")
     trainer.test(model, dm)
     assert type(model_restart) == GatedGCNReactionNetworkLightning
     assert type(trainer_restart) == pl.Trainer
@@ -153,8 +154,8 @@ def test_transfer_learning():
         "optim": {
             "val_size": 0.2,
             "test_size": 0.2,
-            "batch_size": 4,
-            "num_workers": 1,
+            "batch_size": 64,
+            "num_workers": 4,
         },
     }
 
@@ -177,8 +178,8 @@ def test_transfer_learning():
         "optim": {
             "val_size": 0.2,
             "test_size": 0.2,
-            "batch_size": 4,
-            "num_workers": 1,
+            "batch_size": 64,
+            "num_workers": 4,
         },
     }
 
@@ -241,8 +242,8 @@ def test_augmentation():
         "optim": {
             "val_size": 0.1,
             "test_size": 0.1,
-            "batch_size": 4,
-            "num_workers": 8,
+            "batch_size": 64,
+            "num_workers": 4,
         },
     }
     config_model = get_defaults()
@@ -296,8 +297,8 @@ def test_reactant_only_construction():
         "optim": {
             "val_size": 0.1,
             "test_size": 0.1,
-            "batch_size": 4,
-            "num_workers": 1,
+            "batch_size": 64,
+            "num_workers": 4,
         },
     }
     config_model = get_defaults()
@@ -345,7 +346,6 @@ def test_reactant_only_construction():
             # test that reactant_feat is not all zeros
 
 
-# TODO: test multi-gpu
 
 def test_profiler():
     dataset_loc = "../data/testdata/barrier_100.json"
@@ -368,8 +368,8 @@ def test_profiler():
         "optim": {
             "val_size": 0.1,
             "test_size": 0.1,
-            "batch_size": 256,
-            "num_workers": 16,
+            "batch_size": 64,
+            "num_workers": 4,
         },
     }
     config_model = get_defaults()
@@ -385,20 +385,80 @@ def test_profiler():
     #profiler = pl.profiler.AdvancedProfiler(dirpath="./profiler_res/", filename="res.txt")
 
     trainer = pl.Trainer(
-        max_epochs=30,
+        max_epochs=3,
         accelerator="gpu",
         devices=1,
-        accumulate_grad_batches=5,
+        accumulate_grad_batches=1,
         enable_progress_bar=True,
         gradient_clip_val=1.0,
         enable_checkpointing=True,
         default_root_dir="./test_save_load/",
         precision=config["model"]["precision"],
-        log_every_n_steps=1,
+        #log_every_n_steps=1,
         profiler='advanced'
     )
 
     trainer.fit(model, dm)
 
 
+
+def test_multi_gpu():
+    dataset_loc = "../data/testdata/barrier_100.json"
+    config = {
+        "dataset": {
+            "data_dir": dataset_loc,
+            "target_var": "dG_barrier",
+        },
+        "model": {
+            "extra_features": [],
+            "extra_info": [],
+            "debug": False,
+            "classifier": False,
+            "classif_categories": 3,
+            "filter_species": [3, 6],
+            "filter_outliers": False,
+            "filter_sparse_rxns": False,
+            "restore": False,
+        },
+        "optim": {
+            "val_size": 0.1,
+            "test_size": 0.1,
+            "batch_size": 16,
+            "num_workers": 2,
+        },
+    }
+    config_model = get_defaults()
+    # update config with model settings
+    for key, value in config_model["model"].items():
+        config["model"][key] = value
+
+    dm = BondNetLightningDataModule(config)
+
+    feat_size, feat_name = dm.prepare_data()
+    config["model"]["in_feats"] = feat_size
+    model = load_model_lightning(config["model"], load_dir="./test_save_load/")
+    #profiler = pl.profiler.AdvancedProfiler(dirpath="./profiler_res/", filename="res.txt")
+
+    trainer = pl.Trainer(
+        max_epochs=3,
+        accelerator="gpu",
+        devices=[0, 1],
+        strategy="dp",
+        accumulate_grad_batches=1,
+        enable_progress_bar=True,
+        gradient_clip_val=1.0,
+        enable_checkpointing=True,
+        default_root_dir="./test_save_load/",
+        precision=config["model"]["precision"],
+        #log_every_n_steps=1,
+        #profiler='advanced'
+    )
+
+    trainer.fit(model, dm)
+
+#test_model_construction()
 #test_profiler()
+#test_multi_gpu()
+#test_transfer_learning()
+#test_reactant_only_construction()
+#test_augmentation()

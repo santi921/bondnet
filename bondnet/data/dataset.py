@@ -932,6 +932,8 @@ class ReactionNetworkLMDBDataset(BaseDataset):
             i["reaction_index"] for i in self.reaction_network.reactions
         ]  # here we can either use reaction index or the specific id
         self.reaction_ids = [int(i) for i in range(len(self.reaction_ids))]
+        self._feature_size = None
+        #self._feature_size = 
 
     def __getitem__(self, item):
         rxn_ids = self.reaction_ids[item]

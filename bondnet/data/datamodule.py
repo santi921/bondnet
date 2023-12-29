@@ -218,7 +218,7 @@ class BondNetLightningDataModule(pl.LightningDataModule):
             shuffle=False,
             collate_fn=collate_parallel,
             num_workers=self.config["optim"]["num_workers"],
-            pin_memory=False,
+            pin_memory=True,
         )
 
     def val_dataloader(self):
