@@ -24,6 +24,7 @@ def test_gated_conv_layer():
     node_types = ["atom", "bond", "global"]
 
     g, feats = make_hetero_CH2O(self_loop=True)
+
     num_nodes = {ntype: g.number_of_nodes(ntype) for ntype in node_types}
 
     unifier = UnifySize(input_dim={"atom": 2, "bond": 3, "global": 4}, output_dim=10)

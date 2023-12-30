@@ -239,7 +239,8 @@ def load_model_lightning(dict_train, load_dir=None):
 
 def get_grapher(
     features,
-    allowed_charges=[-2, -1, 0, 1, 2],
+    allowed_charges=None,
+    allowed_spin=None,
     global_feats=["charge", "functional_group_reacted"],
 ):
     """keys_selected_bonds = [
@@ -342,6 +343,7 @@ def get_grapher(
 
     global_featurizer = GlobalFeaturizerGraph(
         allowed_charges=allowed_charges,
+        allowed_spin=allowed_spin,
         functional_g_basis=fg_list,
         selected_keys=keys_selected_global,
     )

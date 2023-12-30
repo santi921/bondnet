@@ -8,12 +8,16 @@ import torch
 from bondnet.data.utils import find_rings, create_rxn_graph
 from bondnet.dataset.utils import (
     clean,
-    clean_op,
-    divide_to_list,
+    clean_op
+)
+from bondnet.data.lmdb import (
+    LmdbMoleculeDataset,
+    LmdbReactionDataset
 )
 
 from bondnet.data.lmdb import parallel2moleculelmdb, parallel2reactionlmdb
-
+from bondnet.data.reaction_network import ReactionNetworkLMDB
+from bondnet.data.dataset import ReactionNetworkLMDBDataset
 from bondnet.test_utils import get_test_reaction_network_data
 
 torch.multiprocessing.set_sharing_strategy("file_system")
@@ -22,7 +26,7 @@ torch.multiprocessing.set_sharing_strategy("file_system")
 class TestLMDB(unittest.TestCase):
     @classmethod
     def setUp(self):
-        self.dataset = get_test_reaction_network_data()
+        self.dataset = get_test_reaction_network_data(allowed_charges=[0, 1, 2, -1, -2])
 
         # List of Molecules
         self.dgl_graphs = []
@@ -146,12 +150,13 @@ class TestLMDB(unittest.TestCase):
 
     def test_write_molecule(self):
         parallel2moleculelmdb(
-            self.molecule_ind_list,
-            self.dgl_graphs,
-            self.pmg_objects,
-            self.charge_set,
-            self.ring_size_set,
-            self.element_set,
+            indices=self.molecule_ind_list,
+            graphs=self.dgl_graphs,
+            pmgs=self.pmg_objects,
+            charges=self.charge_set,
+            ring_sizes=self.ring_size_set,
+            feature_info=self.dataset._feature_size,
+            elements=self.element_set,
             num_workers=2,
             lmdb_dir="./test_mol/",
             lmdb_name="molcule.lmdb",
@@ -159,14 +164,33 @@ class TestLMDB(unittest.TestCase):
 
     def test_write_reaction(self):
         parallel2reactionlmdb(
-            self.reaction_indices,
-            self.empty_reaction_graphs,
-            self.empty_reaction_fts,
-            self.reaction_molecule_info,
-            self.label_list,
-            self.reverse_list,
-            self.extra_info,
-            2,
+            indices=self.reaction_indices,
+            empty_reaction_graphs=self.empty_reaction_graphs,
+            empty_reaction_fts=self.empty_reaction_fts,
+            reaction_molecule_info=self.reaction_molecule_info,
+            labels=self.label_list,
+            reverse_labels=self.reverse_list,
+            extra_info=self.extra_info,
+            num_workers=2,
             lmdb_dir="./test_mol/",
             lmdb_name="reaction.lmdb",
         )
+
+
+    def test_featurization_hiprgen(self): 
+        config = {
+            "src": "./testdata/lmdb_dev/mol.lmdb"
+        }
+        config_rxn = {
+            "src": "./testdata/lmdb_dev/reaction.lmdb"
+        }
+
+        mol = LmdbMoleculeDataset(config=config)
+        reaction = LmdbReactionDataset(config=config_rxn)
+        rxn_ntwk = ReactionNetworkLMDB(mol, reaction)
+        dataset = ReactionNetworkLMDBDataset(rxn_ntwk)
+        features = rxn_ntwk.reactions.feature_name
+        assert "charge one hot" in features["global"]
+
+
+

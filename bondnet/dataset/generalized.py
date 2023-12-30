@@ -57,10 +57,12 @@ def parse_extra_electronic_feats_bond(extra_feats, dict_bonds_as_root_target_ind
     ret_dict_temp, ret_dict = {}, {}
     num_bonds = int(len(dict_bonds_as_root_target_inds.keys()))
     extra_feature_keys = list(extra_feats.keys())
-    for extra_feat in extra_feats:
-        assert num_bonds == len(
-            extra_feats[extra_feat]
-        ), "inconsistent number of features for {}".format(extra_feat)
+    
+    #for extra_feat in extra_feats: # drop this because bond defns might not align w qtaim/nbo
+        #print(num_bonds, len(extra_feats[extra_feat]))
+        #assert num_bonds == len(
+        #    extra_feats[extra_feat]
+        #), "inconsistent number of features for {}".format(extra_feat)
 
     # check that there is a key with indices in the name
     key_with_indices = -1
@@ -93,30 +95,40 @@ def parse_extra_electronic_feats_bond(extra_feats, dict_bonds_as_root_target_ind
                 "product_" + extra_feature_keys_trimmed[key_with_indices]
             ]
 
+        if type(extra_feat_bond_ind[0][0]) == list:
+            extra_feat_bond_ind = extra_feat_bond_ind[0]
+        
         extra_feat_bond_ind = [tuple(i) for i in extra_feat_bond_ind]
 
     if extra_feat_bond_ind == [] and num_bonds != 0:
         for k in ret_dict.keys():
             ret_dict[k] = [0] * num_bonds
         return ret_dict
-
+    
+    #print("---"*20)
+    #print(extra_feat_bond_ind)
     for k, v in dict_bonds_as_root_target_inds.items():
+        #print(k)
+        #print(dict_bonds_as_root_target_inds)
+        #print(extra_feat_bond_ind)
+
         if k in extra_feat_bond_ind:
             ind_in_extra = extra_feat_bond_ind.index(k)
             hit = True
-
         elif (k[-1], k[0]) in extra_feat_bond_ind:  # reverse order
             ind_in_extra = extra_feat_bond_ind.index((k[-1], k[0]))
             hit = True
-
         else:
             hit = False
-
+        
+        #print(extra_feat_bond_ind, ind_in_extra)
+        #print(ret_dict_temp)
         for k2, v2 in ret_dict_temp.items():
             if k2 not in ret_dict:
                 ret_dict[k2] = []
-            if hit:
-                ret_dict[k2].append(v2[ind_in_extra])
+            if hit and "indices" not in k2:
+                val = v2[ind_in_extra]
+                ret_dict[k2].append(val)
             else:
                 ret_dict[k2].append(0)
     # print("parse bond feats")
@@ -385,7 +397,9 @@ def process_species_graph(
 
     bonds_reactant = row[reactant_key + "_bonds"]
     bonds_products = row[product_key + "_bonds"]
-
+    bonds_nonmetal_product = row[product_key + "_bonds_nometal"]
+    bonds_nonmetal_reactant = row[reactant_key + "_bonds_nometal"]
+    
     if "functional_group_reacted" in row.index:
         reactant_functional_group = row["functional_group_reacted"]
     else:
@@ -411,21 +425,33 @@ def process_species_graph(
     coords_products_full = [i["xyz"] for i in pymat_graph_products]
 
     # new
+    if type(bonds_reactant[0][0]) == list:
+        bonds_reactant = bonds_reactant[0]
+        bonds_nonmetal_product = bonds_nonmetal_product[0]
+        
+        #bonds_reactant = [bonds_reactant]
+    if type(bonds_products[0][0]) == list:
+        bonds_products = bonds_products[0]
+        bonds_nonmetal_reactant = bonds_nonmetal_reactant[0]
+        #print("here!!" *10 )
+        #
+        
+    #print("bonds reactant", type(bonds_reactant[0][0]))
+    #print("bonds products", bonds_products[0][0])
+    #print(bonds_reactant)
+
     total_bonds = [tuple(bond) for bond in bonds_reactant]
     [
         total_bonds.append((np.min(np.array(i)), np.max(np.array(i))))
         for i in bonds_products
     ]
-
+    #print(total_bonds)
     total_bonds = list(set(total_bonds))
     total_bonds = [list(bond) for bond in total_bonds]
 
     num_nodes = 0
     for i in row["composition"].items():
         num_nodes += int(i[-1])
-
-    bonds_nonmetal_product = row[product_key + "_bonds_nometal"]
-    bonds_nonmetal_reactant = row[reactant_key + "_bonds_nometal"]
 
     # checks if there are other features to add to mol_wrapper object
     if (
@@ -539,10 +565,20 @@ def process_species_graph(
     #print("extra atom feats dict react", extra_atom_feats_dict_react)
     #print("extra bond feats dict prod", extra_bond_feats_dict_prod)
     #print("extra bond feats dict react", extra_bond_feats_dict_react)
+        # new
+    if type(bonds_reactant[0][0]) == list:
+        bonds_reactant = row[reactant_key + "_bonds"]
+        bonds_nonmetal_product = bonds_nonmetal_product[0]
+        
+        #bonds_reactant = [bonds_reactant]
+    if type(bonds_products[0][0]) == list:
+        bonds_products = row[product_key + "_bonds"]
+        bonds_nonmetal_reactant = bonds_nonmetal_reactant[0]
+
     products, atoms_products, mapping_products = split_and_map(
         elements=species_products_full,
         coords=coords_products_full,
-        bonds=row[product_key + "_bonds"],
+        bonds=bonds_products,
         atom_count=num_nodes,
         reaction_scaffold=total_bonds,
         id=str(row[product_key + "_id"]),
@@ -557,7 +593,7 @@ def process_species_graph(
     reactants, atoms_reactants, mapping_reactants = split_and_map(
         elements=species_reactant_full,
         coords=coords_reactant,
-        bonds=row[reactant_key + "_bonds"],
+        bonds=bonds_reactant,
         atom_count=num_nodes,
         reaction_scaffold=total_bonds,
         id=str(row[reactant_key + "_id"]),

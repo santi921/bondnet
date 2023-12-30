@@ -5,14 +5,16 @@ import dgl
 import numpy as np
 from pymatgen.core.structure import Molecule
 from pymatgen.analysis.graphs import MoleculeGraph
+import torch
+
 from bondnet.core.molwrapper import create_wrapper_mol_from_atoms_and_bonds
 from bondnet.core.molwrapper import create_rdkit_mol_from_mol_graph
 from bondnet.core.reaction import Reaction
 from bondnet.layer.utils import UnifySize
 from bondnet.model.training_utils import get_grapher
 from bondnet.data.dataset import ReactionNetworkDatasetGraphs
-
-import torch
+from bondnet.model.training_utils import get_grapher
+from bondnet.dataset.generalized import create_reaction_network_files_and_valid_rows
 
 
 def test_unify_size():
@@ -639,38 +641,12 @@ def make_batched_hetero_forming_reaction():
     return g, feats
 
 
-def make_homo_CH2O():
-    r"""
-    Make a bidirected homograph for COHH and featurize it
-            O (0)
-            || (0)
-            C (1)
-        /(1)  \ (2)
-        H (2)  H (3)
-    A global node u is attached to all atoms and bonds.
-    """
 
-    src = [0, 1, 1, 1, 2, 3]
-    dst = [1, 0, 2, 3, 1, 1]
-    g = dgl.graph((src, dst))
-
-    feats = {}
-    N = 4
-    size = 2
-    ft = torch.tensor(np.arange(N * size).reshape(N, size), dtype=torch.float32)
-    g.ndata.update({"feat": ft})
-    feats["node"] = ft
-
-    N = 6
-    size = 3
-    ft = torch.tensor(np.arange(N * size).reshape(N, size), dtype=torch.float32)
-    g.edata.update({"feat": ft})
-    feats["edge"] = ft
-
-    return g, feats
-
-
-def get_test_reaction_network_data(dir=None):
+def get_test_reaction_network_data(
+        dir=None,
+        allowed_charges=None,
+        allowed_spin=None,
+    ):
     config = {
         "debug": False,
         "classifier": False,
@@ -705,7 +681,11 @@ def get_test_reaction_network_data(dir=None):
 
     extra_keys = config["extra_features"]
     dataset = ReactionNetworkDatasetGraphs(
-        grapher=get_grapher(extra_keys),
+        grapher=get_grapher(
+            extra_keys,
+            allowed_charges=allowed_charges,
+            allowed_spin=allowed_spin
+        ),
         file=dataset_loc,
         target=config["target_var"],
         classifier=config["classifier"],
@@ -728,22 +708,22 @@ def get_defaults():
             "classifier": False,
             "classif_categories": 3,
             "cat_weights": [1.0, 1.0, 1.0],
-            "embedding_size": 24,
+            "embedding_size": 4,
             "epochs": 100,
             "extra_features": ["bond_length"],
             "extra_info": [],
             "filter_species": [3, 5],
             "fc_activation": "ReLU",
-            "fc_batch_norm": True,
+            "fc_batch_norm": False,
             "fc_dropout": 0.2,
-            "fc_hidden_size_1": 256,
+            "fc_hidden_size_1": 64,
             "fc_hidden_size_shape": "flat",
             "fc_num_layers": 1,
             "gated_activation": "ReLU",
             "gated_batch_norm": False,
             "gated_dropout": 0.1,
             "gated_graph_norm": False,
-            "gated_hidden_size_1": 512,
+            "gated_hidden_size_1": 10,
             "gated_hidden_size_shape": "flat",
             "gated_num_fc_layers": 1,
             "gated_num_layers": 2,
@@ -766,3 +746,74 @@ def get_defaults():
     # config = "./settings.json"
     # config = json.load(open(config, "r"))
     return config
+
+
+
+def get_data_test(
+    extra_keys=[],
+    species=["C", "F", "H", "N", "O", "Mg", "Li", "S", "Cl", "P", "O", "Br"],
+    global_feats=["charge"],
+    allowed_charges=None,
+    allowed_spin=None,
+    test_df_file="./testdata/barrier_2.json",
+    target="ts",
+    debug=False,
+):
+    grapher = get_grapher(
+        features=extra_keys, 
+        allowed_charges=allowed_charges, 
+        allowed_spin=allowed_spin, 
+        global_feats=global_feats
+    )
+    # store feature name and size
+    (
+        molecules,
+        raw_labels,
+        extra_features,
+        reactions,
+    ) = create_reaction_network_files_and_valid_rows(
+        test_df_file,
+        bond_map_filter=False,
+        target=target,
+        filter_species=[4, 6],
+        classifier=False,
+        debug=debug,
+        filter_outliers=False,
+        categories=None,
+        filter_sparse_rxn=False,
+        feature_filter=True,
+        extra_keys=extra_keys,
+        extra_info=[],
+        return_reactions=True,
+    )
+    # print("extra_features: ", extra_features)
+
+    count = 0
+
+    # feats_global = glob_feats
+    if extra_keys is not None:
+        extra_features = extra_features
+    else:
+        extra_features = [None] * len(molecules)
+
+    graphs = []
+    feat_name_list = []
+    for ind, mol in enumerate(molecules):
+        feats = extra_features[count]
+
+        if mol is not None:
+            g, feat_names = grapher.build_graph_and_featurize(
+                mol,
+                extra_feats_info=feats,
+                element_set=species,
+                ret_feat_names=True,
+            )
+            feat_name_list.append(feat_names)
+            # add this for check purpose; some entries in the sdf file may fail
+            g.graph_id = ind
+        else:
+            g = None
+        graphs.append(g)
+        count += 1
+    # print("feature names: ", feat_name_list)
+    return graphs, feat_name_list, reactions
