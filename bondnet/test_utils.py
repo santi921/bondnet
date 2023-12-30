@@ -714,7 +714,7 @@ def get_defaults():
             "extra_info": [],
             "filter_species": [3, 5],
             "fc_activation": "ReLU",
-            "fc_batch_norm": True,
+            "fc_batch_norm": False,
             "fc_dropout": 0.2,
             "fc_hidden_size_1": 64,
             "fc_hidden_size_shape": "flat",

@@ -131,6 +131,7 @@ def test_model_save_load():
     assert type(trainer_restart) == pl.Trainer
 
 
+
 def test_transfer_learning():
     dataset_loc = "../data/testdata/barrier_100.json"
 
@@ -253,27 +254,43 @@ def test_augmentation():
 
     dm = BondNetLightningDataModule(config)
     feat_size, feat_name = dm.prepare_data()
+    dm.setup(stage="predict")
 
     config = get_defaults()
     config["model"]["in_feats"] = feat_size
     config["model"]["augment"] = True
     model = load_model_lightning(config["model"], load_dir="./test_save_load/")
 
-    trainer = pl.Trainer(
-        max_epochs=3,
-        accelerator="gpu",
-        devices=1,
-        accumulate_grad_batches=5,
-        enable_progress_bar=True,
-        gradient_clip_val=1.0,
-        enable_checkpointing=True,
-        default_root_dir="./test_save_load/",
-        precision=config["model"]["precision"],
-        log_every_n_steps=1,
-    )
 
-    trainer.fit(model, dm)
-    trainer.test(model, dm)
+    nodes = ["atom", "bond", "global"]
+
+    for it, (batched_graph, label) in enumerate(dm.test_dataloader()):
+        feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
+        target = label["value"].view(-1)
+        target_aug = label["value_rev"].view(-1)
+
+        reactions = label["reaction"]
+        
+        # graphs and reverse_graphs are the same
+        rxn_graph, rxn_feats = mol_graph_to_rxn_graph(
+            batched_graph,
+            feats,
+            reactions,
+            reactant_only=False,
+        )
+
+        rxn_graph_rev, rxn_feats_rev = mol_graph_to_rxn_graph(
+            batched_graph,
+            feats,
+            reactions,
+            reactant_only=False,
+            reverse=True,
+        )
+
+        for node_type in nodes:
+            assert torch.allclose(rxn_feats[node_type], -rxn_feats_rev[node_type], atol=1e-3, rtol=0)
+        
+        assert not torch.allclose(target, target_aug, atol=1e-3, rtol=0)
 
 
 def test_reactant_only_construction():
@@ -443,7 +460,7 @@ def test_multi_gpu():
         max_epochs=3,
         accelerator="gpu",
         devices=[0, 1],
-        strategy="dp",
+        strategy="ddp",
         accumulate_grad_batches=1,
         enable_progress_bar=True,
         gradient_clip_val=1.0,
@@ -456,9 +473,3 @@ def test_multi_gpu():
 
     trainer.fit(model, dm)
 
-#test_model_construction()
-#test_profiler()
-#test_multi_gpu()
-#test_transfer_learning()
-#test_reactant_only_construction()
-#test_augmentation()

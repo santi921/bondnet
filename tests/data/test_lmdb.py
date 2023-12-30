@@ -194,5 +194,3 @@ class TestLMDB(unittest.TestCase):
 
 
 
-obj = TestLMDB()
-obj.setUp()
