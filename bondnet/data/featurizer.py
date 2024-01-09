@@ -7,6 +7,7 @@ import os
 import warnings
 import itertools
 from collections import defaultdict
+from copy import deepcopy
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import ChemicalFeatures
@@ -202,7 +203,8 @@ class BondAsNodeGraphFeaturizerGeneral(BondFeaturizer):
         super(BondFeaturizer, self).__init__(dtype)
         self._feature_size = None
         self._feature_name = None
-        self.selected_keys = selected_keys
+        #self.selected_keys = [key for key in deepcopy(selected_keys) if "extra_feat_global" not in key]
+        self.selected_keys = selected_keys["bond"]
         self.allowed_ring_size = allowed_ring_size
         if length_featurizer == "bin":
             if length_featurizer_args is None:
@@ -224,6 +226,8 @@ class BondAsNodeGraphFeaturizerGeneral(BondFeaturizer):
         Parameters
         ----------
         mol : molwrapper object with xyz positions(coord) + electronic information
+        
+        Also extra info should be in molwrapper objects s.t. we can access them with self.selected_keys
 
         Returns
         -------
@@ -241,8 +245,9 @@ class BondAsNodeGraphFeaturizerGeneral(BondFeaturizer):
         bond_list_no_metal = mol.nonmetal_bonds
         num_atoms = int(mol.num_atoms)
         features = mol.bond_features
+    
         xyz_coordinates = mol.coords
-        # print("features in bond featurizer", features)
+        #print("features in bond featurizer", features)
         # print("selected keys in bond featuzizer", self.selected_keys)
 
         # count number of keys in features
@@ -340,6 +345,7 @@ class BondAsNodeGraphFeaturizerGeneral(BondFeaturizer):
                         self._feature_name.append(key)
 
         self._feature_size = len(self._feature_name)
+        #print("bond feats", self._feature_name)
         return {"feat": feats}, self._feature_name
 
 
@@ -367,14 +373,19 @@ class AtomFeaturizerGraphGeneral(BaseFeaturizer):
         self._feature_name = None
         self.allowed_ring_size = allowed_ring_size
         self.element_set = element_set
-        self.selected_keys = selected_keys
+        # remove selected keys with extra_feat_global in the name 
+        #print("selected keys", selected_keys)
+        #self.selected_keys = [key for key in deepcopy(selected_keys) if "global" not in key]
+        #print("selected keys", self.selected_keys)
+        self.selected_keys = selected_keys["atom"]
+
 
     def __call__(self, mol, element_set=[], **kwargs):
         """
         Args:
             mol: molecular wraper object w/electronic info
 
-            Also `extra_feats_info` should be provided as `kwargs` as additional info.
+            Also extra info should be in molwrapper objects s.t. we can access them with self.selected_keys
 
         Returns:
             Dictionary of atom features
@@ -395,7 +406,7 @@ class AtomFeaturizerGraphGeneral(BaseFeaturizer):
             self.element_set = element_set
 
         allowed_ring_size = self.allowed_ring_size
-
+        #print("atom feats", mol.atom_features)
         features = mol.atom_features
         features_flatten, feats, bond_list = [], [], []
         num_atoms = len(mol.coords)
@@ -453,6 +464,7 @@ class AtomFeaturizerGraphGeneral(BaseFeaturizer):
         if self.selected_keys != None:
             self._feature_name += self.selected_keys
         self._feature_size = len(self._feature_name)
+        #print("atom feats", self._feature_name)
         return {"feat": feats}, self._feature_name
 
 
@@ -466,6 +478,8 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
         allowed_charges (list, optional): charges allowed the the molecules to take.
         solvent_environment (list, optional): solvent environment in which the
         calculations for the molecule take place
+
+    Also extra info should be in molwrapper objects s.t. we can access them with self.selected_keys
     """
 
     def __init__(
@@ -482,8 +496,9 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
         self.allowed_spin = allowed_spin
         self.solvent_environment = solvent_environment
         self.functional_g_basis = functional_g_basis
-        self.selected_keys = selected_keys
+        self.selected_keys = selected_keys["global"]
 
+        #print("selected keys global: ", self.selected_keys)
 
     def __call__(self, mol, **kwargs):
         """
@@ -503,10 +518,10 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
             len(mol.bonds),
             mw,
         ]
-
+        #print("global feats: ", mol.global_features)
+        
         if (
-            self.allowed_charges is not None
-            or self.allowed_spin is not None 
+            self.allowed_spin is not None 
             or self.solvent_environment is not None
             or self.functional_g_basis is not None
         ):
@@ -521,7 +536,6 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
                     )
                 )
             
-
             if self.allowed_charges is not None:
                 #print("charge info", feats_info["charge"])
                 if "charge" not in feats_info.keys():
@@ -549,10 +563,15 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
                     g += one_hot_encoding(
                         feats_info["environment"], self.solvent_environment
                     )
+            
             if self.functional_g_basis is not None:
                 # print("functional group info", self.functional_g_basis)
                 g += one_hot_encoding(mol.functional_group, self.functional_g_basis)
 
+            if self.selected_keys != []:
+                for key in self.selected_keys:
+                    if key != "functional_group_reacted":
+                        g += [mol.global_features[key]]
         feats = torch.tensor([g], dtype=getattr(torch, self.dtype))
 
         # self._feature_size = feats.shape[1]
@@ -571,13 +590,15 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
             else:
                 self._feature_name += ["solvent"] * len(self.solvent_environment)
         # print("mol global", mol.global_features)
-
+        #print(self.selected_keys)
         if self.selected_keys != []:
             for key in self.selected_keys:
+                #print("selected keys ", self.selected_keys)
                 if key != "functional_group_reacted":
                     self._feature_name.append(key)
                     g += [mol.global_features[key]]
 
         # print("mol atom", mol.atom_features)
         self._feature_size = len(self._feature_name)
+        #print("global feats", self._feature_name)
         return {"feat": feats}, self._feature_name

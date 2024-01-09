@@ -37,7 +37,7 @@ def test_model_construction():
             "target_var": "dG_barrier",
         },
         "model": {
-            "extra_features": [],
+            "extra_features": {},
             "extra_info": [],
             "debug": False,
             "classifier": False,
@@ -75,7 +75,7 @@ def test_model_save_load():
             "target_var": "dG_barrier",
         },
         "model": {
-            "extra_features": [],
+            "extra_features": {},
             "extra_info": [],
             "debug": False,
             "classifier": False,
@@ -89,7 +89,7 @@ def test_model_save_load():
             "val_size": 0.1,
             "test_size": 0.1,
             "batch_size": 16,
-            "num_workers": 4,
+            "num_workers": 1,
         },
     }
     config_model = get_defaults()
@@ -141,7 +141,7 @@ def test_transfer_learning():
             "target_var": "dG_barrier",
         },
         "model": {
-            "extra_features": [],
+            "extra_features": {},
             "extra_info": [],
             "debug": False,
             "classifier": False,
@@ -156,7 +156,7 @@ def test_transfer_learning():
             "val_size": 0.2,
             "test_size": 0.2,
             "batch_size": 64,
-            "num_workers": 4,
+            "num_workers": 1,
         },
     }
 
@@ -230,7 +230,7 @@ def test_augmentation():
             "target_var": "dG_barrier",
         },
         "model": {
-            "extra_features": [],
+            "extra_features": {},
             "extra_info": [],
             "debug": False,
             "classifier": False,
@@ -244,7 +244,7 @@ def test_augmentation():
             "val_size": 0.1,
             "test_size": 0.1,
             "batch_size": 64,
-            "num_workers": 4,
+            "num_workers": 1,
         },
     }
     config_model = get_defaults()
@@ -301,7 +301,7 @@ def test_reactant_only_construction():
             "target_var": "dG_barrier",
         },
         "model": {
-            "extra_features": [],
+            "extra_features": {},
             "extra_info": [],
             "debug": False,
             "classifier": False,
@@ -315,7 +315,7 @@ def test_reactant_only_construction():
             "val_size": 0.1,
             "test_size": 0.1,
             "batch_size": 64,
-            "num_workers": 4,
+            "num_workers": 1,
         },
     }
     config_model = get_defaults()
@@ -372,7 +372,7 @@ def test_profiler():
             "target_var": "dG_barrier",
         },
         "model": {
-            "extra_features": [],
+            "extra_features": {},
             "extra_info": [],
             "debug": False,
             "classifier": False,
@@ -386,7 +386,7 @@ def test_profiler():
             "val_size": 0.1,
             "test_size": 0.1,
             "batch_size": 64,
-            "num_workers": 4,
+            "num_workers": 1,
         },
     }
     config_model = get_defaults()
@@ -427,7 +427,7 @@ def test_multi_gpu():
             "target_var": "dG_barrier",
         },
         "model": {
-            "extra_features": [],
+            "extra_features": {},
             "extra_info": [],
             "debug": False,
             "classifier": False,

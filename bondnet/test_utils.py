@@ -652,7 +652,7 @@ def get_test_reaction_network_data(
         "classifier": False,
         "classif_categories": 3,
         "cat_weights": [1.0, 1.0, 1.0],
-        "extra_features": ["bond_length"],
+        "extra_features": {"bond": ["bond_length"]},
         "extra_info": [],
         "filter_species": [3, 5],
         "precision": "bf16",
@@ -710,7 +710,8 @@ def get_defaults():
             "cat_weights": [1.0, 1.0, 1.0],
             "embedding_size": 4,
             "epochs": 100,
-            "extra_features": ["bond_length"],
+            "extra_features": 
+            {"bond": ["bond_length"]},
             "extra_info": [],
             "filter_species": [3, 5],
             "fc_activation": "ReLU",
@@ -752,7 +753,7 @@ def get_defaults():
 def get_data_test(
     extra_keys=[],
     species=["C", "F", "H", "N", "O", "Mg", "Li", "S", "Cl", "P", "O", "Br"],
-    global_feats=["charge"],
+    #global_feats=["charge"],
     allowed_charges=None,
     allowed_spin=None,
     test_df_file="./testdata/barrier_2.json",
@@ -763,7 +764,7 @@ def get_data_test(
         features=extra_keys, 
         allowed_charges=allowed_charges, 
         allowed_spin=allowed_spin, 
-        global_feats=global_feats
+        #global_feats=global_feats
     )
     # store feature name and size
     (

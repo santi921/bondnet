@@ -1,57 +1,301 @@
 {
-  "batch_size": { "values": [128] },
-  "classifier": { "values": [false] },
-  "weight_decay": { "values": [0.00001, 0.0] },
-  "restore": { "values": [false] },
-  "on_gpu": { "values": [true] },
-  "embedding_size": { "values": [12, 16, 20] },
-  "gated_dropout": { "values": [0.0, 0.1, 0.2] },
-  "gated_num_layers": { "values": [1, 2, 3] },
-  "gated_hidden_size": { "values": [64, 128] },
-  "gated_activation": { "values": ["ReLU"] },
-  "gated_batch_norm": { "values": [true, false] },
-  "gated_graph_norm": { "values": [true, false] },
-  "gated_num_fc_layers": { "values": [1, 2, 3] },
-  "gated_residual": { "values": [true, false] },
-  "num_lstm_iters": { "values": [9, 11, 13, 15] },
-  "num_lstm_layers": { "values": [1, 2, 3] },
-  "fc_dropout": { "values": [0.0, 0.1, 0.2] },
-  "fc_batch_norm": { "values": [true, false] },
-  "fc_num_layers": { "values": [1, 2, 3] },
-  "freeze": { "values": [true] },
-  "max_epochs": { "values": [10] },
-  "max_epochs_transfer": { "values": [500, 1000, 1500] },
-  "fc_activation": { "values": ["ReLU"] },
-  "loss": { "values": ["mse", "mae"] },
-  "gated_hidden_size_1": { "values": [256, 128] },
-  "gated_hidden_size_shape": { "values": ["flat", "cone"] },
-  "fc_hidden_size_1": { "values": [512, 1024] },
-  "fc_hidden_size_shape": { "values": ["flat", "cone"] },
+  "batch_size": {
+    "values": [
+      128
+    ]
+  },
+  "classifier": {
+    "values": [
+      false
+    ]
+  },
+  "weight_decay": {
+    "values": [
+      0.00001,
+      0.0
+    ]
+  },
+  "restore": {
+    "values": [
+      false
+    ]
+  },
+  "on_gpu": {
+    "values": [
+      true
+    ]
+  },
+  "embedding_size": {
+    "values": [
+      12,
+      16,
+      20
+    ]
+  },
+  "gated_dropout": {
+    "values": [
+      0.0,
+      0.1,
+      0.2
+    ]
+  },
+  "gated_num_layers": {
+    "values": [
+      1,
+      2,
+      3
+    ]
+  },
+  "gated_hidden_size": {
+    "values": [
+      64,
+      128
+    ]
+  },
+  "gated_activation": {
+    "values": [
+      "ReLU"
+    ]
+  },
+  "gated_batch_norm": {
+    "values": [
+      true,
+      false
+    ]
+  },
+  "gated_graph_norm": {
+    "values": [
+      true,
+      false
+    ]
+  },
+  "gated_num_fc_layers": {
+    "values": [
+      1,
+      2,
+      3
+    ]
+  },
+  "gated_residual": {
+    "values": [
+      true,
+      false
+    ]
+  },
+  "num_lstm_iters": {
+    "values": [
+      9,
+      11,
+      13,
+      15
+    ]
+  },
+  "num_lstm_layers": {
+    "values": [
+      1,
+      2,
+      3
+    ]
+  },
+  "fc_dropout": {
+    "values": [
+      0.0,
+      0.1,
+      0.2
+    ]
+  },
+  "fc_batch_norm": {
+    "values": [
+      true,
+      false
+    ]
+  },
+  "fc_num_layers": {
+    "values": [
+      1,
+      2,
+      3
+    ]
+  },
+  "freeze": {
+    "values": [
+      true
+    ]
+  },
+  "max_epochs": {
+    "values": [
+      10
+    ]
+  },
+  "max_epochs_transfer": {
+    "values": [
+      500,
+      1000,
+      1500
+    ]
+  },
+  "fc_activation": {
+    "values": [
+      "ReLU"
+    ]
+  },
+  "loss": {
+    "values": [
+      "mse",
+      "mae"
+    ]
+  },
+  "gated_hidden_size_1": {
+    "values": [
+      256,
+      128
+    ]
+  },
+  "gated_hidden_size_shape": {
+    "values": [
+      "flat",
+      "cone"
+    ]
+  },
+  "fc_hidden_size_1": {
+    "values": [
+      512,
+      1024
+    ]
+  },
+  "fc_hidden_size_shape": {
+    "values": [
+      "flat",
+      "cone"
+    ]
+  },
   "learning_rate": {
     "max": 0.1,
     "min": 0.0001,
     "distribution": "log_uniform_values"
   },
-  "augment": { "values": [false] },
-  "target_var": { "values": ["dG_sp"] },
-  "target_var_transfer": { "values": ["diff"] },
-  "transfer": { "values": [false] },
-  "extra_features": { "values": [["bond_length"]] },
-  "extra_info": { "values": [["functional_group_reacted"]] },
-  "precision": { "values": [16, "bf16"] },
-  "classif_categories": { "values": [3] },
-  "filter_species": { "values": [[3, 5]] },
-  "filter_outliers": { "values": [true] },
-  "filter_sparse_rxns": { "values": [false] },
-  "num_workers": { "values": [4] },
-  "num_devices": { "values": [1] },
-  "num_nodes": { "values": [1] },
-  "accumulate_grad_batches": { "values": [1, 3, 5] },
-  "gradient_clip_val": { "values": [0.5, 1.0, 5.0] },
-  "strategy": { "values": ["ddp"] },
-  "val_size": { "values": [0.15] },
-  "test_size": { "values": [0.1] },
-  "overwrite": { "values": [false] },
-  "conv": { "values": ["GatedGCNConv"] },
-  "reactant_only": { "values": [false] }
+  "augment": {
+    "values": [
+      false
+    ]
+  },
+  "target_var": {
+    "values": [
+      "dG_sp"
+    ]
+  },
+  "target_var_transfer": {
+    "values": [
+      "diff"
+    ]
+  },
+  "transfer": {
+    "values": [
+      false
+    ]
+  },
+  "extra_features": {
+    "values": [
+      {
+        "bond": [
+          "bond_length"
+        ]
+      }
+    ]
+  },
+  "extra_info": {
+    "values": [
+      [
+        "functional_group_reacted"
+      ]
+    ]
+  },
+  "precision": {
+    "values": [
+      16,
+      "bf16"
+    ]
+  },
+  "classif_categories": {
+    "values": [
+      3
+    ]
+  },
+  "filter_species": {
+    "values": [
+      [
+        3,
+        5
+      ]
+    ]
+  },
+  "filter_outliers": {
+    "values": [
+      true
+    ]
+  },
+  "filter_sparse_rxns": {
+    "values": [
+      false
+    ]
+  },
+  "num_workers": {
+    "values": [
+      4
+    ]
+  },
+  "num_devices": {
+    "values": [
+      1
+    ]
+  },
+  "num_nodes": {
+    "values": [
+      1
+    ]
+  },
+  "accumulate_grad_batches": {
+    "values": [
+      1,
+      3,
+      5
+    ]
+  },
+  "gradient_clip_val": {
+    "values": [
+      0.5,
+      1.0,
+      5.0
+    ]
+  },
+  "strategy": {
+    "values": [
+      "ddp"
+    ]
+  },
+  "val_size": {
+    "values": [
+      0.15
+    ]
+  },
+  "test_size": {
+    "values": [
+      0.1
+    ]
+  },
+  "overwrite": {
+    "values": [
+      false
+    ]
+  },
+  "conv": {
+    "values": [
+      "GatedGCNConv"
+    ]
+  },
+  "reactant_only": {
+    "values": [
+      false
+    ]
+  }
 }

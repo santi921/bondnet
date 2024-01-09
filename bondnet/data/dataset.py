@@ -606,6 +606,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
     ):
         if dtype not in ["float32", "float64"]:
             raise ValueError(f"`dtype {dtype}` should be `float32` or `float64`.")
+        #print("extra keys: " + str(extra_keys))
         self.grapher = grapher
         (
             all_mols,
@@ -656,10 +657,11 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         # get molecules, labels, and extra features
         molecules = self.get_molecules(self.molecules)
         raw_labels = self.get_labels(self.raw_labels)
-        if self.extra_features is not None:
-            extra_features = self.get_features(self.extra_features)
-        else:
-            extra_features = [None] * len(molecules)
+        
+        #if self.extra_features is not None:
+        #    extra_features = self.get_features(self.extra_features)
+        #else:
+        #    extra_features = [None] * len(molecules)
 
         # get state info
         if self.state_dict_filename is not None:
@@ -682,7 +684,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         print("constructing graphs & features....")
 
         graphs = self.build_graphs(
-            self.grapher, self.molecules, extra_features, self._species
+            self.grapher, self.molecules, self._species
         )
         graphs_not_none_indices = [i for i, g in enumerate(graphs) if g is not None]
         print("number of graphs valid: " + str(len(graphs_not_none_indices)))
@@ -853,7 +855,7 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         logger.info(f"Finish loading {len(self.labels)} reactions...")
 
     @staticmethod
-    def build_graphs(grapher, molecules, features, species):
+    def build_graphs(grapher, molecules, species):
         """
         Build DGL graphs using grapher for the molecules.
 
@@ -874,10 +876,10 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
         #for ind, mol in enumerate(molecules):
         ind = 0 
         for mol in tqdm(molecules, desc="mol graphs"):
-            feats = features[count]
+            #feats = features[count]
             if mol is not None:
                 g = grapher.build_graph_and_featurize(
-                    mol, extra_feats_info=feats, element_set=species
+                    mol, element_set=species
                 )
 
                 # add this for check purpose; some entries in the sdf file may fail
@@ -895,11 +897,12 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
             labels = yaml_load(labels)
         return labels
 
-    @staticmethod
+    """@staticmethod
     def get_features(features):
         if isinstance(features, Path):
             features = yaml_load(features)
         return features
+    """
 
     def __getitem__(self, item):
         rn, rxn, lb = self.reaction_network, self.reaction_ids[item], self.labels[item]

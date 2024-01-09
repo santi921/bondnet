@@ -152,7 +152,7 @@ def load_model_lightning(dict_train, load_dir=None):
     shape_gat = dict_train["gated_hidden_size_shape"]
     base_fc = dict_train["fc_hidden_size_1"]
     base_gat = dict_train["gated_hidden_size_1"]
-
+    #print("in feats", dict_train["in_feats"])
     if shape_fc == "flat":
         fc_layers = [base_fc for i in range(dict_train["fc_num_layers"])]
     else:
@@ -240,89 +240,45 @@ def load_model_lightning(dict_train, load_dir=None):
 def get_grapher(
     features,
     allowed_charges=None,
-    allowed_spin=None,
-    global_feats=["charge", "functional_group_reacted"],
+    allowed_spin=None
+    #global_feats=["charge", "functional_group_reacted", "dE", "dh", "dHrxn298"],
 ):
-    """keys_selected_bonds = [
-    "Lagrangian_K", "Hamiltonian_K", "e_density", "lap_e_density",
-    "e_loc_func", "ave_loc_ion_E", "delta_g_promolecular",
-    "delta_g_hirsh", "esp_nuc", "esp_e", "esp_total",
-    "grad_norm", "lap_norm", "eig_hess", "det_hessian",
-    "ellip_e_dens", "eta"]
-    """
-    """ keys_selected_atoms = [        
-        "Lagrangian_K", "Hamiltonian_K", "e_density", "lap_e_density",
-        "e_loc_func", "ave_loc_ion_E", "delta_g_promolecular",
-        "delta_g_hirsh", "esp_nuc", "esp_e", "esp_total",
-        "grad_norm", "lap_norm", "eig_hess", "det_hessian",
-        "ellip_e_dens", "eta"]
-        
-        #keys_selected_atoms = ["valence_electrons", "total_electrons", 
-        #"partial_charges_nbo", "partial_charges_mulliken", "partial_charges_resp",
-        #]
-        #"partial_spins1" # these might need to be imputed
-        #"partial_spins2" # these might need to be imputed
-    """
-    """
-    """
-    """
-
-        print("using general atom featurizer w/ electronic info ")
-
-    else:
-        print("using general baseline atom featurizer")
-
-    if(bond_len_in_featurizer and electronic_info_in_bonds):
-        # evans 
-        #keys_selected_bonds = ["1_s", "2_s", "1_p", "2_p", "1_d", "2_d", "1_f", "2_f", "1_polar", "2_polar", "occ_nbo", "bond_length"]
-        
-        # qtaim
-        keys_selected_bonds = [        
-            "Lagrangian_K", "Hamiltonian_K", "e_density", "lap_e_density",
-            "e_loc_func", "ave_loc_ion_E", "delta_g_promolecular",
-            "delta_g_hirsh", "esp_nuc", "esp_e", "esp_total",
-            "grad_norm", "lap_norm", "eig_hess", "det_hessian",
-            "ellip_e_dens", "eta"]
-        print("using general bond featurizer w/xyz + Electronic Info coords")
-
-    elif(electronic_info_in_bonds): 
-        keys_selected_bonds = ["1_s", "2_s", "1_p", "2_p", "1_d", "2_d", "1_f", "2_f", "1_polar", "2_polar", "occ_nbo"]
-        print("using general bond featurizer w/Electronic Info coords")
-        
-    elif(bond_len_in_featurizer):
-        keys_selected_bonds = ["bond_length"]
-        print("using general bond featurizer w/xyz coords")
-        
-    else: 
-        print("using general simple bond featurizer")"""
 
     # find keys with bonds in the name
 
-    keys_selected_atoms, keys_selected_bonds, keys_selected_global = [], [], []
-
+    #keys_selected_atoms, keys_selected_bonds, keys_selected_global = [], [], []
+    if "global" not in features:
+        features["global"] = []
+    if "bond" not in features:
+        features["bond"] = []
+    if "atom" not in features:
+        features["atom"] = []
+        
+    """
     for key in features:
-        if "bond" in key:
-            if key == "bond_length":
-                keys_selected_bonds.append(key)
-            else:
-                keys_selected_bonds.append(key[5:])
-        else:
-            if "indices" not in key:
-                if key not in global_feats:
-                    keys_selected_atoms.append(key)
+            if "bond" in key:
+                if key == "bond_length":
+                    keys_selected_bonds.append(key)
                 else:
-                    keys_selected_global.append(key)
-
+                    keys_selected_bonds.append(key[5:])
+            else:
+                if "indices" not in key:
+                    if key not in global_feats:
+                        keys_selected_atoms.append(key)
+                    else:
+                        keys_selected_global.append(key)
+        
+        """
     # print("keys_selected_atoms", keys_selected_atoms)
     # print("keys_selected_bonds", keys_selected_bonds)
 
-    atom_featurizer = AtomFeaturizerGraphGeneral(selected_keys=keys_selected_atoms)
+    atom_featurizer = AtomFeaturizerGraphGeneral(selected_keys=features)
     bond_featurizer = BondAsNodeGraphFeaturizerGeneral(
-        selected_keys=keys_selected_bonds
+        selected_keys=features
     )
     fg_list = None
-    if len(keys_selected_global) > 0:
-        if "functional_group_reacted" in features:
+    if len(features["global"]) > 0:
+        if "functional_group_reacted" in features["global"]:
             # hard coded for now. Ideally need to implement get_hydro_data_functional_groups
             # this is tough just because not hard-encoding this make it less portable
             fg_list = [
@@ -345,7 +301,7 @@ def get_grapher(
         allowed_charges=allowed_charges,
         allowed_spin=allowed_spin,
         functional_g_basis=fg_list,
-        selected_keys=keys_selected_global,
+        selected_keys=features,
     )
     grapher = HeteroCompleteGraphFromMolWrapper(
         atom_featurizer, bond_featurizer, global_featurizer

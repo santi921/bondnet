@@ -26,7 +26,7 @@ torch.multiprocessing.set_sharing_strategy("file_system")
 
 class TrainingObject:
     def __init__(
-        self, sweep_config, log_save_dir, project_name, dataset_loc, lmdb_root, use_lmdb
+        self, sweep_config, log_save_dir, project_name, dataset_loc, lmdb_root, use_lmdb, wandb_entity
     ):
         self.sweep_config = sweep_config
         self.log_save_dir = log_save_dir
@@ -34,6 +34,7 @@ class TrainingObject:
         self.dataset_loc = dataset_loc
         self.lmdb_root = lmdb_root
         self.use_lmdb = use_lmdb
+        self.wandb_entity = wandb_entity
 
         # if self.config["parameters"]["on_gpu"]:
         #    self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -111,6 +112,8 @@ class TrainingObject:
         self.dm = BondNetLightningDataModule(dm_config)
 
         feature_size, feature_names = self.dm.prepare_data()
+        print("feature size: ", feature_size)
+        print("feature names: ", feature_names)
         # config["model"]["in_feats"] = feature_size
         # config["dataset"]["feature_names"] = feature_names
         self.in_feats = feature_size
@@ -133,7 +136,7 @@ class TrainingObject:
         return model
 
     def train(self):
-        with wandb.init(project=self.wandb_name) as run:
+        with wandb.init(project=self.wandb_name, entity=self.wandb_entity) as run:
             init_config = wandb.config
             if "cat_weights" not in init_config:
                 init_config["cat_weights"] = [1.0, 1.0, 1.0]
@@ -344,6 +347,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-dataset_loc", type=str, default="../../dataset/qm_9_merge_3_qtaim.json"
     )
+    parser.add_argument("-wandb_entity", type=str, default="santi")
     parser.add_argument("-log_save_dir", type=str, default="./logs_lightning/")
     parser.add_argument("-project_name", type=str, default="hydro_lightning")
     parser.add_argument("-sweep_config", type=str, default="./sweep_config.json")
@@ -358,10 +362,12 @@ if __name__ == "__main__":
     debug = bool(args.debug)
     use_lmdb = bool(args.lmdb)
     lmdb_root = args.lmdb_root
+    
 
     dataset_loc = args.dataset_loc
     log_save_dir = args.log_save_dir
     wandb_project_name = args.project_name
+    wandb_entity = args.wandb_entity
     sweep_config_loc = args.sweep_config
     sweep_config = {}
     sweep_params = json.load(open(sweep_config_loc, "r"))
@@ -373,7 +379,7 @@ if __name__ == "__main__":
         sweep_config["metric"] = {"name": "val_l1", "goal": "minimize"}
 
     # wandb loop
-    sweep_id = wandb.sweep(sweep_config, project=wandb_project_name)
+    sweep_id = wandb.sweep(sweep_config, project=wandb_project_name, entity=wandb_entity)
     # print(sweep_config)
     training_obj = TrainingObject(
         sweep_config,
@@ -382,6 +388,7 @@ if __name__ == "__main__":
         project_name=wandb_project_name,
         lmdb_root=lmdb_root,
         use_lmdb=use_lmdb,
+        wandb_entity=wandb_entity
     )
 
     print("method: {}".format(method))
