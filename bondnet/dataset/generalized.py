@@ -75,6 +75,7 @@ def parse_extra_electronic_feats_bond(extra_feats, bond_feat_mappings, dict_bond
         ret_dict[extra_feature_keys_trimmed[index]] = []
 
     # value of first key is bond indices
+    #print("feat mappings", bond_feat_mappings)
     extra_feat_bond_ind = list(bond_feat_mappings.values())[0]
     if type(extra_feat_bond_ind[0][0]) == list:
         extra_feat_bond_ind = extra_feat_bond_ind[0]
@@ -508,7 +509,7 @@ def process_species_graph(
     if "mappings" in extra_keys_full.keys() and extra_keys_full["mappings"] != [] and extra_keys_full["mappings"] != None:
         for key in extra_keys_full["mappings"]:
             prod = False
-            print("checking mapping", key)
+            #print("checking mapping", key)
             if key.split("_")[3] == "product":
                 opposite_key = key.replace("product", "reactant")
                 prod = True                
@@ -520,7 +521,7 @@ def process_species_graph(
             if opposite_key in extra_keys_full["mappings"]:
                 # remove the "extra_feat_bond" from the key
                 final_key = key.replace("extra_feat_bond_", "")
-                row_data = row[key][0]
+                row_data = row[key]#[0]
 
                 if prod:
                     extra_bond_feats_mappings_prod[final_key] = row_data
