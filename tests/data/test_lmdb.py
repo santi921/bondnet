@@ -162,6 +162,7 @@ class TestLMDB(unittest.TestCase):
             lmdb_name="molcule.lmdb",
         )
 
+
     def test_write_reaction(self):
         parallel2reactionlmdb(
             indices=self.reaction_indices,

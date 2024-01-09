@@ -196,9 +196,11 @@
   },
   "extra_features": {
     "values": [
-      [
-        "bond_length"
-      ]
+      {
+        "bond": [
+          "bond_length"
+        ]
+      }
     ]
   },
   "extra_info": {

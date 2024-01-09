@@ -3,11 +3,10 @@ import pandas as pd
 from bondnet.test_utils import get_data_test
 
 def test_extra_atom_featurizer():
-    extra_feats = [
-        "esp_nuc",
-        "esp_e",
-        "esp_total",
-    ]
+    extra_feats = {
+        "atom": ["esp_nuc","esp_e","esp_total"],
+    }
+
     _, feats, _ = get_data_test(
         extra_keys=extra_feats,
         test_df_file="./testdata/barrier_2.json"
@@ -24,12 +23,13 @@ def test_extra_atom_featurizer():
 
 
 def test_extra_bond_featurizer():
-    extra_feats = [
-        "esp_total",  # the atom esp is also added
-        "bond_esp_total",  # this turns on the esp added to graphs
-        "bond_length",  # this is a feature
-        "indices_qtaim",  # this maps features to bonds
-    ]
+
+    extra_feats = {
+        "atom": ["esp_total"],
+        "bond": ["esp_total", "bond_length"],
+        "mappings": ["indices_qtaim"],
+    }
+
 
     _, feats, _ = get_data_test(
         test_df_file="./testdata/barrier_100.json",
@@ -49,14 +49,14 @@ def test_extra_bond_featurizer():
 
 def test_extra_global_featurizer():
     # test rishabh's func group
-    extra_feats = [
-        "functional_group_reacted",
-    ]
+    extra_feats = {
+        "global": ["functional_group_reacted"]
+    }
     _, feats, _ = get_data_test(
         test_df_file="./testdata/hydro_funct.json",
         extra_keys=extra_feats,
         allowed_charges=[-1, 0, 1],
-        global_feats=["functional_group_reacted", "charge"],
+        #global_feats=["functional_group_reacted", "charge"],
         target="dG_sp",
     )
     #print(feats)
@@ -71,12 +71,12 @@ def test_extra_global_featurizer():
             assert len(v[0]) == 17
 
     # test manual global feats
-
     _, feats, _ = get_data_test(
         test_df_file="./testdata/hydro_funct.json",
-        extra_keys=[],
+        extra_keys={
+            "global": []
+        },
         allowed_charges=[-1, 0, 1],
-        global_feats=["charge"],
         target="dG_sp",
     )
 
@@ -90,12 +90,13 @@ def test_extra_global_featurizer():
             assert len(v[0]) == 6
 
 
+
 def test_atom_feat_mapping():
-    extra_feats = [
-        "esp_total",  # the atom esp is also added
-        "bond_esp_total",  # this turns on the esp added to graphs
-        "indices_qtaim",  # this maps features to bonds
-    ]
+    extra_feats = {
+        "atom": ["esp_total"],
+        "bond": ["esp_total"],
+        "mappings": ["indices_qtaim"],
+    }
 
     df = pd.read_json("./testdata/green_2.json")
     reactant_atom_qtaim_esp = df["extra_feat_atom_reactant_esp_total"].tolist()
@@ -132,11 +133,11 @@ def test_atom_feat_mapping():
 
 
 def test_bond_feat_mapping():
-    extra_feats = [
-        "esp_total",  # the atom esp is also added
-        "bond_esp_total",  # this turns on the esp added to graphs # this is a feature
-        "indices_qtaim",  # this maps features to bonds
-    ]
+    extra_feats = {
+        "atom": ["esp_total"],
+        "bond": ["esp_total"],
+        "mappings": ["indices_qtaim"],
+    }
 
     df = pd.read_json("./testdata/green_2.json")
     reactant_bond_qtaim_esp = df["extra_feat_bond_reactant_esp_total"].tolist()
@@ -174,4 +175,5 @@ def test_bond_feat_mapping():
 
         assert len(dict_prod_map) == len(product_bond_map[0])
         assert len(dict_react_map) == len(reactant_bond_map[0])
+
 

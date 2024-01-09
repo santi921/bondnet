@@ -7,7 +7,9 @@
     "cat_weights": [1.0, 1.0, 1.0],
     "embedding_size": 24,
     "epochs": 100,
-    "extra_features": ["bond_length"],
+    "extra_features": {
+      "bond": ["bond_length"]
+    },
     "extra_info": [],
     "filter_species": [3, 5],
     "fc_activation": "ReLU",
