@@ -520,7 +520,7 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
         ]
         #print("global feats: ", mol.global_features)
         
-        if (
+        """if (
             self.allowed_spin is not None 
             or self.solvent_environment is not None
             or self.functional_g_basis is not None
@@ -534,44 +534,50 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
                     "{} `extra_feats_info` needed for {}.".format(
                         e, self.__class__.__name__
                     )
+                )"""
+        
+        feats_info = {}
+        if "extra_feats_info" in kwargs.keys():
+            feats_info = kwargs["extra_feats_info"]
+            
+        if self.allowed_charges is not None:
+            #print("charge info", feats_info["charge"])
+            if "charge" not in feats_info.keys():
+                charge = mol.charge
+            else: 
+                charge = feats_info["charge"]
+            #print(charge)
+            g += one_hot_encoding(charge, self.allowed_charges)
+            
+        if self.allowed_spin is not None:
+            if "spin" not in feats_info.keys():
+                spin = mol.spin
+            else:
+                spin = feats_info["spin"]
+                
+            g += one_hot_encoding(spin, self.allowed_spin)
+            
+        if self.solvent_environment is not None:
+            # if only two solvent_environment, we use 0/1 to denote the feature
+            if len(self.solvent_environment) == 2:
+                ft = self.solvent_environment.index(feats_info["environment"])
+                g += [ft]
+            # if more than two, we create a one-hot encoding
+            else:
+                g += one_hot_encoding(
+                    feats_info["environment"], self.solvent_environment
                 )
-            
-            if self.allowed_charges is not None:
-                #print("charge info", feats_info["charge"])
-                if "charge" not in feats_info.keys():
-                    charge = mol.charge
-                else: 
-                    charge = feats_info["charge"]
-                #print(charge)
-                g += one_hot_encoding(charge, self.allowed_charges)
-                
-            if self.allowed_spin is not None:
-                if "spin" not in feats_info.keys():
-                    spin = mol.spin
-                else:
-                    spin = feats_info["spin"]
-                    
-                g += one_hot_encoding(spin, self.allowed_spin)
-                
-            if self.solvent_environment is not None:
-                # if only two solvent_environment, we use 0/1 to denote the feature
-                if len(self.solvent_environment) == 2:
-                    ft = self.solvent_environment.index(feats_info["environment"])
-                    g += [ft]
-                # if more than two, we create a one-hot encoding
-                else:
-                    g += one_hot_encoding(
-                        feats_info["environment"], self.solvent_environment
-                    )
-            
-            if self.functional_g_basis is not None:
-                # print("functional group info", self.functional_g_basis)
-                g += one_hot_encoding(mol.functional_group, self.functional_g_basis)
+        
+        if self.functional_g_basis is not None:
+            # print("functional group info", self.functional_g_basis)
+            g += one_hot_encoding(mol.functional_group, self.functional_g_basis)
 
-            if self.selected_keys != []:
-                for key in self.selected_keys:
-                    if key != "functional_group_reacted":
-                        g += [mol.global_features[key]]
+        if self.selected_keys != []:
+            for key in self.selected_keys:
+                if key != "functional_group_reacted":
+                    g += [mol.global_features[key]]
+        
+        #print("mol global feats", mol.global_features)
         feats = torch.tensor([g], dtype=getattr(torch, self.dtype))
 
         # self._feature_size = feats.shape[1]
@@ -591,14 +597,14 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
                 self._feature_name += ["solvent"] * len(self.solvent_environment)
         # print("mol global", mol.global_features)
         #print(self.selected_keys)
+                
         if self.selected_keys != []:
             for key in self.selected_keys:
                 #print("selected keys ", self.selected_keys)
                 if key != "functional_group_reacted":
                     self._feature_name.append(key)
-                    g += [mol.global_features[key]]
-
-        # print("mol atom", mol.atom_features)
+                    
+        
         self._feature_size = len(self._feature_name)
-        #print("global feats", self._feature_name)
+        #print("global feats", self._feature_size, feats)
         return {"feat": feats}, self._feature_name

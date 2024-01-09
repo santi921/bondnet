@@ -541,7 +541,7 @@ def process_species_graph(
             if key.split("_")[3] == "reactant":
                 opposite_key = key.replace("reactant", "product")
                 prod = False
-            print(key, opposite_key)
+            #print(key, opposite_key)
             if opposite_key in extra_keys_full["global"]:
                 # remove the "extra_feat_bond" from the key
                 final_key = key.replace("extra_feat_global_", "")

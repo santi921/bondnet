@@ -112,8 +112,8 @@ class TrainingObject:
         self.dm = BondNetLightningDataModule(dm_config)
 
         feature_size, feature_names = self.dm.prepare_data()
-        print("feature size: ", feature_size)
-        print("feature names: ", feature_names)
+        # print("feature size: ", feature_size)
+        # print("feature names: ", feature_names)
         # config["model"]["in_feats"] = feature_size
         # config["dataset"]["feature_names"] = feature_names
         self.in_feats = feature_size
