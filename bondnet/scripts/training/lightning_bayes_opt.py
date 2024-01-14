@@ -70,6 +70,10 @@ class TrainingObject:
                 "classifier": self.sweep_config["parameters"]["classifier"]["values"][
                     0
                 ],
+                "initializer": self.sweep_config["parameters"]["initializer"]["values"][
+                    0
+                ],
+                "readout": self.sweep_config["parameters"]["readout"]["values"][0],
                 "classif_categories": self.sweep_config["parameters"][
                     "classif_categories"
                 ]["values"][0],
@@ -185,6 +189,7 @@ class TrainingObject:
                     "filter_outliers": init_config["filter_outliers"],
                     "conv": init_config["conv"],
                     "readout": init_config["readout"],
+                    "initializer": init_config["initializer"],
                     "reactant_only": init_config["reactant_only"],
                 },
                 "dataset": {

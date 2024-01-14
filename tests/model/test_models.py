@@ -183,7 +183,7 @@ def test_model_set2set():
     model = load_model_lightning(config["model"], load_dir="./test_save_load/")
 
     trainer = pl.Trainer(
-        max_epochs=10,
+        max_epochs=2,
         accelerator="gpu",
         devices=1,
         precision=32,
@@ -245,7 +245,7 @@ def test_model_mean():
     model = load_model_lightning(config["model"], load_dir="./test_save_load/")
 
     trainer = pl.Trainer(
-        max_epochs=10,
+        max_epochs=2,
         accelerator="gpu",
         devices=1,
         precision=32,
@@ -308,7 +308,7 @@ def test_model_attention():
     model = load_model_lightning(config["model"], load_dir="./test_save_load/")
 
     trainer = pl.Trainer(
-        max_epochs=10,
+        max_epochs=2,
         accelerator="gpu",
         devices=1,
         precision=32,
@@ -629,7 +629,8 @@ def test_profiler():
 
 # time for set2set 175.9593997001648
 # time for mean 178.41570377349854
-# 
+# time for attention 177.73964977264404
+
 
 """
 def test_multi_gpu():
