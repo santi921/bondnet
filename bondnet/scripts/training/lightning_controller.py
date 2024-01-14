@@ -127,7 +127,7 @@ def train_single(
                 callbacks=[
                     early_stopping_callback_transfer,
                     lr_monitor_transfer,
-                    log_parameters,
+                    #log_parameters,
                     checkpoint_callback_transfer,
                 ],
                 enable_checkpointing=True,

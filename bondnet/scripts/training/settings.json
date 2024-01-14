@@ -1,6 +1,7 @@
 {
   "model": {
     "conv": "GatedGCNConv",
+    "readout": "Set2SetThenCat",
     "augment": true,
     "classifier": false,
     "classif_categories": 3,
@@ -50,7 +51,9 @@
     "test_size": 0.1,
     "strategy": "ddp",
     "gradient_clip_val": 5.0,
-    "accumulate_grad_batches": 3
+    "accumulate_grad_batches": 3,
+    "pin_memory": false,
+    "persistent_workers": false
   },
   "dataset": {
     "log_save_dir": "./model_log/",

@@ -704,6 +704,7 @@ def get_defaults():
     config = {
         "model": {
             "conv": "GatedGCNConv",
+            "readout": "Set2SetThenCat",
             "augment": False,
             "classifier": False,
             "classif_categories": 3,
@@ -729,7 +730,7 @@ def get_defaults():
             "gated_num_fc_layers": 1,
             "gated_num_layers": 2,
             "gated_residual": True,
-            "learning_rate": 0.003,
+            "learning_rate": 0.001,
             "precision": "bf16",
             "loss": "mse",
             "num_lstm_iters": 3,
@@ -742,6 +743,7 @@ def get_defaults():
             "filter_outliers": True,
             "freeze": True,
             "reactant_only": False,
+            "initializer": "kaiming"
         }
     }
     # config = "./settings.json"

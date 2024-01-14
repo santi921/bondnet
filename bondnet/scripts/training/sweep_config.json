@@ -9,6 +9,11 @@
       false
     ]
   },
+  "readout": {
+    "values": [
+      "Set2SetThenCat"
+    ]
+  },
   "weight_decay": {
     "values": [
       0.00001,
@@ -291,6 +296,16 @@
     ]
   },
   "reactant_only": {
+    "values": [
+      false
+    ]
+  },
+  "pin_memory": {
+    "values": [
+      false
+    ]
+  },
+  "persistent_workers": {
     "values": [
       false
     ]
