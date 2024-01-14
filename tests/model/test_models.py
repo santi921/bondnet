@@ -13,6 +13,7 @@ from bondnet.test_utils import get_defaults
 
 # suppress warnings
 import warnings
+import time 
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings(
@@ -51,7 +52,9 @@ def test_model_construction():
             "val_size": 0.1,
             "test_size": 0.1,
             "batch_size": 16,
-            "num_workers": 4,
+            "num_workers": 0,
+            "pin_memory": False,
+            "persistent_workers": False,
         },
     }
     config_model = get_defaults()
@@ -89,7 +92,9 @@ def test_model_save_load():
             "val_size": 0.1,
             "test_size": 0.1,
             "batch_size": 16,
-            "num_workers": 1,
+            "num_workers": 0,
+            "pin_memory": False,
+            "persistent_workers": False,
         },
     }
     config_model = get_defaults()
@@ -107,29 +112,218 @@ def test_model_save_load():
         max_epochs=3,
         accelerator="gpu",
         devices=1,
-        accumulate_grad_batches=5,
+        precision=32,
+        accumulate_grad_batches=1,
         enable_progress_bar=True,
         gradient_clip_val=1.0,
-        enable_checkpointing=True,
         default_root_dir="./test_save_load/",
-        precision=config["model"]["precision"],
-        log_every_n_steps=1,
-        profiler='simple'
     )
 
     trainer.fit(model, dm)
+    print("done training")
     trainer.save_checkpoint("./test_save_load/test.ckpt")
+    print("done saving")
     config["restore_path"] = "./test_save_load/test.ckpt"
     config["restore"] = True
     model_restart = load_model_lightning(config["model"], load_dir="./test_save_load/")
-
+    print("done loading")
     trainer_restart = pl.Trainer()
     trainer_restart.fit_loop.max_epochs = 5
+    
     trainer_restart.fit(model_restart, dm, ckpt_path="./test_save_load/test.ckpt")
+    print("done training pt2 ")
     trainer.test(model, dm)
+    print("done testing")
     assert type(model_restart) == GatedGCNReactionNetworkLightning
     assert type(trainer_restart) == pl.Trainer
 
+
+
+def test_model_set2set():
+    dataset_loc = "../data/testdata/barrier_100.json"
+    #dataset_loc = "/home/santiagovargas/dev/bondnet/bondnet/dataset/mg_dataset/rapter_clean/train_inorganic_mg_05132023.pkl"
+    config = {
+        "dataset": {
+            "data_dir": dataset_loc,
+            "target_var": "dG_barrier",
+        },
+        "model": {
+            "extra_features": {},
+            "extra_info": [],
+            "debug": False,
+            "classifier": False,
+            "classif_categories": 3,
+            "filter_species": [3, 6],
+            "filter_outliers": False,
+            "filter_sparse_rxns": False,
+            "restore": False,
+        },
+        "optim": {
+            "val_size": 0.1,
+            "test_size": 0.1,
+            "batch_size": 32,
+            "num_workers": 4,
+            "pin_memory": True,
+            "persistent_workers": True,
+        },
+    }
+    config_model = get_defaults()
+    # update config with model settings
+    config_model["model"]["gated_hidden_size_1"] = 32
+    config_model["model"]["gated_num_fc_layers"] = 1
+    config_model["model"]["fc_hidden_size_1"] = 128
+    config_model["model"]["embedding_size"] = 12
+    for key, value in config_model["model"].items():
+        config["model"][key] = value
+
+    dm = BondNetLightningDataModule(config)
+
+    feat_size, feat_name = dm.prepare_data()
+    config["model"]["in_feats"] = feat_size
+    model = load_model_lightning(config["model"], load_dir="./test_save_load/")
+
+    trainer = pl.Trainer(
+        max_epochs=10,
+        accelerator="gpu",
+        devices=1,
+        precision=32,
+        accumulate_grad_batches=5,
+        enable_progress_bar=True,
+        gradient_clip_val=1.0,
+        enable_checkpointing=False,
+        default_root_dir="./test_save_load/",
+    )
+    start_time = time.time()
+    trainer.fit(model, dm)
+    end_time = time.time()
+    delta_time = end_time - start_time
+    print("time for set2set", delta_time)
+
+
+def test_model_mean():
+    dataset_loc = "../data/testdata/barrier_100.json"
+    #dataset_loc = "/home/santiagovargas/dev/bondnet/bondnet/dataset/mg_dataset/rapter_clean/train_inorganic_mg_05132023.pkl"
+    config = {
+        "dataset": {
+            "data_dir": dataset_loc,
+            "target_var": "dG_barrier",
+        },
+        "model": {
+            "extra_features": {},
+            "extra_info": [],
+            "debug": False,
+            "classifier": False,
+            "classif_categories": 3,
+            "filter_species": [3, 6],
+            "filter_outliers": False,
+            "filter_sparse_rxns": False,
+            "restore": False,
+        },
+        "optim": {
+            "val_size": 0.1,
+            "test_size": 0.1,
+            "batch_size": 32,
+            "num_workers": 4,
+            "pin_memory": True,
+            "persistent_workers": True,
+        },
+    }
+    config_model = get_defaults()
+    config_model["model"]["readout"] = "WeightedMean"
+    config_model["model"]["gated_hidden_size_1"] = 32
+    config_model["model"]["gated_num_fc_layers"] = 1
+    config_model["model"]["fc_hidden_size_1"] = 128
+    config_model["model"]["embedding_size"] = 12
+    # update config with model settings
+    for key, value in config_model["model"].items():
+        config["model"][key] = value
+
+    dm = BondNetLightningDataModule(config)
+
+    feat_size, feat_name = dm.prepare_data()
+    config["model"]["in_feats"] = feat_size
+    model = load_model_lightning(config["model"], load_dir="./test_save_load/")
+
+    trainer = pl.Trainer(
+        max_epochs=10,
+        accelerator="gpu",
+        devices=1,
+        precision=32,
+        accumulate_grad_batches=5,
+        enable_progress_bar=True,
+        gradient_clip_val=1.0,
+        enable_checkpointing=False,
+        default_root_dir="./test_save_load/",
+    )
+
+    start_time = time.time()
+    trainer.fit(model, dm)
+    end_time = time.time()
+    delta_time = end_time - start_time
+    print("time for mean", delta_time)
+
+
+def test_model_attention():
+    dataset_loc = "../data/testdata/barrier_100.json"
+    #dataset_loc = "/home/santiagovargas/dev/bondnet/bondnet/dataset/mg_dataset/rapter_clean/train_inorganic_mg_05132023.pkl"
+    config = {
+        "dataset": {
+            "data_dir": dataset_loc,
+            "target_var": "dG_barrier",
+        },
+        "model": {
+            "extra_features": {},
+            "extra_info": [],
+            "debug": False,
+            "classifier": False,
+            "classif_categories": 3,
+            "filter_species": [3, 6],
+            "filter_outliers": False,
+            "filter_sparse_rxns": False,
+            "restore": False,
+        },
+        "optim": {
+            "val_size": 0.1,
+            "test_size": 0.1,
+            "batch_size": 32,
+            "num_workers": 4,
+            "pin_memory": True,
+            "persistent_workers": True,
+        },
+    }
+    config_model = get_defaults()
+    config_model["model"]["readout"] = "Attention"
+    config_model["model"]["gated_hidden_size_1"] = 32
+    config_model["model"]["gated_num_fc_layers"] = 1
+    config_model["model"]["fc_hidden_size_1"] = 128
+    config_model["model"]["embedding_size"] = 12
+    # update config with model settings
+    for key, value in config_model["model"].items():
+        config["model"][key] = value
+
+    dm = BondNetLightningDataModule(config)
+
+    feat_size, feat_name = dm.prepare_data()
+    config["model"]["in_feats"] = feat_size
+    model = load_model_lightning(config["model"], load_dir="./test_save_load/")
+
+    trainer = pl.Trainer(
+        max_epochs=10,
+        accelerator="gpu",
+        devices=1,
+        precision=32,
+        accumulate_grad_batches=5,
+        enable_progress_bar=True,
+        gradient_clip_val=1.0,
+        enable_checkpointing=False,
+        default_root_dir="./test_save_load/",
+    )
+
+    start = time.time()
+    trainer.fit(model, dm)
+    end = time.time()
+    delta_time = end - start
+    print("time for attention", delta_time)
 
 
 def test_transfer_learning():
@@ -156,7 +350,9 @@ def test_transfer_learning():
             "val_size": 0.2,
             "test_size": 0.2,
             "batch_size": 64,
-            "num_workers": 1,
+            "num_workers": 0,
+            "pin_memory": False,
+            "persistent_workers": False,
         },
     }
 
@@ -180,7 +376,9 @@ def test_transfer_learning():
             "val_size": 0.2,
             "test_size": 0.2,
             "batch_size": 64,
-            "num_workers": 4,
+            "num_workers": 0,
+            "pin_memory": False,
+            "persistent_workers": False,
         },
     }
 
@@ -206,12 +404,12 @@ def test_transfer_learning():
         max_epochs=3,
         accelerator="gpu",
         devices=1,
+        precision=32,
         accumulate_grad_batches=5,
         enable_progress_bar=True,
         gradient_clip_val=1.0,
         enable_checkpointing=True,
         default_root_dir="./test_checkpoints/",
-        precision=config["model"]["precision"],
         log_every_n_steps=1,
     )
 
@@ -219,7 +417,7 @@ def test_transfer_learning():
 
     # trainer.fit(model, dm)
     # trainer.test(model, dm)
-    print("training transfer works!")
+    
 
 
 def test_augmentation():
@@ -244,7 +442,9 @@ def test_augmentation():
             "val_size": 0.1,
             "test_size": 0.1,
             "batch_size": 64,
-            "num_workers": 1,
+            "num_workers": 0,
+            "pin_memory": False,
+            "persistent_workers": False,
         },
     }
     config_model = get_defaults()
@@ -293,6 +493,7 @@ def test_augmentation():
         assert not torch.allclose(target, target_aug, atol=1e-3, rtol=0)
 
 
+
 def test_reactant_only_construction():
     dataset_loc = "../data/testdata/symmetric.json"
     config = {
@@ -315,7 +516,9 @@ def test_reactant_only_construction():
             "val_size": 0.1,
             "test_size": 0.1,
             "batch_size": 64,
-            "num_workers": 1,
+            "num_workers": 0,
+            "pin_memory": False,
+            "persistent_workers": False,
         },
     }
     config_model = get_defaults()
@@ -386,7 +589,9 @@ def test_profiler():
             "val_size": 0.1,
             "test_size": 0.1,
             "batch_size": 64,
-            "num_workers": 1,
+            "num_workers": 0,
+            "pin_memory": False,
+            "persistent_workers": False,
         },
     }
     config_model = get_defaults()
@@ -405,20 +610,28 @@ def test_profiler():
         max_epochs=3,
         accelerator="gpu",
         devices=1,
+        precision=32,
         accumulate_grad_batches=1,
         enable_progress_bar=True,
         gradient_clip_val=1.0,
         enable_checkpointing=True,
         default_root_dir="./test_save_load/",
-        precision=config["model"]["precision"],
         #log_every_n_steps=1,
         profiler='advanced'
     )
 
     trainer.fit(model, dm)
 
+#test_model_mean()
+#test_model_attention()
+#test_model_set2set()
 
 
+# time for set2set 175.9593997001648
+# time for mean 178.41570377349854
+# 
+
+"""
 def test_multi_gpu():
     dataset_loc = "../data/testdata/barrier_100.json"
     config = {
@@ -442,6 +655,8 @@ def test_multi_gpu():
             "test_size": 0.1,
             "batch_size": 16,
             "num_workers": 2,
+            "pin_memory": False,
+            "persistent_workers": False,
         },
     }
     config_model = get_defaults()
@@ -459,6 +674,7 @@ def test_multi_gpu():
     trainer = pl.Trainer(
         max_epochs=3,
         accelerator="gpu",
+        precision=32,
         devices=[0, 1],
         strategy="ddp",
         accumulate_grad_batches=1,
@@ -466,10 +682,10 @@ def test_multi_gpu():
         gradient_clip_val=1.0,
         enable_checkpointing=True,
         default_root_dir="./test_save_load/",
-        precision=config["model"]["precision"],
         #log_every_n_steps=1,
         #profiler='advanced'
     )
 
     trainer.fit(model, dm)
 
+"""

@@ -22,6 +22,8 @@ from bondnet.data.featurizer import (
 )
 
 
+from bondnet.model.initializers import xavier_init, kaiming_init, equi_var_init
+
 class LogParameters(pl.Callback):
     # weight and biases to tensorboard
     def __init__(self):
@@ -195,6 +197,7 @@ def load_model_lightning(dict_train, load_dir=None):
             eta_min=1e-6,
             loss_fn=dict_train["loss"],
             augment=dict_train["augment"],
+            readout=dict_train["readout"],
             # device=device,
             cat_weights=dict_train["cat_weights"],
             conv=dict_train["conv"],
@@ -229,10 +232,26 @@ def load_model_lightning(dict_train, load_dir=None):
             loss_fn=dict_train["loss"],
             augment=dict_train["augment"],
             conv=dict_train["conv"],
+            readout=dict_train["readout"],
             reactant_only=dict_train["reactant_only"],
             # device=device,
         )
-    # model.to(device)
+    
+    if dict_train["initializer"] == "kaiming":
+        print(":::USING KAIMING INITIALIZER:::")
+        kaiming_init(model)
+
+    elif dict_train["initializer"] == "xavier":
+        print(":::USING XAVIER INITIALIZER:::")
+        xavier_init(model)
+
+    elif dict_train["initializer"] == "equi_var":
+        print(":::USING EQUIVARIANCE INITIALIZER:::")
+        equi_var_init(model)
+
+    else:
+        print(":::NO INITIALIZER USED:::")
+        
 
     return model
 

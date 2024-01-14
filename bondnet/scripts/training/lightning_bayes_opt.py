@@ -104,6 +104,10 @@ class TrainingObject:
                 "num_nodes": self.sweep_config["parameters"]["num_nodes"]["values"][0],
                 "val_size": self.sweep_config["parameters"]["val_size"]["values"][0],
                 "test_size": self.sweep_config["parameters"]["test_size"]["values"][0],
+                "pin_memory": self.sweep_config["parameters"]["pin_memory"]["values"][0],
+                "persistent_workers": self.sweep_config["parameters"][
+                    "persistent_workers"
+                ]["values"][0],
             },
         }
         # if self.use_lmdb:
@@ -180,6 +184,7 @@ class TrainingObject:
                     "weight_decay": init_config["weight_decay"],
                     "filter_outliers": init_config["filter_outliers"],
                     "conv": init_config["conv"],
+                    "readout": init_config["readout"],
                     "reactant_only": init_config["reactant_only"],
                 },
                 "dataset": {

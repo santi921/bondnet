@@ -4,6 +4,11 @@
       128
     ]
   },
+  "readout": {
+    "values": [
+      "Set2SetThenCat"
+    ]
+  },
   "classifier": {
     "values": [
       false
@@ -294,6 +299,16 @@
     ]
   },
   "reactant_only": {
+    "values": [
+      false
+    ]
+  },
+  "pin_memory": {
+    "values": [
+      false
+    ]
+  },
+  "persistent_workers": {
     "values": [
       false
     ]

@@ -207,8 +207,8 @@ class BondNetLightningDataModule(pl.LightningDataModule):
             shuffle=True,
             collate_fn=collate_parallel,
             num_workers=self.config["optim"]["num_workers"],
-            pin_memory=True,
-            persistent_workers=True
+            pin_memory=self.config["optim"]["pin_memory"],
+            persistent_workers=self.config["optim"]["persistent_workers"],
         )
 
     def test_dataloader(self):
@@ -218,7 +218,6 @@ class BondNetLightningDataModule(pl.LightningDataModule):
             shuffle=False,
             collate_fn=collate_parallel,
             num_workers=self.config["optim"]["num_workers"],
-            pin_memory=True,
         )
 
     def val_dataloader(self):
@@ -227,6 +226,5 @@ class BondNetLightningDataModule(pl.LightningDataModule):
             batch_size=len(self.val_ds),
             shuffle=False,
             collate_fn=collate_parallel,
-            num_workers=self.config["optim"]["num_workers"],
-            pin_memory=True,
+            num_workers=self.config["optim"]["num_workers"]
         )

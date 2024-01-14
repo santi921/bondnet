@@ -4,6 +4,8 @@ from bondnet.layer.readout import (
     ConcatenateMeanAbsDiff,
     Set2Set,
     Set2SetThenCat,
+    MeanPoolingThenCat, 
+    WeightAndMeanThenCat
 )
 from bondnet.test_utils import make_hetero_CH2O, make_batched_hetero_CH2O
 
@@ -65,3 +67,30 @@ def test_set2set_then_cat():
     )
     rst = layer(g, feats)
     assert rst.shape == (nbatch, 2 * 2 + 3 * 2 + 4)
+
+
+
+def test_mean_pooling_then_cat():
+    nbatch = 3
+    g, feats = make_batched_hetero_CH2O(nbatch)
+
+    layer = MeanPoolingThenCat(
+        ntypes=["atom", "bond"],
+        in_feats=[2, 3, 4],
+        ntypes_direct_cat=["global"],
+    )
+    rst = layer(g, feats)
+    assert rst.shape == (nbatch, 2 * 1 + 3 * 1 + 4)
+
+
+def test_weight_and_mean_then_cat():
+    nbatch = 3
+    g, feats = make_batched_hetero_CH2O(nbatch)
+
+    layer = WeightAndMeanThenCat(
+        ntypes=["atom", "bond"],
+        in_feats=[2, 3, 4],
+        ntypes_direct_cat=["global"],
+    )
+    rst = layer(g, feats)
+    assert rst.shape == (nbatch, 2 * 1 + 3 * 1 + 4)

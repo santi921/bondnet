@@ -11,7 +11,13 @@ import torchmetrics
 import matplotlib.pyplot as plt
 
 from bondnet.layer.gatedconv import GatedGCNConv, GatedGCNConv1, GatedGCNConv2
-from bondnet.layer.readout import Set2SetThenCat
+from bondnet.layer.readout import (
+    Set2SetThenCat, 
+    GlobalAttentionPoolingThenCat, 
+    MeanPoolingThenCat,
+    WeightAndMeanThenCat
+)
+
 from bondnet.layer.utils import UnifySize
 
 from bondnet.data.utils import (
@@ -51,6 +57,8 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         fc_dropout (float, optional): dropout ratio for fc layer.
         outdim (int): dimension of the output. For regression, choose 1 and for
             classification, set it to the number of classes.
+        conv (str): type of convolution layer. Currently support "GatedGCNConv",
+        readout (str): type of readout layer. Currently support "Set2SetThenCat", "Mean", "WeightedMean", "Attention"
     """
 
     def __init__(
@@ -86,6 +94,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         wandb=True,
         augment=False,
         reactant_only=False,
+        readout="Set2SetThenCat",
     ):
         super().__init__()
         self.learning_rate = learning_rate
@@ -121,6 +130,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             "wandb": wandb,
             "augment": augment,
             "reactant_only": reactant_only,
+            "readout": readout,
         }
         self.hparams.update(params)
         self.save_hyperparameters()
@@ -145,6 +155,22 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             conv_fn = GatedGCNConv2
         else:
             raise ValueError()
+        
+        # readout layer
+        if readout == "Set2SetThenCat":
+            print("NB: using Set2SetThenCat")
+            readout_fn = Set2SetThenCat
+        elif readout == "Mean":
+            print("NB: using Mean")
+            readout_fn = MeanPoolingThenCat
+        elif readout == "WeightedMean":
+            print("NB: using WeightedMean")
+            readout_fn = WeightAndMeanThenCat
+        elif readout == "Attention":
+            print("NB: using Attention")
+            readout_fn = GlobalAttentionPoolingThenCat
+        else:
+            raise ValueError()
 
         in_size = embedding_size
         self.gated_layers = nn.ModuleList()
@@ -164,25 +190,44 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             in_size = gated_hidden_size[i]
 
         # set2set readout layer
+        self.readout_out_size = 0
         ntypes = ["atom", "bond"]
         in_size = [gated_hidden_size[-1]] * len(ntypes)
 
-        self.readout_layer = Set2SetThenCat(
-            n_iters=num_lstm_iters,
-            n_layer=num_lstm_layers,
-            ntypes=ntypes,
-            in_feats=in_size,
-            ntypes_direct_cat=set2set_ntypes_direct,
-        )
+        if self.hparams.readout == "Set2SetThenCat":
+            self.readout_layer = readout_fn(
+                n_iters=num_lstm_iters,
+                n_layer=num_lstm_layers,
+                ntypes=ntypes,
+                in_feats=in_size,
+                ntypes_direct_cat=set2set_ntypes_direct,
+            )
+            # for atom and bond feat (# *2 because Set2Set used in Set2SetThenCat has out
+            # feature twice the the size  of in feature)
+            self.readout_out_size = gated_hidden_size[-1] * 2 + gated_hidden_size[-1] * 2
+            # for global feat
+            if set2set_ntypes_direct is not None:
+                self.readout_out_size += gated_hidden_size[-1] * len(set2set_ntypes_direct)
 
-        # for atom and bond feat (# *2 because Set2Set used in Set2SetThenCat has out
-        # feature twice the the size  of in feature)
-        readout_out_size = gated_hidden_size[-1] * 2 + gated_hidden_size[-1] * 2
-        # for global feat
-        if set2set_ntypes_direct is not None:
-            readout_out_size += gated_hidden_size[-1] * len(set2set_ntypes_direct)
+        else:
+            # print("other readout used")
+            self.readout_layer = readout_fn(
+                ntypes=ntypes,
+                in_feats=in_size,
+                ntypes_direct_cat=set2set_ntypes_direct,
+            )
 
-        self.readout_out_size = readout_out_size
+            self.readout_out_size = gated_hidden_size[-1] + gated_hidden_size[-1] 
+
+            if set2set_ntypes_direct is not None:
+                self.readout_out_size += gated_hidden_size[-1] * len(set2set_ntypes_direct)
+
+            #for i in self.hparams.pooling_ntypes:
+            #    if i in self.hparams.ntypes_pool_direct_cat:
+            #        self.readout_out_size += self.conv_out_size[i]
+            #    else:
+            #        self.readout_out_size += self.conv_out_size[i]
+
 
         # need dropout?
         delta = 1e-3
@@ -193,7 +238,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
 
         # fc layer to map to feature to bond energy
         self.fc_layers = nn.ModuleList()
-        in_size = readout_out_size
+        in_size = self.readout_out_size
         for i in range(fc_num_layers):
             out_size = fc_hidden_size[i]
             self.fc_layers.append(nn.Linear(in_size, out_size))
