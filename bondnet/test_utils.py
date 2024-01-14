@@ -743,7 +743,7 @@ def get_defaults():
             "filter_outliers": True,
             "freeze": True,
             "reactant_only": False,
-            "initializer": "kaiming"
+            "initializer": None
         }
     }
     # config = "./settings.json"
