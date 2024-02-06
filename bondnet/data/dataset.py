@@ -968,7 +968,7 @@ def train_validation_test_split(dataset, validation=0.1, test=0.1, random_seed=N
     Returns:
         [train set, validation set, test_set]
     """
-    assert validation + test < 1.0, "validation + test >= 1"
+    assert validation + test <= 1.0, "validation + test >= 1"
     size = len(dataset)
     num_val = int(size * validation)
     num_test = int(size * test)
@@ -977,14 +977,32 @@ def train_validation_test_split(dataset, validation=0.1, test=0.1, random_seed=N
     if random_seed is not None:
         np.random.seed(random_seed)
     idx = np.random.permutation(size)
-    train_idx = idx[:num_train]
-    val_idx = idx[num_train : num_train + num_val]
-    test_idx = idx[num_train + num_val :]
-    return [
-        Subset(dataset, train_idx),
-        Subset(dataset, val_idx),
-        Subset(dataset, test_idx),
-    ]
+
+    if num_test == 0:
+        train_idx = idx[:num_train + num_val]
+        val_idx = idx[num_train : num_train + num_val]
+        return [
+            Subset(dataset, train_idx),
+            Subset(dataset, val_idx),
+            None,
+        ]
+    
+    elif test == 1:
+        return [
+            None,
+            None,
+            Subset(dataset, idx),
+        ]
+    
+    else:
+        train_idx = idx[:num_train]
+        val_idx = idx[num_train : num_train + num_val]
+        test_idx = idx[num_train + num_val :]
+        return [
+            Subset(dataset, train_idx),
+            Subset(dataset, val_idx),
+            Subset(dataset, test_idx),
+        ]
 
 
 def train_validation_test_split_test_with_all_bonds_of_mol(
