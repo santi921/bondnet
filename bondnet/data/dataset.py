@@ -968,7 +968,7 @@ def train_validation_test_split(dataset, validation=0.1, test=0.1, random_seed=N
     Returns:
         [train set, validation set, test_set]
     """
-    assert validation + test < 1.0, "validation + test >= 1"
+    assert validation + test <= 1.0, "validation + test >= 1"
     size = len(dataset)
     num_val = int(size * validation)
     num_test = int(size * test)
