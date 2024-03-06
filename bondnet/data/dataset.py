@@ -7,7 +7,9 @@ from collections import defaultdict, OrderedDict
 from concurrent.futures import TimeoutError
 from tqdm import tqdm
 from rdkit import Chem, RDLogger
-
+import pickle
+from torch.utils.data import Dataset
+import lmdb
 
 from bondnet.dataset.generalized import create_reaction_network_files_and_valid_rows
 from bondnet.data.reaction_network import ReactionInNetwork, ReactionNetwork
@@ -923,7 +925,6 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
     def __len__(self):
         return len(self.reaction_ids)
 
-
 class ReactionNetworkLMDBDataset(BaseDataset):
     def __init__(self, reaction_network_lmdb):
         self.reaction_network = reaction_network_lmdb
@@ -937,6 +938,7 @@ class ReactionNetworkLMDBDataset(BaseDataset):
         self.reaction_ids = [int(i) for i in range(len(self.reaction_ids))]
         self._feature_size = None
         #self._feature_size = 
+        self.dtype = self.reaction_network.reactions.dtype
 
     def __getitem__(self, item):
         rxn_ids = self.reaction_ids[item]
@@ -947,6 +949,223 @@ class ReactionNetworkLMDBDataset(BaseDataset):
 
     def __len__(self):
         return len(self.reaction_network.reactions)
+
+
+class LmdbBaseDataset(Dataset):
+
+    """
+    Dataset class to
+    1. write Reaction networks objecs to lmdb
+    2. load lmdb files
+    """
+
+    def __init__(self, config, transform=None):
+        super(LmdbBaseDataset, self).__init__()
+
+        self.config = config
+        self.path = Path(self.config["src"])
+
+        if not self.path.is_file():
+            db_paths = sorted(self.path.glob("*.lmdb"))
+            assert len(db_paths) > 0, f"No LMDBs found in '{self.path}'"
+            #self.metadata_path = self.path / "metadata.npz"
+
+            self._keys = []
+            self.envs = []
+            for db_path in db_paths:
+                cur_env = self.connect_db(db_path)
+                self.envs.append(cur_env)
+
+                # If "length" encoded as ascii is present, use that
+                length_entry = cur_env.begin().get("length".encode("ascii"))
+                if length_entry is not None:
+                    num_entries = pickle.loads(length_entry)
+                else:
+                    # Get the number of stores data from the number of entries in the LMDB
+                    num_entries = cur_env.stat()["entries"]
+
+                # Append the keys (0->num_entries) as a list
+                self._keys.append(list(range(num_entries)))
+
+            keylens = [len(k) for k in self._keys]
+            self._keylen_cumulative = np.cumsum(keylens).tolist()
+            self.num_samples = sum(keylens)
+            
+        
+        else:
+            # Get metadata in case
+            # self.metadata_path = self.path.parent / "metadata.npz"
+            self.env = self.connect_db(self.path)
+
+            # If "length" encoded as ascii is present, use that
+            # If there are additional properties, there must be length.
+            length_entry = self.env.begin().get("length".encode("ascii"))
+            if length_entry is not None:
+                num_entries = pickle.loads(length_entry)
+            else:
+                # Get the number of stores data from the number of entries
+                # in the LMDB
+                num_entries = self.env.stat()["entries"]
+
+            self._keys = list(range(num_entries))
+            self.num_samples = num_entries
+
+        # Get portion of total dataset
+        self.sharded = False
+        if "shard" in self.config and "total_shards" in self.config:
+            self.sharded = True
+            self.indices = range(self.num_samples)
+            # split all available indices into 'total_shards' bins
+            self.shards = np.array_split(
+                self.indices, self.config.get("total_shards", 1)
+            )
+            # limit each process to see a subset of data based off defined shard
+            self.available_indices = self.shards[self.config.get("shard", 0)]
+            self.num_samples = len(self.available_indices)
+
+        # TODO
+        self.transform = transform
+
+    def __len__(self):
+        return self.num_samples
+
+    def __getitem__(self, idx):
+        # if sharding, remap idx to appropriate idx of the sharded set
+        if self.sharded:
+            idx = self.available_indices[idx]
+        
+        if not self.path.is_file():
+            # Figure out which db this should be indexed from.
+            db_idx = bisect.bisect(self._keylen_cumulative, idx)
+            # Extract index of element within that db.
+            el_idx = idx
+            if db_idx != 0:
+                el_idx = idx - self._keylen_cumulative[db_idx - 1]
+            assert el_idx >= 0
+
+            # Return features.
+            datapoint_pickled = (
+                self.envs[db_idx]
+                .begin()
+                .get(f"{self._keys[db_idx][el_idx]}".encode("ascii"))
+            )
+            data_object = pickle.loads(datapoint_pickled)
+            #data_object.id = f"{db_idx}_{el_idx}"
+    
+        else:
+            #!CHECK, _keys should be less then total numbers of keys as there are more properties.
+            datapoint_pickled = self.env.begin().get(f"{self._keys[idx]}".encode("ascii"))
+
+            data_object = pickle.loads(datapoint_pickled)
+
+        # TODO
+        if self.transform is not None:
+            data_object = self.transform(data_object)
+
+        return data_object
+
+    def connect_db(self, lmdb_path=None):
+        env = lmdb.open(
+            str(lmdb_path),
+            subdir=False,
+            readonly=False,
+            lock=False,
+            readahead=True,
+            meminit=False,
+            max_readers=1,
+        )
+        return env
+
+    def close_db(self):
+        if not self.path.is_file():
+            for env in self.envs:
+                env.close()
+        else:
+            self.env.close()
+
+    def get_metadata(self, num_samples=100):
+        pass
+
+
+class LmdbMoleculeDataset(LmdbBaseDataset):
+    def __init__(self, config, transform=None):
+        super(LmdbMoleculeDataset, self).__init__(config=config, transform=transform)
+        if not self.path.is_file():
+            self.env_ = self.envs[0]
+            raise("Not Implemented Yet")
+                
+        else:
+            self.env_ = self.env
+    @property
+    def charges(self):
+        charges = self.env_.begin().get("charges".encode("ascii"))
+        return pickle.loads(charges)
+
+    @property
+    def ring_sizes(self):
+        ring_sizes = self.env_.begin().get("ring_sizes".encode("ascii"))
+        return pickle.loads(ring_sizes)
+
+    @property
+    def elements(self):
+        elements = self.env_.begin().get("elements".encode("ascii"))
+        return pickle.loads(elements)
+
+    @property
+    def feature_info(self):
+        feature_info = self.env_.begin().get("feature_info".encode("ascii"))
+        return pickle.loads(feature_info)
+
+
+class LmdbReactionDataset(LmdbBaseDataset):
+    def __init__(self, config, transform=None):
+        super(LmdbReactionDataset, self).__init__(config=config, transform=transform)
+
+        if not self.path.is_file():
+            self.env_ = self.envs[0]
+            #get keys
+            for i in range(1, len(self.envs)):
+                for key in ["feature_size", "dtype", "feature_name"]: #, "mean", "std"]:
+                    assert self.envs[i].begin().get(key.encode("ascii")) == self.envs[0].begin().get(key.encode("ascii"))
+                    #! mean and std are not equal across different dataset at this time.
+            #get mean and std
+            mean_list = [pickle.loads(self.envs[i].begin().get("mean".encode("ascii"))) for i in range(0, len(self.envs))]
+            std_list = [pickle.loads(self.envs[i].begin().get("std".encode("ascii"))) for i in range(0, len(self.envs))]
+            count_list = [pickle.loads(self.envs[i].begin().get("length".encode("ascii"))) for i in range(0, len(self.envs))]
+            self._mean, self._std = combined_mean_std(mean_list, std_list, count_list)
+                    
+        else:
+            self.env_ = self.env
+            self._mean = pickle.loads(self.env_.begin().get("mean".encode("ascii")))
+            self._std  = pickle.loads(self.env_.begin().get("std".encode("ascii")))
+        
+    @property
+    def dtype(self):
+        dtype = self.env_.begin().get("dtype".encode("ascii"))
+        return  pickle.loads(dtype)
+
+    @property
+    def feature_size(self):
+        feature_size = self.env_.begin().get("feature_size".encode("ascii"))
+        return pickle.loads(feature_size)
+
+    @property
+    def feature_name(self):
+        feature_name = self.env_.begin().get("feature_name".encode("ascii"))
+        return pickle.loads(feature_name)
+
+    @property
+    def mean(self):
+        mean = self.env.begin().get("mean".encode("ascii"))
+        return pickle.loads(mean)
+    
+    @property
+    def std(self):
+        std = self.env.begin().get("std".encode("ascii"))
+        return pickle.loads(std)
+
+    
+
 
 
 def train_validation_test_split(dataset, validation=0.1, test=0.1, random_seed=None):
@@ -1004,118 +1223,3 @@ def train_validation_test_split(dataset, validation=0.1, test=0.1, random_seed=N
             Subset(dataset, test_idx),
         ]
 
-
-def train_validation_test_split_test_with_all_bonds_of_mol(
-    dataset, validation=0.1, test=0.1, random_seed=None
-):
-    """
-    Split a dataset into training, validation, and test set.
-
-    Different from `train_validation_test_split`, where the split of dataset is bond
-    based, here the bonds from a molecule either goes to (train, validation) set or
-    test set. This is used to evaluate the prediction order of bond energy.
-
-    The training set will be automatically determined based on `validation` and `test`,
-    i.e. train = 1 - validation - test.
-
-    Args:
-        dataset: the dataset
-        validation (float, optional): The amount of data (fraction) to be assigned to
-            validation set. Defaults to 0.1.
-        test (float, optional): The amount of data (fraction) to be assigned to test
-            set. Defaults to 0.1.
-        random_seed (int, optional): random seed that determines the permutation of the
-            dataset. Defaults to 35.
-
-    Returns:
-        [train set, validation set, test_set]
-    """
-    assert validation + test < 1.0, "validation + test >= 1"
-    size = len(dataset)
-    num_val = int(size * validation)
-    num_test = int(size * test)
-    num_train = size - num_val - num_test
-
-    # group by molecule
-    groups = defaultdict(list)
-    for i, (_, label) in enumerate(dataset):
-        groups[label["id"]].append(i)
-    groups = [val for key, val in groups.items()]
-
-    # permute on the molecule level
-    if random_seed is not None:
-        np.random.seed(random_seed)
-    idx = np.random.permutation(len(groups))
-    test_idx = []
-    train_val_idx = []
-    for i in idx:
-        if len(test_idx) < num_test:
-            test_idx.extend(groups[i])
-        else:
-            train_val_idx.extend(groups[i])
-
-    # permute on the bond level for train and validation
-    idx = np.random.permutation(train_val_idx)
-    train_idx = idx[:num_train]
-    val_idx = idx[num_train:]
-
-    return [
-        Subset(dataset, train_idx),
-        Subset(dataset, val_idx),
-        Subset(dataset, test_idx),
-    ]
-
-
-def train_validation_test_split_selected_bond_in_train(
-    dataset, validation=0.1, test=0.1, random_seed=None, selected_bond_type=None
-):
-    """
-    Split a dataset into training, validation, and test set.
-
-    The training set will be automatically determined based on `validation` and `test`,
-    i.e. train = 1 - validation - test.
-
-    Args:
-        dataset: the dataset
-        validation (float, optional): The amount of data (fraction) to be assigned to
-            validation set. Defaults to 0.1.
-        test (float, optional): The amount of data (fraction) to be assigned to test
-            set. Defaults to 0.1.
-        random_seed (int, optional): random seed that determines the permutation of the
-            dataset. Defaults to 35.
-        selected_bond_type (tuple): breaking bond in `selected_bond_type` are all
-            included in training set, e.g. `selected_bonds = (('H','H'), (('H', 'F'))`
-
-    Returns:
-        [train set, validation set, test_set]
-    """
-    assert validation + test < 1.0, "validation + test >= 1"
-    size = len(dataset)
-    num_val = int(size * validation)
-    num_test = int(size * test)
-    # num_train = size - num_val - num_test
-
-    # index of bond in selected_bond
-    selected_idx = []
-    selected = [tuple(sorted(i)) for i in selected_bond_type]
-    for i, (_, _, label) in enumerate(dataset):
-        bond_type = tuple(sorted(label["id"].split("-")[-2:]))
-        if bond_type in selected:
-            selected_idx.append(i)
-
-    all_idx = np.arange(size)
-    all_but_selected_idx = list(set(all_idx) - set(selected_idx))
-
-    if random_seed is not None:
-        np.random.seed(random_seed)
-    idx = np.random.permutation(all_but_selected_idx)
-
-    val_idx = idx[:num_val]
-    test_idx = idx[num_val : num_val + num_test]
-    train_idx = list(idx[num_val + num_test :]) + selected_idx
-
-    return [
-        Subset(dataset, train_idx),
-        Subset(dataset, val_idx),
-        Subset(dataset, test_idx),
-    ]

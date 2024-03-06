@@ -9,6 +9,11 @@
       "Set2SetThenCat"
     ]
   },
+  "initializer": {
+    "values":[
+      "None"
+    ]
+  },
   "classifier": {
     "values": [
       false

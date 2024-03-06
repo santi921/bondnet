@@ -15,7 +15,7 @@ from bondnet.data.lmdb import (
     LmdbReactionDataset
 )
 
-from bondnet.data.lmdb import parallel2moleculelmdb, parallel2reactionlmdb
+from bondnet.data.lmdb import write_molecule_lmdb, write_reaction_lmdb
 from bondnet.data.reaction_network import ReactionNetworkLMDB
 from bondnet.data.dataset import ReactionNetworkLMDBDataset
 from bondnet.test_utils import get_test_reaction_network_data
@@ -36,6 +36,23 @@ class TestLMDB(unittest.TestCase):
         self.ring_size_set = set()
         self.element_set = set()
 
+        feature_size = self.dataset._feature_size
+        feature_name = self.dataset._feature_name
+        feature_scaler_mean = self.dataset._feature_scaler_mean
+        feature_scaler_std = self.dataset._feature_scaler_std
+        label_scaler_mean = self.dataset._label_scaler_mean
+        label_scaler_std = self.dataset._label_scaler_std
+        dtype = self.dataset.dtype
+
+        self.global_dict = {
+            "feature_size": feature_size,
+            "mean": label_scaler_mean,
+            "std": label_scaler_std,
+            "feature_name": feature_name,
+            "feature_scaler_mean": feature_scaler_mean,
+            "feature_scaler_std": feature_scaler_std,
+            "dtype": dtype
+        }
         for ind, molecule_in_rxn_network in enumerate(
             self.dataset.reaction_network.molecule_wrapper
         ):
@@ -77,6 +94,9 @@ class TestLMDB(unittest.TestCase):
         self.empty_reaction_fts = []
         self.extra_info = []
         self.graphs = dgl.unbatch(batched_graph)
+        self.mappings_list = []
+        self.has_bonds_list = []
+
         # print(graphs)
         for ind, rxn in enumerate(self.dataset.reaction_network.reactions):
             # print(graphs[0])
@@ -93,18 +113,19 @@ class TestLMDB(unittest.TestCase):
                 "num_bonds_total": rxn.num_bonds_total,
                 "num_atoms_total": rxn.num_atoms_total,
             }
+            self.mappings_list.append(mappings)
 
             molecule_info_temp = {
                 "reactants": {
-                    "reactants": rxn.reactants,
-                    "atom_map": rxn.atom_mapping[0],
-                    "bond_map": rxn.bond_mapping[0],
+                    #"reactants": rxn.reactants,
+                    #"atom_map": rxn.atom_mapping[0],
+                    #"bond_map": rxn.bond_mapping[0],
                     "init_reactants": rxn.init_reactants,
                 },
                 "products": {
-                    "products": rxn.products,
-                    "atom_map": rxn.atom_mapping[1],
-                    "bond_map": rxn.bond_mapping[1],
+                    #"products": rxn.products,
+                    #"atom_map": rxn.atom_mapping[1],
+                    #"bond_map": rxn.bond_mapping[1],
                     "init_products": rxn.init_products,
                 },
             }
@@ -127,6 +148,8 @@ class TestLMDB(unittest.TestCase):
                     True if len(mp) > 0 else False for mp in rxn.bond_mapping[1]
                 ],
             }
+            self.has_bonds_list.append(has_bonds)
+
             if len(has_bonds["reactants"]) != len(reactants) or len(
                 has_bonds["products"]
             ) != len(products):
@@ -149,7 +172,7 @@ class TestLMDB(unittest.TestCase):
             self.reaction_indices.append(i)
 
     def test_write_molecule(self):
-        parallel2moleculelmdb(
+        write_molecule_lmdb(
             indices=self.molecule_ind_list,
             graphs=self.dgl_graphs,
             pmgs=self.pmg_objects,
@@ -157,14 +180,13 @@ class TestLMDB(unittest.TestCase):
             ring_sizes=self.ring_size_set,
             feature_info=self.dataset._feature_size,
             elements=self.element_set,
-            num_workers=2,
             lmdb_dir="./test_mol/",
-            lmdb_name="molcule.lmdb",
+            lmdb_name="molecule.lmdb",
         )
 
 
     def test_write_reaction(self):
-        parallel2reactionlmdb(
+        write_reaction_lmdb(
             indices=self.reaction_indices,
             empty_reaction_graphs=self.empty_reaction_graphs,
             empty_reaction_fts=self.empty_reaction_fts,
@@ -172,9 +194,12 @@ class TestLMDB(unittest.TestCase):
             labels=self.label_list,
             reverse_labels=self.reverse_list,
             extra_info=self.extra_info,
-            num_workers=2,
             lmdb_dir="./test_mol/",
             lmdb_name="reaction.lmdb",
+            mappings=self.mappings_list,
+            has_bonds=self.has_bonds_list,
+            global_values=self.global_dict
+
         )
 
 

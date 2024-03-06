@@ -264,19 +264,19 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             num_outputs=1, multioutput="variance_weighted"
         )
         self.train_torch_l1 = torchmetrics.MeanAbsoluteError()
-        self.train_torch_mse = torchmetrics.MeanSquaredError(square=False)
+        self.train_torch_mse = torchmetrics.MeanSquaredError()
 
         self.val_r2 = torchmetrics.R2Score(
             num_outputs=1, multioutput="variance_weighted"
         )
         self.val_torch_l1 = torchmetrics.MeanAbsoluteError()
-        self.val_torch_mse = torchmetrics.MeanSquaredError(square=False)
+        self.val_torch_mse = torchmetrics.MeanSquaredError()
 
         self.test_r2 = torchmetrics.R2Score(
             num_outputs=1, multioutput="variance_weighted"
         )
         self.test_torch_l1 = torchmetrics.MeanAbsoluteError()
-        self.test_torch_mse = torchmetrics.MeanSquaredError(square=False)
+        self.test_torch_mse = torchmetrics.MeanSquaredError()
 
     def forward(
         self,
