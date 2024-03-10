@@ -20,27 +20,28 @@ class DataLoaderReaction(DataLoader):
             )
 
         def collate(samples):
-            graphs, labels = map(list, zip(*samples))
-
+            reactions, graphs, labels = map(list, zip(*samples))
+            #graphs = [i.graph for i in molecules]
             # note each element of graph is a list of mol graphs that constitute a rxn
             # flatten double list
             graphs = list(itertools.chain.from_iterable(graphs))
+            
             batched_graphs = dgl.batch(graphs)
+            sizes_atom = [g.number_of_nodes("atom") for g in graphs]
+            sizes_bond = [g.number_of_nodes("bond") for g in graphs]
 
-            target_class = torch.stack([la["value"] for la in labels])
-            atom_mapping = [la["atom_mapping"] for la in labels]
-            bond_mapping = [la["bond_mapping"] for la in labels]
-            global_mapping = [la["global_mapping"] for la in labels]
-            num_mols = [la["num_mols"] for la in labels]
+            target = torch.stack([la["value"] for la in labels])
+            value_rev = torch.stack([la["value_rev"] for la in labels])
             identifier = [la["id"] for la in labels]
 
+            reaction_types = [la["reaction_type"] for la in labels]
+
             batched_labels = {
-                "value": target_class,
-                "atom_mapping": atom_mapping,
-                "bond_mapping": bond_mapping,
-                "global_mapping": global_mapping,
-                "num_mols": num_mols,
+                "value": target,
+                "value_rev": value_rev,
                 "id": identifier,
+                "reaction": reactions,
+                "reaction_types": reaction_types,
             }
 
             # add label scaler if it is used
@@ -51,6 +52,12 @@ class DataLoaderReaction(DataLoader):
                 batched_labels["scaler_stdev"] = torch.stack(stdev)
             except KeyError:
                 pass
+
+            # graph norm
+            norm_atom = [torch.FloatTensor(s, 1).fill_(s) for s in sizes_atom]
+            norm_bond = [torch.FloatTensor(s, 1).fill_(s) for s in sizes_bond]
+            batched_labels["norm_atom"] = 1.0 / torch.cat(norm_atom).sqrt()
+            batched_labels["norm_bond"] = 1.0 / torch.cat(norm_bond).sqrt()
 
             return batched_graphs, batched_labels
 

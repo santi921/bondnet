@@ -1,4 +1,5 @@
 import pytorch_lightning as pl
+import torch
 import torch.distributed as dist
 import os
 from bondnet.data.dataset import (
@@ -6,20 +7,24 @@ from bondnet.data.dataset import (
     train_validation_test_split,
 )
 
-# from bondnet.data.lmdb import LmdbDataset, CRNs2lmdb
-
 
 from bondnet.data.dataloader import collate_parallel, DataLoaderReactionNetworkParallel
 from bondnet.model.training_utils import get_grapher
+from bondnet.data.lmdb import LmdbMoleculeDataset, LmdbReactionDataset, TransformMol
+from bondnet.data.lmdb import construct_lmdb_and_save
+from bondnet.data.dataloader import DataLoaderReactionNetworkLMDB, collate_parallel_lmdb
+from bondnet.data.dataset import ReactionNetworkLMDBDataset
+from bondnet.data.dataloader import DataLoaderReactionNetworkLMDB
+from bondnet.data.reaction_network import ReactionNetworkLMDB
 
-"""
+torch.multiprocessing.set_sharing_strategy("file_system")
 
 class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
     def __init__(self, config):
         super().__init__()
 
         if config["dataset"].get("train_lmdb") == None:
-            self.train_lmdb = "train_data.lmdb"
+            self.train_lmdb = "train_rxn.lmdb"
         else:
             self.train_lmdb = config["dataset"]["train_lmdb"]
 
@@ -28,25 +33,28 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
         else:
             self.val_lmdb = config["dataset"]["val_lmdb"]
 
-        if config["dataset"].get("test_data_lmdb") == None:
-            self.test_lmdb = "test_data.lmdb"
-        else:
-            self.test_lmdb = config["dataset"]["test_lmdb"]
+        if "test" in config["dataset"]:
+            if config["dataset"].get("test_data_lmdb") == None:
+                self.test_lmdb = "test_data.lmdb"
+            else:
+                self.test_lmdb = config["dataset"]["test_lmdb"]
 
         self.config = config
         self.prepared = False
 
     def _check_exists(self, data_folder: str) -> bool:
-        if self.config["dataset"]["overwrite"]:
+        if bool(self.config["dataset"]["overwrite"]):
             return False
 
-        existing = True
-        for fname in (self.train_lmdb, self.val_lmdb, self.test_lmdb):
-            existing = existing and os.path.isfile(os.path.join(data_folder, fname))
-        return existing
+        #for fname in (self.train_lmdb, self.val_lmdb, self.test_lmdb):
+        #    existing = existing and os.path.isfile(os.path.join(data_folder, fname))
+        if not os.path.isfile(os.path.join(data_folder, self.train_lmdb)):
+            return False 
+        if not os.path.isfile(os.path.join(data_folder, self.val_lmdb)):
+            return False
+        return True
 
     def prepare_data(self):
-        # https://github.com/Lightning-AI/lightning/blob/6d888b5ce081277a89dc2fb9a2775b81d862fe54/src/lightning/pytorch/demos/mnist_datamodule.py#L90
         if not self.prepared and not self._check_exists(
             self.config["dataset"]["lmdb_dir"]
         ):
@@ -65,92 +73,145 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
                 extra_keys=self.config["model"]["extra_features"],
                 extra_info=self.config["model"]["extra_info"],
             )
-            # print("done loading dataset" * 10)
-            train_CRNs, val_CRNs, test_CRNs = train_validation_test_split(
-                entire_dataset,
-                validation=self.config["optim"]["val_size"],
-                test=self.config["optim"]["test_size"],
-            )
-
-            for CRNs_i, lmdb_i in zip(
-                [train_CRNs, val_CRNs, test_CRNs],
-                [self.train_lmdb, self.val_lmdb, self.test_lmdb],
-            ):
-                CRNs2lmdb(
-                    CRNsDb=CRNs_i,
-                    lmdb_dir=self.config["dataset"]["lmdb_dir"],
-                    num_workers=self.config["optim"]["num_workers"],
-                    lmdb_name=lmdb_i,
+            
+            construct_lmdb_and_save(
+                entire_dataset, 
+                self.config['dataset']['lmdb_dir'], 
+                workers=1
                 )
-            # print("done creating lmdb" * 10)
-            self.prepared = True
-            return entire_dataset._feature_size, entire_dataset._feature_name
+            if not bool(self.config["optim"]["test_only"]):
+                if self.config["optim"]["test_size"] == 0.0:
+                    train_dataset, val_dataset = train_validation_test_split(
+                        entire_dataset,
+                        validation=self.config["optim"]["val_size"],
+                        random_seed=self.config["optim"]["random_seed"],
+                        test=0.0,
+                    )
+
+                else:
+                    train_dataset, val_dataset, test_dataset = train_validation_test_split(
+                        entire_dataset,
+                        validation=self.config["optim"]["val_size"],
+                        test=self.config["optim"]["test_size"],
+                        random_seed=self.config["optim"]["random_seed"],
+                    )
+                    construct_lmdb_and_save(
+                        test_dataset, 
+                        self.config['dataset']['lmdb_dir'] + "/test/", 
+                        workers=1
+                    )
+                    self.test_rxn_dataset = LmdbReactionDataset(
+                        {"src": f"{self.config['dataset']['lmdb_dir']}" + "/test/reaction.lmdb"}
+                    )
+
+                    self.test_molecule_dataset = LmdbMoleculeDataset(
+                        {
+                            "src": f"{self.config['dataset']['lmdb_dir']}" + "/test/molecule.lmdb", 
+                            "transform": TransformMol
+                        }
+
+                    )
+                    self.test_rxn_dataset = LmdbReactionDataset(
+                        {"src": f"{self.config['dataset']['lmdb_dir']}" + "/test/reaction.lmdb"}
+                    )
+
+                construct_lmdb_and_save(
+                    train_dataset, 
+                    self.config['dataset']['lmdb_dir'] + "/train/", 
+                    workers=1
+                )
+
+                construct_lmdb_and_save(
+                    val_dataset, 
+                    self.config['dataset']['lmdb_dir'] + "/val/", 
+                    workers=1
+                )
+
+                self.train_rxn_dataset = LmdbReactionDataset(
+                    {"src": f"{self.config['dataset']['lmdb_dir']}" + "/train/reaction.lmdb"}
+                )
+                self.val_rxn_dataset = LmdbReactionDataset(
+                    {"src": f"{self.config['dataset']['lmdb_dir']}" + "/val/reaction.lmdb"}
+                )
+
+                self.train_molecule_dataset = LmdbMoleculeDataset(
+                    {
+                        "src": f"{self.config['dataset']['lmdb_dir']}" + "/train/molecule.lmdb", 
+                        "transform": TransformMol
+                    }
+
+                )
+                self.val_molecule_dataset = LmdbMoleculeDataset(
+                    {
+                        "src": f"{self.config['dataset']['lmdb_dir']}" + "/val/molecule.lmdb", 
+                        "transform": TransformMol
+                    }
+                )
+
+                self.prepared = True
+                return entire_dataset._feature_size, entire_dataset._feature_name
 
         else:
-            train_dataset = LmdbDataset(
-                {"src": f"{self.config['dataset']['lmdb_dir']}" + self.train_lmdb}
+            
+            self.test_rxn_dataset = LmdbReactionDataset(
+                {"src": f"{self.config['dataset']['lmdb_dir']}" + "/reaction.lmdb"}
             )
+
+            self.test_molecule_dataset = LmdbMoleculeDataset(
+                {
+                    "src": f"{self.config['dataset']['lmdb_dir']}" + "/molecule.lmdb", 
+                    "transform": TransformMol
+                }
+
+            )
+        
             self.prepared = True
             return train_dataset.feature_size, train_dataset.feature_name
 
+
+
     def setup(self, stage):
         if stage in (None, "fit", "validate"):
-            self.train_ds = LmdbDataset(
-                {"src": f"{self.config['dataset']['lmdb_dir']}" + self.train_lmdb}
-            )
-            self.val_ds = LmdbDataset(
-                {"src": f"{self.config['dataset']['lmdb_dir']}" + self.val_lmdb}
-            )
+
+            self.train_ds = ReactionNetworkLMDBDataset(ReactionNetworkLMDB(self.train_molecule_dataset, self.train_rxn_dataset))
+            self.val_ds = ReactionNetworkLMDBDataset(ReactionNetworkLMDB(self.val_molecule_dataset, self.val_rxn_dataset))
+            self.test_ds = ReactionNetworkLMDBDataset(ReactionNetworkLMDB(self.test_molecule_dataset, self.test_rxn_dataset))
+
 
         if stage in ("test", "predict"):
-            self.test_ds = LmdbDataset(
-                {"src": f"{self.config['dataset']['lmdb_dir']}" + self.test_lmdb}
-            )
+            self.test_ds = ReactionNetworkLMDBDataset(ReactionNetworkLMDB(self.test_molecule_dataset, self.test_rxn_dataset))
 
-        # if stage in (None, "fit"):
 
-        #     #load lmdb file from lmdb dir
-        #     _lmdb = LmdbDataset({"src": f"{self.config['dataset']['lmdb_dir']}" + self.train_lmdb})
-
-        #     # Split the dataset into train, val, test
-        #     self.train_ds, self.val_ds, self.test_ds = train_validation_test_split(
-        #         _lmdb,
-        #         validation=self.config['optim']['val_size'],
-        #         test=self.config['optim']['test_size']
-        #     )
 
     def train_dataloader(self):
-        return DataLoaderReactionNetworkParallel(
+        return DataLoaderReactionNetworkLMDB(
             dataset=self.train_ds,
             batch_size=self.config["optim"]["batch_size"],
             shuffle=True,
-            collate_fn=collate_parallel,
+            collate_fn=collate_parallel_lmdb,
             num_workers=self.config["optim"]["num_workers"],
         )
 
-    # return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=0)
 
     def test_dataloader(self):
-        return DataLoaderReactionNetworkParallel(
+        return DataLoaderReactionNetworkLMDB(
             dataset=self.test_ds,
             batch_size=len(self.test_ds),
             shuffle=False,
-            collate_fn=collate_parallel,
+            collate_fn=collate_parallel_lmdb,
             num_workers=self.config["optim"]["num_workers"],
         )
 
-    # return DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=False)
 
     def val_dataloader(self):
-        return DataLoaderReactionNetworkParallel(
+        return DataLoaderReactionNetworkLMDB(
             dataset=self.val_ds,
             batch_size=len(self.val_ds),
             shuffle=False,
-            collate_fn=collate_parallel,
+            collate_fn=collate_parallel_lmdb,
             num_workers=self.config["optim"]["num_workers"],
         )
 
-"""
 
 
 class BondNetLightningDataModule(pl.LightningDataModule):

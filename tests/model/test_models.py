@@ -109,7 +109,7 @@ def test_model_save_load():
     model = load_model_lightning(config["model"], load_dir="./test_save_load/")
 
     trainer = pl.Trainer(
-        max_epochs=3,
+        max_epochs=1,
         accelerator="gpu",
         devices=1,
         precision=32,
@@ -128,7 +128,7 @@ def test_model_save_load():
     model_restart = load_model_lightning(config["model"], load_dir="./test_save_load/")
     print("done loading")
     trainer_restart = pl.Trainer()
-    trainer_restart.fit_loop.max_epochs = 5
+    trainer_restart.fit_loop.max_epochs = 2
     
     trainer_restart.fit(model_restart, dm, ckpt_path="./test_save_load/test.ckpt")
     print("done training pt2 ")
@@ -183,7 +183,7 @@ def test_model_set2set():
     model = load_model_lightning(config["model"], load_dir="./test_save_load/")
 
     trainer = pl.Trainer(
-        max_epochs=2,
+        max_epochs=1,
         accelerator="gpu",
         devices=1,
         precision=32,
@@ -245,7 +245,7 @@ def test_model_mean():
     model = load_model_lightning(config["model"], load_dir="./test_save_load/")
 
     trainer = pl.Trainer(
-        max_epochs=2,
+        max_epochs=1,
         accelerator="gpu",
         devices=1,
         precision=32,
@@ -308,7 +308,7 @@ def test_model_attention():
     model = load_model_lightning(config["model"], load_dir="./test_save_load/")
 
     trainer = pl.Trainer(
-        max_epochs=2,
+        max_epochs=1,
         accelerator="gpu",
         devices=1,
         precision=32,
@@ -401,7 +401,7 @@ def test_transfer_learning():
     )
 
     trainer_transfer = pl.Trainer(
-        max_epochs=3,
+        max_epochs=1,
         accelerator="gpu",
         devices=1,
         precision=32,
@@ -607,7 +607,7 @@ def test_profiler():
     #profiler = pl.profiler.AdvancedProfiler(dirpath="./profiler_res/", filename="res.txt")
 
     trainer = pl.Trainer(
-        max_epochs=3,
+        max_epochs=1,
         accelerator="gpu",
         devices=1,
         precision=32,

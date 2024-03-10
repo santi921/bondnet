@@ -12,7 +12,7 @@ from bondnet.core.molwrapper import create_rdkit_mol_from_mol_graph
 from bondnet.core.reaction import Reaction
 from bondnet.layer.utils import UnifySize
 from bondnet.model.training_utils import get_grapher
-from bondnet.data.dataset import ReactionNetworkDatasetGraphs
+from bondnet.data.dataset import ReactionNetworkDatasetGraphs, ReactionDatasetGraphs
 from bondnet.model.training_utils import get_grapher
 from bondnet.dataset.generalized import create_reaction_network_files_and_valid_rows
 
@@ -681,6 +681,64 @@ def get_test_reaction_network_data(
 
     extra_keys = config["extra_features"]
     dataset = ReactionNetworkDatasetGraphs(
+        grapher=get_grapher(
+            extra_keys,
+            allowed_charges=allowed_charges,
+            allowed_spin=allowed_spin
+        ),
+        file=dataset_loc,
+        target=config["target_var"],
+        classifier=config["classifier"],
+        classif_categories=config["classif_categories"],
+        filter_species=config["filter_species"],
+        filter_outliers=config["filter_outliers"],
+        filter_sparse_rxns=False,
+        debug=debug,
+        extra_keys=extra_keys,
+        extra_info=config["extra_info"],
+    )
+    return dataset
+
+
+def get_test_reaction_data(
+        dir=None,
+        allowed_charges=None,
+        allowed_spin=None,
+    ):
+    config = {
+        "debug": False,
+        "classifier": False,
+        "classif_categories": 3,
+        "cat_weights": [1.0, 1.0, 1.0],
+        "extra_features": {"bond": ["bond_length"]},
+        "extra_info": [],
+        "filter_species": [3, 5],
+        "precision": "bf16",
+        "on_gpu": True,
+        "target_var": "ts",
+        "target_var_transfer": "diff",
+        "transfer": False,
+        "filter_outliers": True,
+    }
+    # get current directory
+    if dir is None:
+        dataset_loc = "./testdata/barrier_100.json"
+    else:
+        dataset_loc = dir
+
+    on_gpu = config["on_gpu"]
+    extra_keys = config["extra_features"]
+    debug = config["debug"]
+    precision = config["precision"]
+    if precision == "16" or precision == "32":
+        precision = int(precision)
+    if on_gpu:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    else:
+        device = torch.device("cpu")
+
+    extra_keys = config["extra_features"]
+    dataset = ReactionDatasetGraphs(
         grapher=get_grapher(
             extra_keys,
             allowed_charges=allowed_charges,

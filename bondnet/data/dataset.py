@@ -565,18 +565,69 @@ class ReactionNetworkDataset(BaseDataset):
 
 
 class Subset(BaseDataset):
-    def __init__(self, dataset, indices):
+    def __init__(self, dataset, indices, writing=False):
         self.dtype = dataset.dtype
         self.dataset = dataset
         self.indices = indices
+        self.writing = writing
+
+        if writing:
+            self._feature_size = dataset._feature_size
+            self._feature_name = dataset._feature_name
+
+            self._feature_scaler_std = dataset._feature_scaler_std
+            self._feature_scaler_mean = dataset._feature_scaler_mean
+            self._label_scaler_mean = dataset._label_scaler_mean
+            self._label_scaler_std = dataset._label_scaler_std
+            
+            self.reaction_network = dataset.reaction_network
+            # iterate through indices to get the graphs, labels 
+            #self.graphs = [dataset.graphs[i] for i in indices]
+            #self.labels = [dataset.labels[i] for i in indices]
 
     @property
     def feature_size(self):
-        return self.dataset.feature_size
+        return self.dataset._feature_size
 
     @property
     def feature_name(self):
-        return self.dataset.feature_name
+        return self.dataset._feature_name
+
+    def __getitem__(self, idx):
+        return self.dataset[self.indices[idx]]
+
+    def __len__(self):
+        return len(self.indices)
+
+
+class SubsetReaction(BaseDataset):
+
+    def __init__(self, dataset, indices, writing=False):
+        self.dtype = dataset.dtype
+        self.dataset = dataset
+
+        self.indices = indices
+        self.writing = writing
+
+        if writing:
+            self._feature_size = dataset._feature_size
+            self._feature_name = dataset._feature_name
+            self.molecules = dataset.molecules
+            self.graphs = dataset.graphs
+            self.reactions = dataset.reactions
+            self.labels = dataset.labels
+            self._feature_scaler_std = dataset._feature_scaler_std
+            self._feature_scaler_mean = dataset._feature_scaler_mean
+            self._label_scaler_mean = dataset._label_scaler_mean
+            self._label_scaler_std = dataset._label_scaler_std
+
+    @property
+    def feature_size(self):
+        return self.dataset._feature_size
+
+    @property
+    def feature_name(self):
+        return self.dataset._feature_name
 
     def __getitem__(self, idx):
         return self.dataset[self.indices[idx]]
@@ -924,6 +975,345 @@ class ReactionNetworkDatasetGraphs(BaseDataset):
 
     def __len__(self):
         return len(self.reaction_ids)
+    
+
+class ReactionDatasetGraphs(BaseDataset):
+    def __init__(
+        self,
+        grapher,
+        file,
+        feature_transformer=True,
+        label_transformer=True,
+        dtype="float32",
+        target="ts",
+        filter_species=[2, 3],
+        filter_outliers=True,
+        filter_sparse_rxns=False,
+        feature_filter=False,
+        classifier=False,
+        debug=False,
+        classif_categories=None,
+        extra_keys=None,
+        dataset_atom_types=None,
+        extra_info=None,
+        species=["C", "F", "H", "N", "O", "Mg", "Li", "S", "Cl", "P", "O", "Br"],
+    ):
+        if dtype not in ["float32", "float64"]:
+            raise ValueError(f"`dtype {dtype}` should be `float32` or `float64`.")
+        #print("extra keys: " + str(extra_keys))
+        self.grapher = grapher
+        (
+            all_mols,
+            all_labels,
+            features,
+        ) = create_reaction_network_files_and_valid_rows(
+            file,
+            bond_map_filter=False,
+            target=target,
+            filter_species=filter_species,
+            classifier=classifier,
+            debug=debug,
+            filter_outliers=filter_outliers,
+            categories=classif_categories,
+            filter_sparse_rxn=filter_sparse_rxns,
+            feature_filter=feature_filter,
+            extra_keys=extra_keys,
+            extra_info=extra_info,
+        )
+
+        self.molecules = all_mols
+        self.raw_labels = all_labels
+        self.extra_features = features
+        self.feature_transformer = feature_transformer
+        self.label_transformer = label_transformer
+        self.dtype = dtype
+        self.state_dict_filename = None
+        self.graphs = None
+        self.labels = None
+        self.target = target
+        self.extra_keys = extra_keys
+        self._feature_size = None
+        self._feature_name = None
+        self._feature_scaler_mean = None
+        self._feature_scaler_std = None
+        self._label_scaler_mean = None
+        self._label_scaler_std = None
+        self._species = species
+        self._elements = dataset_atom_types
+        self._failed = None
+        self.classifier = classifier
+        self.classif_categories = classif_categories
+        self._load()
+
+    def _load(self):
+        logger.info("Start loading dataset")
+
+        # get molecules, labels, and extra features
+        molecules = self.get_molecules(self.molecules)
+        raw_labels = self.get_labels(self.raw_labels)
+        
+        #if self.extra_features is not None:
+        #    extra_features = self.get_features(self.extra_features)
+        #else:
+        #    extra_features = [None] * len(molecules)
+
+        # get state info
+        if self.state_dict_filename is not None:
+            logger.info(f"Load dataset state dict from: {self.state_dict_filename}")
+            state_dict = torch.load(str(self.state_dict_filename))
+            self.load_state_dict(state_dict)
+
+        # get species
+        # species = get_dataset_species_from_json(self.pandas_df)
+        if self._species is None:
+            system_species = set()
+            for mol in self.molecules:
+                species = list(set(mol.species))
+                system_species.update(species)
+
+            self._species = sorted(system_species)
+        # self._species
+
+        # create dgl graphs
+        print("constructing graphs & features....")
+
+        graphs = self.build_graphs(
+            self.grapher, self.molecules, self._species
+        )
+        graphs_not_none_indices = [i for i, g in enumerate(graphs) if g is not None]
+        print("number of graphs valid: " + str(len(graphs_not_none_indices)))
+        print("number of graphs: " + str(len(graphs)))
+        assert len(graphs_not_none_indices) == len(
+            graphs
+        ), "Some graphs are invalid in construction, this should not happen"
+        # store feature name and size
+        self._feature_name = self.grapher.feature_name
+        self._feature_size = self.grapher.feature_size
+        logger.info("Feature name: {}".format(self.feature_name))
+        logger.info("Feature size: {}".format(self.feature_size))
+
+        # feature transformers
+        if self.feature_transformer:
+            if self.state_dict_filename is None:
+                feature_scaler = HeteroGraphFeatureStandardScaler(mean=None, std=None)
+            else:
+                assert (
+                    self._feature_scaler_mean is not None
+                ), "Corrupted state_dict file, `feature_scaler_mean` not found"
+                assert (
+                    self._feature_scaler_std is not None
+                ), "Corrupted state_dict file, `feature_scaler_std` not found"
+
+                feature_scaler = HeteroGraphFeatureStandardScaler(
+                    mean=self._feature_scaler_mean, std=self._feature_scaler_std
+                )
+
+            graphs_not_none = [graphs[i] for i in graphs_not_none_indices]
+            graphs_not_none = feature_scaler(graphs_not_none)
+            molecules_ordered = [self.molecules[i] for i in graphs_not_none_indices]
+            molecules_final = [0 for i in graphs_not_none_indices]
+            # update graphs
+            for i, g in zip(graphs_not_none_indices, graphs_not_none):
+                molecules_final[i] = molecules_ordered[i]
+                graphs[i] = g
+            self.molecules_ordered = molecules_final
+
+            if self.state_dict_filename is None:
+                self._feature_scaler_mean = feature_scaler.mean
+                self._feature_scaler_std = feature_scaler.std
+
+            logger.info(f"Feature scaler mean: {self._feature_scaler_mean}")
+            logger.info(f"Feature scaler std: {self._feature_scaler_std}")
+
+        # create reaction
+        reactions = []
+        self.labels = []
+        self._failed = []
+        for i, lb in enumerate(raw_labels):
+            mol_ids = lb["reactants"] + lb["products"]
+            for d in mol_ids:
+                # ignore reaction whose reactants or products molecule is None
+                if d not in graphs_not_none_indices:
+                    self._failed.append(True)
+                    break
+            else:
+                rxn = ReactionInNetwork(
+                    reactants=lb["reactants"],
+                    products=lb["products"],
+                    atom_mapping=lb["atom_mapping"],
+                    bond_mapping=lb["bond_mapping"],
+                    total_bonds=lb["total_bonds"],
+                    total_atoms=lb["total_atoms"],
+                    id=lb["id"],
+                    extra_info=lb["extra_info"],
+                )
+
+                reactions.append(rxn)
+
+                if "environment" in lb:
+                    environemnt = lb["environment"]
+                else:
+                    environemnt = None
+
+                if self.classifier:
+                    lab_temp = torch.zeros(self.classif_categories)
+                    lab_temp[int(lb["value"][0])] = 1
+
+                    if lb["value_rev"] != None:
+                        lab_temp_rev = torch.zeros(self.classif_categories)
+                        lab_temp[int(lb["value_rev"][0])] = 1
+                    else:
+                        lab_temp_rev = None
+
+                    label = {
+                        "value": lab_temp,
+                        "value_rev": lab_temp_rev,
+                        "id": lb["id"],
+                        "environment": environemnt,
+                        "atom_map": lb["atom_mapping"],
+                        "bond_map": lb["bond_mapping"],
+                        "total_bonds": lb["total_bonds"],
+                        "total_atoms": lb["total_atoms"],
+                        "reaction_type": lb["reaction_type"],
+                        "extra_info": lb["extra_info"],
+                    }
+                    self.labels.append(label)
+                else:
+                    label = {
+                        "value": torch.tensor(
+                            lb["value"], dtype=getattr(torch, self.dtype)
+                        ),
+                        "value_rev": torch.tensor(
+                            lb["value_rev"], dtype=getattr(torch, self.dtype)
+                        ),
+                        "id": lb["id"],
+                        "environment": environemnt,
+                        "atom_map": lb["atom_mapping"],
+                        "bond_map": lb["bond_mapping"],
+                        "total_bonds": lb["total_bonds"],
+                        "total_atoms": lb["total_atoms"],
+                        "reaction_type": lb["reaction_type"],
+                        "extra_info": lb["extra_info"],
+                    }
+                    self.labels.append(label)
+
+                self._failed.append(False)
+
+        self.reaction_ids = list(range(len(reactions)))
+
+        # create reaction network - this needs to be axed
+        #self.reaction_network = ReactionNetwork(
+        #    molecules=graphs, reactions=reactions, wrappers=molecules_final
+        #)
+        self.reactions = reactions
+        self.graphs = graphs
+
+        # feature transformers
+        if self.label_transformer:
+            # normalization
+            values = torch.stack([lb["value"] for lb in self.labels])  # 1D tensor
+            values_rev = torch.stack([lb["value_rev"] for lb in self.labels])
+
+            if self.state_dict_filename is None:
+                mean = torch.mean(values)
+                std = torch.std(values)
+                self._label_scaler_mean = mean
+                self._label_scaler_std = std
+            else:
+                assert (
+                    self._label_scaler_mean is not None
+                ), "Corrupted state_dict file, `label_scaler_mean` not found"
+                assert (
+                    self._label_scaler_std is not None
+                ), "Corrupted state_dict file, `label_scaler_std` not found"
+                mean = self._label_scaler_mean
+                std = self._label_scaler_std
+
+            values = (values - mean) / std
+            value_rev_scaled = (values_rev - mean) / std
+
+            # update label
+            for i, lb in enumerate(values):
+                self.labels[i]["value"] = lb
+                self.labels[i]["scaler_mean"] = mean
+                self.labels[i]["scaler_stdev"] = std
+                self.labels[i]["value_rev"] = value_rev_scaled[i]
+
+            logger.info(f"Label scaler mean: {mean}")
+            logger.info(f"Label scaler std: {std}")
+
+        logger.info(f"Finish loading {len(self.labels)} reactions...")
+
+    @staticmethod
+    def build_graphs(grapher, molecules, species):
+        """
+        Build DGL graphs using grapher for the molecules.
+
+        Args:
+            grapher (Grapher): grapher object to create DGL graphs
+            molecules (list): rdkit molecules
+            features (list): each element is a dict of extra features for a molecule
+            species (list): chemical species (str) in all molecules
+
+        Returns:
+            list: DGL graphs
+        """
+
+        count = 0
+        graphs = []
+        # use tqdm to show progress bar
+        
+        #for ind, mol in enumerate(molecules):
+        ind = 0 
+        for mol in tqdm(molecules, desc="mol graphs"):
+            #feats = features[count]
+            if mol is not None:
+                g = grapher.build_graph_and_featurize(
+                    mol, element_set=species
+                )
+
+                # add this for check purpose; some entries in the sdf file may fail
+                g.graph_id = ind
+            else:
+                g = None
+            graphs.append(g)
+            count += 1
+            ind += 1
+        return graphs
+
+    @staticmethod
+    def get_labels(labels):
+        if isinstance(labels, Path):
+            labels = yaml_load(labels)
+        return labels
+    
+
+    def __getitem__(self, item):
+        
+        # reactions subset
+        sub_reactions = self.reactions[item]
+
+        # subset ids and map between global molecule index and subset molecule index
+        ids = set()
+        ids.update(sub_reactions.init_reactants + sub_reactions.init_products)
+        ids = sorted(ids)
+    
+        #ids = self._get_mol_ids_from_reactions(sub_reactions)
+        global_to_subset_mapping = {g: s for s, g in enumerate(ids)}
+
+        # change global molecule index to subset molecule index in reaction
+        sub_reactions.reactants = [global_to_subset_mapping[i] for i in sub_reactions.init_reactants]
+        sub_reactions.products = [global_to_subset_mapping[i] for i in sub_reactions.init_products]
+
+        # molecules subset
+        sub_molecules = [self.molecules[i] for i in ids]
+        sub_graphs = [self.graphs[i] for i in ids]
+
+        return sub_reactions, sub_graphs, self.labels[item]
+
+    def __len__(self):
+        return len(self.reaction_ids)
+
 
 class ReactionNetworkLMDBDataset(BaseDataset):
     def __init__(self, reaction_network_lmdb):
@@ -946,6 +1336,51 @@ class ReactionNetworkLMDBDataset(BaseDataset):
         # (reactions, graphs) = self.reaction_network.subselect_reactions(rxn_ids)
         # return reactions, graphs
         return self.reaction_network, rxn_ids
+
+
+    def __len__(self):
+        return len(self.reaction_network.reactions)
+
+
+class ReactionLMDBDataset(BaseDataset):
+    def __init__(self, reaction_lmdb):
+        self.reaction_lmdb = reaction_lmdb
+        self.reactions = self.reaction_lmdb.reactions
+        self.molecules = self.reaction_lmdb.molecules
+        self.elements = self.reaction_lmdb.molecules.elements
+        self.rings = self.reaction_lmdb.molecules.ring_sizes
+        self.charges = self.reaction_lmdb.molecules.charges
+        self.feature_info = self.reaction_lmdb.molecules.feature_info
+        self.reaction_ids = [
+            i["reaction_index"] for i in self.reactions
+        ]  # here we can either use reaction index or the specific id
+        self.reaction_ids = [int(i) for i in range(len(self.reaction_ids))]
+        self._feature_size = None
+        #self._feature_size = 
+        self.dtype = self.reaction_lmdb.reactions.dtype
+
+    def __getitem__(self, item):
+        
+        # reactions subset
+        sub_reactions = self.reactions[item]
+
+        # subset ids and map between global molecule index and subset molecule index
+        ids = set()
+        ids.update(sub_reactions.init_reactants + sub_reactions.init_products)
+        ids = sorted(ids)
+    
+        #ids = self._get_mol_ids_from_reactions(sub_reactions)
+        global_to_subset_mapping = {g: s for s, g in enumerate(ids)}
+
+        # change global molecule index to subset molecule index in reaction
+        sub_reactions.reactants = [global_to_subset_mapping[i] for i in sub_reactions.init_reactants]
+        sub_reactions.products = [global_to_subset_mapping[i] for i in sub_reactions.init_products]
+
+        # molecules subset
+        sub_molecules = [self.molecules[i] for i in ids]
+        sub_graphs = [self.graphs[i] for i in ids]
+
+        return sub_reactions, sub_graphs, self.labels[item]
 
     def __len__(self):
         return len(self.reaction_network.reactions)
@@ -1163,12 +1598,9 @@ class LmdbReactionDataset(LmdbBaseDataset):
     def std(self):
         std = self.env.begin().get("std".encode("ascii"))
         return pickle.loads(std)
-
     
 
-
-
-def train_validation_test_split(dataset, validation=0.1, test=0.1, random_seed=None):
+def train_validation_test_split(dataset, validation=0.1, test=0.1, random_seed=None, writing=False):
     """
     Split a dataset into training, validation, and test set.
 
@@ -1199,9 +1631,17 @@ def train_validation_test_split(dataset, validation=0.1, test=0.1, random_seed=N
     train_idx = idx[:num_train]
     val_idx = idx[num_train : num_train + num_val]
     test_idx = idx[num_train + num_val :]
-    return [
-        Subset(dataset, train_idx),
-        Subset(dataset, val_idx),
-        Subset(dataset, test_idx),
-    ]
+
+    try:
+        return [
+                Subset(dataset, train_idx, writing=writing),
+                Subset(dataset, val_idx, writing=writing),
+                Subset(dataset, test_idx, writing=writing),
+        ]
+    except: 
+        return [
+                SubsetReaction(dataset, train_idx, writing=writing),
+                SubsetReaction(dataset, val_idx, writing=writing),
+                SubsetReaction(dataset, test_idx, writing=writing),
+        ]
 
