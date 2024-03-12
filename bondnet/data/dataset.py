@@ -1014,11 +1014,11 @@ class ReactionDatasetLMDBDataset(BaseDataset):
             reaction["reaction_molecule_info"]["reactants"]["init_reactants"]+
             reaction["reaction_molecule_info"]["products"]["init_products"]
         )
-        sort_order = np.argsort(ids)
+        #sort_order = np.argsort(ids)
         ids = sorted(ids)
     
         # molecules subset
-        sub_graphs = [self.molecules[i]["molecule_graph"] for i in ids]
+        #sub_graphs = [self.molecules[i]["molecule_graph"] for i in ids]
         #sub_graph_products = [self.molecules[i]["molecule_graph"] for i in product_ids]
         #sub_graph_reactants = [self.molecules[i]["molecule_graph"] for i in reactant_ids]
         # get mappings 
@@ -1038,7 +1038,8 @@ class ReactionDatasetLMDBDataset(BaseDataset):
             #"product_ids": product_ids,
             #"product_graphs": sub_graph_products,
         }
-        return reaction, self.molecules, ret_labels
+        #return reaction, self.molecules, ret_labels
+        return reaction, ret_labels
         
         #return reaction, sub_graphs, ret_labels
 
