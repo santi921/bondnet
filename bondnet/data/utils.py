@@ -781,7 +781,7 @@ def create_rxn_graph(
                     assert np.max(np.array(mappings_total)) < len(
                         net_ft_full_temp
                     ), f"invalid index  {mappings}"
-                    #print(net_ft_full_temp.shape, reactant_ft.shape, mappings_react, mappings_total, num_reactants, nt)
+                    #print("reactant ft ", net_ft_full_temp.shape, reactant_ft.shape, len(mappings_react), len(mappings_total), num_reactants, nt)
                     #net_ft_full_temp[mappings_total]
                     #reactant_ft[mappings_react]
                     net_ft_full_temp[mappings_total] = reactant_ft[mappings_react]

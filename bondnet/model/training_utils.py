@@ -71,7 +71,7 @@ def evaluate_breakdown(model, nodes, data_loader, device=None):
     with torch.no_grad():
         count, mae = 0.0, 0.0
         for batched_graph, label in data_loader:
-            feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
+            feats = {nt: batched_graph.nodes[nt].data["ft"] for nt in nodes}
             target = label["value"]
             # norm_atom = label["norm_atom"]
             norm_atom = None

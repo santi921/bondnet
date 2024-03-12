@@ -16,7 +16,7 @@ from bondnet.model.training_utils import (
     load_model_lightning,
 )
 
-from bondnet.data.datamodule import BondNetLightningDataModule
+from bondnet.data.datamodule import BondNetLightningDataModule, BondNetLightningDataModuleLMDB
 
 
 seed_torch()

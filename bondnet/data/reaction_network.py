@@ -322,3 +322,76 @@ class ReactionNetworkLMDB:
         sub_molecules = [self.molecules[i]["molecule_graph"] for i in ids]
 
         return sub_reactions, sub_molecules
+
+
+class ReactionLMDB:
+    def __init__(self, lmdb_molecules, lmdb_reactions):
+        self.molecules = lmdb_molecules
+        self.reactions = lmdb_reactions
+
+    def _get_mol_ids_from_reactions(self, reactions):
+        """
+        Get the ids of all molecules participating the reactions.
+
+        Args:
+            reactions (list): a sequence of `Reaction`.
+
+        Returns:
+            list: molecules (integer ids)
+
+        """
+        mol_ids = set()
+        for rxn in reactions:
+            mol_ids.update(
+                rxn["reaction_molecule_info"]["reactants"]["init_reactants"]
+                + rxn["reaction_molecule_info"]["products"]["init_products"]
+            )
+        return sorted(mol_ids)
+
+    def subselect_reactions(self, indices=None):
+        """
+        Subselect some reactions in the network and get all molecules in the
+        subset of reactions.
+
+        Args:
+            indices (int or list): If `int`, randomly select a subset of `indices`
+                reactions from the network. If `list`, select the reactions specified
+                by `indices`.
+
+        Returns:
+            sub_reactions (list): a sequence of `Reaction`. The indices of reactants and
+                products of each reaction are remapped from global index to the
+                index in the subset of molecules.
+            sub_molecules (list): all molecules in the selected subset of reactions.
+        """
+        if isinstance(indices, int):
+            indices = [indices]
+            # x = np.random.permutation(len(self.reactions))
+            # indices = x[:indices]
+            # print(indices)
+
+        # reactions subset
+        # get all reactions with matching id values as indices
+        # sub_reactions = [i for i in self.reactions if i["reaction_index"] in indices]
+        sub_reactions = [self.reactions[i] for i in indices]
+
+        # sub_reactions = deepcopy(sub_reactions)
+        # subset ids and map between global molecule index and subset molecule index
+        ids = self._get_mol_ids_from_reactions(sub_reactions)
+        # print(ids)
+        global_to_subset_mapping = {g: s for s, g in enumerate(ids)}
+        # print(global_to_subset_mapping)
+        # change global molecule index to subset molecule index in reaction
+        for rxn in sub_reactions:
+            init_reactants = rxn["reaction_molecule_info"]["reactants"][
+                "init_reactants"
+            ]
+            init_products = rxn["reaction_molecule_info"]["products"]["init_products"]
+            mapped_reactants = [global_to_subset_mapping[i] for i in init_reactants]
+            mapped_products = [global_to_subset_mapping[i] for i in init_products]
+            rxn["reaction_molecule_info"]["reactants"]["reactants"] = mapped_reactants
+            rxn["reaction_molecule_info"]["products"]["products"] = mapped_products
+        # molecules subset
+        sub_molecules = [self.molecules[i]["molecule_graph"] for i in ids]
+
+        return sub_reactions, sub_molecules

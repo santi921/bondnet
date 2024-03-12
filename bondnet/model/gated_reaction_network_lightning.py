@@ -393,7 +393,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         # ========== compute predictions ==========
         batched_graph, label = batch
         nodes = ["atom", "bond", "global"]
-        feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
+        feats = {nt: batched_graph.nodes[nt].data["ft"] for nt in nodes}
         target = label["value"].view(-1)
         target_aug = label["value_rev"].view(-1)
         empty_aug = torch.isnan(target_aug).tolist()
@@ -531,7 +531,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         # ========== compute predictions ==========
         batched_graph, label = batch
         nodes = ["atom", "bond", "global"]
-        feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
+        feats = {nt: batched_graph.nodes[nt].data["ft"] for nt in nodes}
         target = label["value"].view(-1)
         target_aug = label["value_rev"].view(-1)
         empty_aug = torch.isnan(target_aug).tolist()

@@ -22,7 +22,7 @@ def evaluate(model, nodes, data_loader):
 
     with torch.no_grad():
         for bg, label in data_loader:
-            feats = {nt: bg.nodes[nt].data["feat"] for nt in nodes}
+            feats = {nt: bg.nodes[nt].data["ft"] for nt in nodes}
             tgt = label["value"]
             norm_atom = label["norm_atom"]
             norm_bond = label["norm_bond"]

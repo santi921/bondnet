@@ -16,8 +16,8 @@ from bondnet.data.lmdb import (
 )
 
 from bondnet.data.lmdb import write_molecule_lmdb, write_reaction_lmdb
-from bondnet.data.reaction_network import ReactionNetworkLMDB
-from bondnet.data.dataset import ReactionNetworkLMDBDataset
+from bondnet.data.reaction_network import ReactionNetworkLMDB, ReactionLMDB
+from bondnet.data.dataset import ReactionNetworkLMDBDataset, ReactionLMDBDataset
 from bondnet.test_utils import get_test_reaction_network_data
 
 torch.multiprocessing.set_sharing_strategy("file_system")
@@ -82,7 +82,7 @@ class TestLMDB(unittest.TestCase):
             self.dgl_graphs.append(molecule_in_rxn_network)
 
         batched_graph = dgl.batch(self.dgl_graphs)
-        feats = batched_graph.ndata["feat"]
+        feats = batched_graph.ndata["ft"]
         for nt, ft in feats.items():
             batched_graph.nodes[nt].data.update({"ft": ft})
 
@@ -171,6 +171,7 @@ class TestLMDB(unittest.TestCase):
         for i in range(len(self.label_list)):
             self.reaction_indices.append(i)
 
+
     def test_write_molecule(self):
         write_molecule_lmdb(
             indices=self.molecule_ind_list,
@@ -215,6 +216,22 @@ class TestLMDB(unittest.TestCase):
         reaction = LmdbReactionDataset(config=config_rxn)
         rxn_ntwk = ReactionNetworkLMDB(mol, reaction)
         dataset = ReactionNetworkLMDBDataset(rxn_ntwk)
+        features = rxn_ntwk.reactions.feature_name
+        assert "charge one hot" in features["global"]
+
+
+    def test_featurization_hiprgen_reaction(self): 
+        config = {
+            "src": "./testdata/lmdb_dev/mol.lmdb"
+        }
+        config_rxn = {
+            "src": "./testdata/lmdb_dev/reaction.lmdb"
+        }
+
+        mol = LmdbMoleculeDataset(config=config)
+        reaction = LmdbReactionDataset(config=config_rxn)
+        rxn_ntwk = ReactionLMDB(mol, reaction)
+        dataset = ReactionLMDBDataset(rxn_ntwk)
         features = rxn_ntwk.reactions.feature_name
         assert "charge one hot" in features["global"]
 
