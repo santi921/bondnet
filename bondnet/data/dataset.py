@@ -938,23 +938,26 @@ class ReactionDatasetGraphs(BaseDataset):
         
         # reactions subset
         sub_reactions = self.reactions[item]
+        label = self.labels[item]
 
         # subset ids and map between global molecule index and subset molecule index
         ids = set()
         ids.update(sub_reactions.init_reactants + sub_reactions.init_products)
         ids = sorted(ids)
-    
-        #ids = self._get_mol_ids_from_reactions(sub_reactions)
-        global_to_subset_mapping = {g: s for s, g in enumerate(ids)}
-
-        # change global molecule index to subset molecule index in reaction
-        sub_reactions.reactants = [global_to_subset_mapping[i] for i in sub_reactions.init_reactants]
-        sub_reactions.products = [global_to_subset_mapping[i] for i in sub_reactions.init_products]
-
         
-        sub_graphs = [self.graphs[i] for i in ids]
+        
+        ret_labels = {
+            "value": label["value"], 
+            "value_rev": label["value_rev"],
+            "id": label["id"], 
+            "scaler_mean": label["scaler_mean"],
+            "scaler_stdev": label["scaler_stdev"], 
+            "ids": ids, 
+            "extra_info": label["extra_info"],
+        }
 
-        return sub_reactions, ids, self.graphs, self.labels[item]
+        #return sub_reactions, ids, self.graphs, self.labels[item]
+        return sub_reactions, ret_labels
 
     def __len__(self):
         return len(self.reaction_ids)
@@ -1017,11 +1020,7 @@ class ReactionDatasetLMDBDataset(BaseDataset):
         #sort_order = np.argsort(ids)
         ids = sorted(ids)
     
-        # molecules subset
-        #sub_graphs = [self.molecules[i]["molecule_graph"] for i in ids]
-        #sub_graph_products = [self.molecules[i]["molecule_graph"] for i in product_ids]
-        #sub_graph_reactants = [self.molecules[i]["molecule_graph"] for i in reactant_ids]
-        # get mappings 
+ 
         
         label_mean = self.reactions.mean
         label_std = self.reactions.std
@@ -1032,17 +1031,10 @@ class ReactionDatasetLMDBDataset(BaseDataset):
             "id": reaction["reaction_index"], 
             "scaler_mean": label_mean,
             "scaler_stdev": label_std, 
-            "ids": ids,
-            #"reactant_ids": reactant_ids, 
-            #"reactant_graphs": sub_graph_reactants,
-            #"product_ids": product_ids,
-            #"product_graphs": sub_graph_products,
+            "ids": ids
         }
-        #return reaction, self.molecules, ret_labels
         return reaction, ret_labels
         
-        #return reaction, sub_graphs, ret_labels
-
     def __len__(self):
         return len(self.reaction_lmdb.reactions)
 
@@ -1269,19 +1261,19 @@ class Subset(BaseDataset):
         self.indices = indices
         self.writing = writing
 
-        if writing:
-            self._feature_size = dataset._feature_size
-            self._feature_name = dataset._feature_name
+        self._feature_size = dataset._feature_size
+        self._feature_name = dataset._feature_name
+        self.molecules = dataset.graphs
 
-            self._feature_scaler_std = dataset._feature_scaler_std
-            self._feature_scaler_mean = dataset._feature_scaler_mean
-            self._label_scaler_mean = dataset._label_scaler_mean
-            self._label_scaler_std = dataset._label_scaler_std
-            
-            self.reaction_network = dataset.reaction_network
-            # iterate through indices to get the graphs, labels 
-            #self.graphs = [dataset.graphs[i] for i in indices]
-            #self.labels = [dataset.labels[i] for i in indices]
+        self._feature_scaler_std = dataset._feature_scaler_std
+        self._feature_scaler_mean = dataset._feature_scaler_mean
+        self._label_scaler_mean = dataset._label_scaler_mean
+        self._label_scaler_std = dataset._label_scaler_std
+        
+        self.reaction_network = dataset.reaction_network
+        # iterate through indices to get the graphs, labels 
+        #self.graphs = [dataset.graphs[i] for i in indices]
+        #self.labels = [dataset.labels[i] for i in indices]
 
     @property
     def feature_size(self):
@@ -1306,18 +1298,16 @@ class SubsetReaction(BaseDataset):
 
         self.indices = indices
         self.writing = writing
-
-        if writing:
-            self._feature_size = dataset._feature_size
-            self._feature_name = dataset._feature_name
-            self.molecules = dataset.molecules
-            self.graphs = dataset.graphs
-            self.reactions = dataset.reactions
-            self.labels = dataset.labels
-            self._feature_scaler_std = dataset._feature_scaler_std
-            self._feature_scaler_mean = dataset._feature_scaler_mean
-            self._label_scaler_mean = dataset._label_scaler_mean
-            self._label_scaler_std = dataset._label_scaler_std
+        self._feature_size = dataset._feature_size
+        self._feature_name = dataset._feature_name
+        #self.graphs = dataset.molecules
+        self.molecules = dataset.graphs
+        self.reactions = dataset.reactions
+        self.labels = dataset.labels
+        self._feature_scaler_std = dataset._feature_scaler_std
+        self._feature_scaler_mean = dataset._feature_scaler_mean
+        self._label_scaler_mean = dataset._label_scaler_mean
+        self._label_scaler_std = dataset._label_scaler_std
 
     @property
     def feature_size(self):

@@ -324,7 +324,6 @@ class ReactionNetworkLMDB:
         return sub_reactions, sub_molecules
 
 
-
 class ReactionLMDB:
     def __init__(self, lmdb_molecules, lmdb_reactions):
         self.molecules = lmdb_molecules
