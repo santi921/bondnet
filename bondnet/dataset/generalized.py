@@ -1052,8 +1052,14 @@ def create_reaction_network_files_and_valid_rows(
         path_json = filename
         mg_df = pd.read_json(path_json)
     elif filename.endswith(".pkl"):
-        path_pkl = filename
-        mg_df = pd.read_pickle(path_pkl)
+        try: 
+            path_pkl = filename
+            mg_df = pd.read_pickle(path_pkl)
+        except: 
+            import pickle5 as pickle
+            path_pkl = filename
+            with open(path_pkl, "rb") as f:
+                mg_df = pickle.load(f)
 
     else:
         path_bson = filename
