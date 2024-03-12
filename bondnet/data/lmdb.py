@@ -1,5 +1,4 @@
 import os
-import math
 import dgl
 import lmdb
 import pickle
@@ -8,13 +7,13 @@ import tempfile
 import numpy as np 
 from copy import deepcopy
 from tqdm import tqdm
-from pathlib import Path
+#from pathlib import Path
+#import math
+#import multiprocessing as mp
+#from torch.utils.data import random_split
+#from bondnet.dataset.utils import divide_to_list
+#from bondnet.data.dataset import LmdbBaseDataset, LmdbMoleculeDataset, LmdbReactionDataset
 
-import multiprocessing as mp
-from torch.utils.data import random_split
-
-from bondnet.dataset.utils import divide_to_list
-from bondnet.data.dataset import LmdbBaseDataset, LmdbMoleculeDataset, LmdbReactionDataset
 from bondnet.dataset.utils import (
     clean,
     clean_op,
@@ -30,6 +29,7 @@ def TransformMol(data_object):
     dgl_graph = load_dgl_graph_from_serialized(serialized_graph)
     data_object["molecule_graph"] = dgl_graph
     return data_object
+
 
 def TransformReaction(data_object):
     serialized_graph = data_object['reaction_graph']
@@ -92,7 +92,7 @@ def construct_lmdb_and_save(dataset, lmdb_dir, workers=8, subset=False):
         #dgl_graphs.append(molecule_in_rxn_network)
 
     batched_graph = dgl.batch(dgl_graphs)
-    feats = batched_graph.ndata["feat"]
+    feats = batched_graph.ndata["ft"]
     for nt, ft in feats.items():
         batched_graph.nodes[nt].data.update({"ft": ft})
     graphs = dgl.unbatch(batched_graph)
@@ -272,12 +272,10 @@ def construct_lmdb_and_save_reaction_dataset(dataset, lmdb_dir, workers=8, subse
         # serialized dgl graph
         dgl_graphs_serialized.append(serialize_dgl_graph(molecule_in_rxn_network))
         dgl_graphs.append(molecule_in_rxn_network)
-        #dgl_graph_non_serialized = load_dgl_graph_from_serialized(dgl_graphs[-1])
-        # option 2: don't serialize the graph, just the features
-        #dgl_graphs.append(molecule_in_rxn_network)
+
 
     batched_graph = dgl.batch(dgl_graphs)
-    feats = batched_graph.ndata["feat"]
+    feats = batched_graph.ndata["ft"]
     for nt, ft in feats.items():
         batched_graph.nodes[nt].data.update({"ft": ft})
     graphs = dgl.unbatch(batched_graph)
@@ -376,6 +374,7 @@ def construct_lmdb_and_save_reaction_dataset(dataset, lmdb_dir, workers=8, subse
 
 
     print("...> writing molecules to lmdb")
+    print("number of molecules to write: ", len(molecule_ind_list))
     write_molecule_lmdb(
         indices=molecule_ind_list,
         graphs=dgl_graphs_serialized,
@@ -410,8 +409,6 @@ def construct_lmdb_and_save_reaction_dataset(dataset, lmdb_dir, workers=8, subse
         global_values=global_dict,
     )
     
-
-
 
 def serialize_dgl_graph(dgl_graph):
     # import pdb

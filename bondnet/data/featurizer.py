@@ -346,7 +346,7 @@ class BondAsNodeGraphFeaturizerGeneral(BondFeaturizer):
 
         self._feature_size = len(self._feature_name)
         #print("bond feats", self._feature_name)
-        return {"feat": feats}, self._feature_name
+        return {"ft": feats}, self._feature_name
 
 
 class AtomFeaturizerGraphGeneral(BaseFeaturizer):
@@ -465,7 +465,7 @@ class AtomFeaturizerGraphGeneral(BaseFeaturizer):
             self._feature_name += self.selected_keys
         self._feature_size = len(self._feature_name)
         #print("atom feats", self._feature_name)
-        return {"feat": feats}, self._feature_name
+        return {"ft": feats}, self._feature_name
 
 
 class GlobalFeaturizerGraph(BaseFeaturizer):
@@ -607,4 +607,4 @@ class GlobalFeaturizerGraph(BaseFeaturizer):
         
         self._feature_size = len(self._feature_name)
         #print("global feats", self._feature_size, feats)
-        return {"feat": feats}, self._feature_name
+        return {"ft": feats}, self._feature_name

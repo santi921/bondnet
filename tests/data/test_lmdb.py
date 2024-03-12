@@ -82,7 +82,7 @@ class TestLMDB(unittest.TestCase):
             self.dgl_graphs.append(molecule_in_rxn_network)
 
         batched_graph = dgl.batch(self.dgl_graphs)
-        feats = batched_graph.ndata["feat"]
+        feats = batched_graph.ndata["ft"]
         for nt, ft in feats.items():
             batched_graph.nodes[nt].data.update({"ft": ft})
 
@@ -170,6 +170,7 @@ class TestLMDB(unittest.TestCase):
         self.reaction_indices = []
         for i in range(len(self.label_list)):
             self.reaction_indices.append(i)
+
 
     def test_write_molecule(self):
         write_molecule_lmdb(

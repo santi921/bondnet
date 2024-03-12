@@ -43,7 +43,7 @@ def test_standard_scaler_hetero_graph():
     feats = defaultdict(list)
     for nt in ntypes:
         for g in graphs:
-            feats[nt].append(g.nodes[nt].data["feat"])
+            feats[nt].append(g.nodes[nt].data["ft"])
 
     for nt in ntypes:
         ft = np.concatenate(feats[nt])

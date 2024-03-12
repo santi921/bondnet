@@ -9,8 +9,8 @@ import torch.multiprocessing
 import tempfile
 from copy import deepcopy
 
-from bondnet.data.lmdb import construct_lmdb_and_save, construct_lmdb_and_save_reaction_dataset
-from bondnet.data.dataset import ReactionNetworkDatasetGraphs, ReactionDatasetGraphs
+from bondnet.data.lmdb import construct_lmdb_and_save_reaction_dataset
+from bondnet.data.dataset import ReactionDatasetGraphs
 from bondnet.utils import seed_torch
 from bondnet.model.training_utils import get_grapher
 from bondnet.data.dataset import train_validation_test_split
@@ -125,9 +125,9 @@ if __name__ == "__main__":
             )
 
             construct_lmdb_and_save_reaction_dataset(dataset, lmdb_dir, workers=workers)
-            construct_lmdb_and_save_reaction_dataset(val_dataset, lmdb_dir+"val/", workers=workers, subset=True)
-            construct_lmdb_and_save_reaction_dataset(train_dataset, lmdb_dir+"train/", workers=workers, subset=True)
-            construct_lmdb_and_save_reaction_dataset(test_dataset, lmdb_dir+"test/", workers=workers, subset=True)
+            construct_lmdb_and_save_reaction_dataset(val_dataset, lmdb_dir+"/val/", workers=workers, subset=True)
+            construct_lmdb_and_save_reaction_dataset(train_dataset, lmdb_dir+"/train/", workers=workers, subset=True)
+            construct_lmdb_and_save_reaction_dataset(test_dataset, lmdb_dir+"/test/", workers=workers, subset=True)
 
         else: 
 
@@ -139,8 +139,8 @@ if __name__ == "__main__":
                 writing=True
             )
             construct_lmdb_and_save_reaction_dataset(dataset, lmdb_dir, workers=workers)
-            construct_lmdb_and_save_reaction_dataset(val_dataset, lmdb_dir+"val/", workers=workers, subset=True)
-            construct_lmdb_and_save_reaction_dataset(train_dataset, lmdb_dir+"train/", workers=workers, subset=True)
+            construct_lmdb_and_save_reaction_dataset(val_dataset, lmdb_dir+"/val/", workers=workers, subset=True)
+            construct_lmdb_and_save_reaction_dataset(train_dataset, lmdb_dir+"/train/", workers=workers, subset=True)
 
 
     else: 

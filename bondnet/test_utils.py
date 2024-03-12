@@ -536,7 +536,7 @@ def make_hetero(num_atoms, num_bonds, a2b, b2a, self_loop=False):
         ft = torch.tensor(
             np.arange(num_node * size).reshape(num_node, size), dtype=torch.float32
         )
-        g.nodes[ntype].data.update({"feat": ft})
+        g.nodes[ntype].data.update({"ft": ft})
         feats[ntype] = ft
 
     return g, feats
@@ -623,7 +623,7 @@ def make_hetero_H():
 def make_batched_hetero_CH2O(size=3):
     graphs = [make_hetero_CH2O()[0] for i in range(size)]
     g = dgl.batch(graphs)
-    feats = {t: g.nodes[t].data["feat"] for t in ["atom", "bond", "global"]}
+    feats = {t: g.nodes[t].data["ft"] for t in ["atom", "bond", "global"]}
     return g, feats
 
 
@@ -637,7 +637,7 @@ def make_batched_hetero_forming_reaction():
         make_hetero_H()[0],
     ]
     g = dgl.batch(graphs)
-    feats = {t: g.nodes[t].data["feat"] for t in ["atom", "bond", "global"]}
+    feats = {t: g.nodes[t].data["ft"] for t in ["atom", "bond", "global"]}
     return g, feats
 
 

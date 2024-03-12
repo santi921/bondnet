@@ -17,7 +17,7 @@ class FeatureAggregator:
     def _stack_feature(self, ntype):
         feature = []
         for g, _, _ in self.dataset:
-            feature.append(g.nodes[ntype].data["feat"])
+            feature.append(g.nodes[ntype].data["ft"])
         return np.concatenate(feature)
 
     def _stack_feature_and_label(self, ntype="bond"):
@@ -32,7 +32,7 @@ class FeatureAggregator:
             # indices of bond that has energy
             indices = [int(i) for i, v in enumerate(lb["indicator"]) if v == 1]
             labels.append(lb["value"][indices])
-            features.append(g.nodes[ntype].data["feat"][indices])
+            features.append(g.nodes[ntype].data["ft"][indices])
 
         features = np.concatenate(features)
         labels = np.concatenate(labels)
@@ -53,9 +53,9 @@ class FeatureAggregator:
             labels.append(lb["value"][indices])
 
             all_feats = {
-                "atom": g.nodes["atom"].data["feat"],
-                "bond": g.nodes["bond"].data["feat"],
-                "global": g.nodes["global"].data["feat"],
+                "atom": g.nodes["atom"].data["ft"],
+                "bond": g.nodes["bond"].data["ft"],
+                "global": g.nodes["global"].data["ft"],
             }
 
             etypes = [("atom", "a2b", "bond")]

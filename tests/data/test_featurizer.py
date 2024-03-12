@@ -108,8 +108,8 @@ def test_atom_feat_mapping():
     )
     
     for i in range(len(reactions)):
-        esp_tensor_reactant = graphs[2 * i].ndata["feat"]["atom"][:, -1]
-        esp_tensor_prod = graphs[2 * i + 1].ndata["feat"]["atom"][:, -1]
+        esp_tensor_reactant = graphs[2 * i].ndata["ft"]["atom"][:, -1]
+        esp_tensor_prod = graphs[2 * i + 1].ndata["ft"]["atom"][:, -1]
         reactant_atom_map = reactions[i]._atom_mapping[0][0]
         product_atom_map = reactions[i]._atom_mapping[1][0]
         
@@ -150,9 +150,9 @@ def test_bond_feat_mapping():
 
     for i in range(len(reactions)):
         dict_react_map, dict_prod_map = {}, {}
-        esp_tensor_reactant = (graphs[2 * i].ndata["feat"]["bond"][:, -1]).tolist()
+        esp_tensor_reactant = (graphs[2 * i].ndata["ft"]["bond"][:, -1]).tolist()
         esp_tensor_reactant = [round(x, 3) for x in esp_tensor_reactant]
-        esp_tensor_prod = (graphs[2 * i + 1].ndata["feat"]["bond"][:, -1]).tolist()
+        esp_tensor_prod = (graphs[2 * i + 1].ndata["ft"]["bond"][:, -1]).tolist()
         esp_tensor_prod = [round(x, 3) for x in esp_tensor_prod]
         prod_qtaim_esp = product_bond_qtaim_esp[i][0]
         react_qtaim_esp = reactant_bond_qtaim_esp[i][0]

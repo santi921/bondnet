@@ -465,7 +465,7 @@ def test_augmentation():
     nodes = ["atom", "bond", "global"]
 
     for it, (batched_graph, label) in enumerate(dm.test_dataloader()):
-        feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
+        feats = {nt: batched_graph.nodes[nt].data["ft"] for nt in nodes}
         target = label["value"].view(-1)
         target_aug = label["value_rev"].view(-1)
 
@@ -533,7 +533,7 @@ def test_reactant_only_construction():
     nodes = ["atom", "bond", "global"]
 
     for it, (batched_graph, label) in enumerate(dm.test_dataloader()):
-        feats = {nt: batched_graph.nodes[nt].data["feat"] for nt in nodes}
+        feats = {nt: batched_graph.nodes[nt].data["ft"] for nt in nodes}
         target = label["value"].view(-1)
         norm_atom = label["norm_atom"]
         norm_bond = label["norm_bond"]

@@ -112,11 +112,11 @@ class HomoGraphFeatureStandardScaler:
 
         # obtain feats from graphs
         for g in graphs:
-            data = g.ndata["feat"]
+            data = g.ndata["ft"]
             node_feats.append(data)
             node_feats_size.append(len(data))
 
-            data = g.edata["feat"]
+            data = g.edata["ft"]
             edge_feats.append(data)
             edge_feats_size.append(len(data))
 
@@ -151,8 +151,8 @@ class HomoGraphFeatureStandardScaler:
         node_feats = torch.split(node_feats, node_feats_size)
         edge_feats = torch.split(edge_feats, edge_feats_size)
         for g, n, e in zip(graphs, node_feats, edge_feats):
-            g.ndata["feat"] = n
-            g.edata["feat"] = e
+            g.ndata["ft"] = n
+            g.edata["ft"] = e
 
         return graphs
 
@@ -201,7 +201,7 @@ class HeteroGraphFeatureStandardScaler:
         # obtain feats from graphs
         for g in graphs:
             for nt in node_types:
-                data = g.nodes[nt].data["feat"]
+                data = g.nodes[nt].data["ft"]
                 node_feats[nt].append(data)
                 node_feats_size[nt].append(len(data))
 
@@ -229,6 +229,6 @@ class HeteroGraphFeatureStandardScaler:
         for nt in node_types:
             feats = torch.split(node_feats[nt], node_feats_size[nt])
             for g, ft in zip(graphs, feats):
-                g.nodes[nt].data["feat"] = ft
+                g.nodes[nt].data["ft"] = ft
 
         return graphs
