@@ -84,11 +84,12 @@ def create_LiEC_mol_graph():
     return mol_graph
 
 
+"""
 def create_LiEC_rdkit_mol():
     mol_graph = create_LiEC_mol_graph()
     mol, bond_type = create_rdkit_mol_from_mol_graph(mol_graph, force_sanitize=True)
     return mol
-
+"""
 
 def create_C2H4O1():
     r"""
@@ -749,7 +750,6 @@ def get_defaults():
     # config = "./settings.json"
     # config = json.load(open(config, "r"))
     return config
-
 
 
 def get_data_test(
