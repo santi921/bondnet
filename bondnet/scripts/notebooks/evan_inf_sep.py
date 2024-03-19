@@ -172,8 +172,8 @@ for name, rxn in train_df.iterrows():
         if len(subgs) == 1:
             molcopy = copy.deepcopy(metal_mol.molecule)
             molcopy_mee = metal_edge_extender(MoleculeGraph.with_local_env_strategy(molcopy, OpenBabelNN()))
-            this_graph_hash = get_graph_hash(molcopy_mee.molecule) 
-            this_mole_id = get_molecule_id(molcopy_mee.molecule)
+            this_graph_hash = get_graph_hash(molcopy_mee.molecule, node_attr="specie") 
+            this_mole_id = get_molecule_id(molcopy_mee.molecule, node_attr="specie")
             
             if this_graph_hash not in to_run_hash_full:
                 match = False
@@ -249,8 +249,8 @@ for name, rxn in train_df.iterrows():
                             break
 
                     if not match:
-                        this_graph_hash = get_graph_hash(this_mg.molecule) 
-                        this_mole_id = get_molecule_id(this_mg.molecule)
+                        this_graph_hash = get_graph_hash(this_mg.molecule, node_attr="specie") 
+                        this_mole_id = get_molecule_id(this_mg.molecule, node_attr="specie")
                         to_run_full.append(this_mg)
                         to_run_id_full.append(this_mole_id)
                         to_run_hash_full.append(this_graph_hash)
@@ -295,8 +295,8 @@ for name, rxn in train_df.iterrows():
                             break
 
                     if not match:
-                        this_graph_hash = get_graph_hash(this_mg.molecule) 
-                        this_mole_id = get_molecule_id(this_mg.molecule)
+                        this_graph_hash = get_graph_hash(this_mg.molecule, node_attr="specie") 
+                        this_mole_id = get_molecule_id(this_mg.molecule, node_attr="specie")
 
                         to_run.append(this_mg)
                         to_run_id.append(this_mole_id)

@@ -57,18 +57,11 @@ if __name__ == "__main__":
         help="debug mode",
     )
 
-    parser.add_argument(
-        "-workers",
-        type=str,
-        default="4",
-        help="number of workers to use in conversion",
-    )
-
     args = parser.parse_args()
     config_loc = args.config_loc
     dataset_loc = args.dataset_loc
     lmdb_dir = args.lmdb_dir
-    workers = int(args.workers)
+    #workers = int(args.workers)
     debug = bool(args.debug)
     split = bool(args.split)
 
@@ -121,13 +114,13 @@ if __name__ == "__main__":
                 validation=config["val_size"],
                 test=config["test_size"],
                 random_seed=config["random_seed_split"],
-                writing=True
+                lmdb=True
             )
 
-            construct_lmdb_and_save_reaction_dataset(dataset, lmdb_dir, workers=workers)
-            construct_lmdb_and_save_reaction_dataset(val_dataset, lmdb_dir+"/val/", workers=workers, subset=True)
-            construct_lmdb_and_save_reaction_dataset(train_dataset, lmdb_dir+"/train/", workers=workers, subset=True)
-            construct_lmdb_and_save_reaction_dataset(test_dataset, lmdb_dir+"/test/", workers=workers, subset=True)
+            construct_lmdb_and_save_reaction_dataset(dataset, lmdb_dir)
+            construct_lmdb_and_save_reaction_dataset(val_dataset, lmdb_dir+"/val/")
+            construct_lmdb_and_save_reaction_dataset(train_dataset, lmdb_dir+"/train/")
+            construct_lmdb_and_save_reaction_dataset(test_dataset, lmdb_dir+"/test/")
 
         else: 
 
@@ -136,12 +129,12 @@ if __name__ == "__main__":
                 validation=config["val_size"],
                 random_seed=config["random_seed_split"],
                 test=0.0,
-                writing=True
+                lmdb=True
             )
-            construct_lmdb_and_save_reaction_dataset(dataset, lmdb_dir, workers=workers)
-            construct_lmdb_and_save_reaction_dataset(val_dataset, lmdb_dir+"/val/", workers=workers, subset=True)
-            construct_lmdb_and_save_reaction_dataset(train_dataset, lmdb_dir+"/train/", workers=workers, subset=True)
+            construct_lmdb_and_save_reaction_dataset(dataset, lmdb_dir)
+            construct_lmdb_and_save_reaction_dataset(val_dataset, lmdb_dir+"/val/")
+            construct_lmdb_and_save_reaction_dataset(train_dataset, lmdb_dir+"/train/")
 
 
     else: 
-        construct_lmdb_and_save_reaction_dataset(dataset, lmdb_dir, workers=workers)
+        construct_lmdb_and_save_reaction_dataset(dataset, lmdb_dir)

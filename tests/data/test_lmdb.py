@@ -16,9 +16,9 @@ from bondnet.data.lmdb import (
 )
 
 from bondnet.data.lmdb import write_molecule_lmdb, write_reaction_lmdb
-from bondnet.data.reaction_network import ReactionNetworkLMDB, ReactionLMDB
-from bondnet.data.dataset import ReactionNetworkLMDBDataset, ReactionLMDBDataset
-from bondnet.test_utils import get_test_reaction_network_data
+from bondnet.data.reaction_network import ReactionLMDB
+from bondnet.data.dataset import ReactionDatasetLMDBDataset
+from bondnet.test_utils import get_test_reaction_data
 
 torch.multiprocessing.set_sharing_strategy("file_system")
 
@@ -26,7 +26,7 @@ torch.multiprocessing.set_sharing_strategy("file_system")
 class TestLMDB(unittest.TestCase):
     @classmethod
     def setUp(self):
-        self.dataset = get_test_reaction_network_data(allowed_charges=[0, 1, 2, -1, -2])
+        self.dataset = get_test_reaction_data(allowed_charges=[0, 1, 2, -1, -2])
 
         # List of Molecules
         self.dgl_graphs = []
@@ -54,7 +54,7 @@ class TestLMDB(unittest.TestCase):
             "dtype": dtype
         }
         for ind, molecule_in_rxn_network in enumerate(
-            self.dataset.reaction_network.molecule_wrapper
+            self.dataset.molecules
         ):
             #    pmg mol retrieval
             self.pmg_objects.append(molecule_in_rxn_network.pymatgen_mol)
@@ -77,8 +77,9 @@ class TestLMDB(unittest.TestCase):
             self.ring_size_set.update(ring_len_list)
 
         for ind, molecule_in_rxn_network in enumerate(
-            self.dataset.reaction_network.molecules
+            self.dataset.graphs
         ):
+            #self.dgl_graphs.append(molecule_in_rxn_network["molecule_graph"])
             self.dgl_graphs.append(molecule_in_rxn_network)
 
         batched_graph = dgl.batch(self.dgl_graphs)
@@ -98,7 +99,7 @@ class TestLMDB(unittest.TestCase):
         self.has_bonds_list = []
 
         # print(graphs)
-        for ind, rxn in enumerate(self.dataset.reaction_network.reactions):
+        for ind, rxn in enumerate(self.dataset.reactions):
             # print(graphs[0])
             self.extra_info.append([])
             # extra_info.append(reaction_in_rxn_network.extra_info)
@@ -206,23 +207,7 @@ class TestLMDB(unittest.TestCase):
 
     def test_featurization_hiprgen(self): 
         config = {
-            "src": "./testdata/lmdb_dev/mol.lmdb"
-        }
-        config_rxn = {
-            "src": "./testdata/lmdb_dev/reaction.lmdb"
-        }
-
-        mol = LmdbMoleculeDataset(config=config)
-        reaction = LmdbReactionDataset(config=config_rxn)
-        rxn_ntwk = ReactionNetworkLMDB(mol, reaction)
-        dataset = ReactionNetworkLMDBDataset(rxn_ntwk)
-        features = rxn_ntwk.reactions.feature_name
-        assert "charge one hot" in features["global"]
-
-
-    def test_featurization_hiprgen_reaction(self): 
-        config = {
-            "src": "./testdata/lmdb_dev/mol.lmdb"
+            "src": "./testdata/lmdb_dev/molecule.lmdb"
         }
         config_rxn = {
             "src": "./testdata/lmdb_dev/reaction.lmdb"
@@ -231,7 +216,23 @@ class TestLMDB(unittest.TestCase):
         mol = LmdbMoleculeDataset(config=config)
         reaction = LmdbReactionDataset(config=config_rxn)
         rxn_ntwk = ReactionLMDB(mol, reaction)
-        dataset = ReactionLMDBDataset(rxn_ntwk)
+        dataset = ReactionDatasetLMDBDataset(rxn_ntwk)
+        features = rxn_ntwk.reactions.feature_name
+        assert "charge one hot" in features["global"]
+
+
+    def test_featurization_hiprgen_reaction(self): 
+        config = {
+            "src": "./testdata/lmdb_dev/molecule.lmdb"
+        }
+        config_rxn = {
+            "src": "./testdata/lmdb_dev/reaction.lmdb"
+        }
+
+        mol = LmdbMoleculeDataset(config=config)
+        reaction = LmdbReactionDataset(config=config_rxn)
+        rxn_ntwk = ReactionLMDB(mol, reaction)
+        dataset = ReactionDatasetLMDBDataset(rxn_ntwk)
         features = rxn_ntwk.reactions.feature_name
         assert "charge one hot" in features["global"]
 

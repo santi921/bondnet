@@ -23,7 +23,7 @@ setup(
     entry_points={"console_scripts": ["bondnet = bondnet.scripts.predict_cli:cli"]},
     install_requires=["numpy", "pyyaml", "scikit-learn", "click"],
     author="Mingjian Wen, Santiago Vargas",
-    author_email="wenxx151@gmail.com, santiagovargas921@gmail.com",
+    author_email="santiagovargas921@gmail.com",
     url="https://github.com/santi921/bondnet",
     description="short description",
     long_description="long description",
