@@ -30,19 +30,20 @@ if __name__ == "__main__":
 
     parser.add_argument("-project_name", type=str, default="hydro_lightning")
     parser.add_argument(
-        "-dataset_loc", type=str, default="../../dataset/qm_9_merge_3_qtaim.json"
+        "-dataset_loc", type=str, default="../../dataset/qm_9_merge_3_qtaim.json", help="dataset location, don't use if specifying LMDBs"
     )
     parser.add_argument("-log_save_dir", type=str, default=None)
     parser.add_argument("-config", type=str, default="./settings.json")
+
     parser.add_argument(
-        "--lmdb", default=False, action="store_true", help="use lmdb for dataset"
+        "--use_lmdb", default=False, action="store_true", help="use lmdbs"
     )
 
     args = parser.parse_args()
 
     on_gpu = bool(args.on_gpu)
     debug = bool(args.debug)
-    use_lmdb = bool(args.lmdb)
+    use_lmdb = bool(args.use_lmdb)
     project_name = args.project_name
     dataset_loc = args.dataset_loc
     log_save_dir = args.log_save_dir
@@ -53,14 +54,14 @@ if __name__ == "__main__":
         config["model"]["precision"] = int(config["model"]["precision"])
 
     # dataset
-    config["dataset"]["data_dir"] = dataset_loc
     extra_keys = config["model"]["extra_features"]
     config["model"]["filter_sparse_rxns"] = False
     config["model"]["debug"] = debug
-
+    config["dataset"]["data_dir"] = dataset_loc
     config["dataset_transfer"]["data_dir"] = dataset_loc
 
     if use_lmdb:
+        print("Using LMDB for dataset!...")
         dm = BondNetLightningDataModuleLMDB(config)
     else:
         dm = BondNetLightningDataModule(config)

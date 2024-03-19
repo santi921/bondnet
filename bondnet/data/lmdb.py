@@ -12,7 +12,7 @@ from tqdm import tqdm
 #import multiprocessing as mp
 #from torch.utils.data import random_split
 #from bondnet.dataset.utils import divide_to_list
-#from bondnet.data.dataset import LmdbBaseDataset, LmdbMoleculeDataset, LmdbReactionDataset
+from bondnet.data.dataset import LmdbBaseDataset, LmdbMoleculeDataset, LmdbReactionDataset
 
 from bondnet.dataset.utils import (
     clean,
@@ -29,6 +29,7 @@ def TransformMol(data_object):
     dgl_graph = load_dgl_graph_from_serialized(serialized_graph)
     data_object["molecule_graph"] = dgl_graph
     return data_object
+
 
 
 def TransformReaction(data_object):
@@ -50,8 +51,8 @@ def construct_lmdb_and_save(dataset, lmdb_dir, workers=8, subset=False):
     element_set = set()
     feature_size = dataset._feature_size
     feature_name = dataset._feature_name
-    feature_scaler_mean = dataset._feature_scaler_mean
-    feature_scaler_std = dataset._feature_scaler_std
+    #feature_scaler_mean = dataset._feature_scaler_mean
+    #feature_scaler_std = dataset._feature_scaler_std
     label_scaler_mean = dataset._label_scaler_mean
     label_scaler_std = dataset._label_scaler_std
     dtype = dataset.dtype
@@ -112,8 +113,8 @@ def construct_lmdb_and_save(dataset, lmdb_dir, workers=8, subset=False):
         "mean": label_scaler_mean,
         "std": label_scaler_std,
         "feature_name": feature_name,
-        "feature_scaler_mean": feature_scaler_mean,
-        "feature_scaler_std": feature_scaler_std,
+        #"feature_scaler_mean": feature_scaler_mean,
+        #"feature_scaler_std": feature_scaler_std,
         "dtype": dtype
     }
 
@@ -227,7 +228,7 @@ def construct_lmdb_and_save(dataset, lmdb_dir, workers=8, subset=False):
     
 
 
-def construct_lmdb_and_save_reaction_dataset(dataset, lmdb_dir, workers=8, subset=False):
+def construct_lmdb_and_save_reaction_dataset(dataset, lmdb_dir, workers=8):
     # List of Molecules
     dgl_graphs = []
     dgl_graphs_serialized = []
@@ -333,18 +334,6 @@ def construct_lmdb_and_save_reaction_dataset(dataset, lmdb_dir, workers=8, subse
         #assert len(has_bonds["products"]) == len(mappings["bond_map"][1]), "has_bond not the same length as mappings {} {}".format(has_bonds["products"], mappings["bond_map"][1])
 
 
-        """empty_graph, empty_fts = create_rxn_graph(
-            reactants=reactants,
-            products=products,
-            mappings=mappings,
-            device=None,
-            has_bonds=has_bonds,
-            reverse=False,
-            reactant_only=False, 
-            zero_fts=True,
-            empty_graph_fts=None
-        )
-        """
 
         molecule_info_temp = {
             "reactants": {
