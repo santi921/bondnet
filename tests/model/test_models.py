@@ -4,7 +4,7 @@ import pytorch_lightning as pl
 from bondnet.model.training_utils import (
     load_model_lightning,
 )
-from bondnet.data.datamodule import BondNetLightningDataModule
+from bondnet.data.datamodule import BondNetLightningDataModule, BondNetLightningDataModuleLMDB
 from bondnet.data.utils import mol_graph_to_rxn_graph
 from bondnet.model.gated_reaction_network_lightning import (
     GatedGCNReactionNetworkLightning,
@@ -493,6 +493,68 @@ def test_augmentation():
         assert not torch.allclose(target, target_aug, atol=1e-3, rtol=0)
 
 
+def test_lmdb():
+
+    config = {
+        "dataset": {
+            "log_save_dir": "./model_log/",
+            "train_lmdb": "../data/testdata/lmdb/",
+            "val_lmdb": "../data/testdata/lmdb/",
+            "test_lmdb": "../data/testdata/lmdb/",
+            "target_var": "value",
+            "overwrite": False,
+            "no_splits": False
+        },
+        "model": {
+            "extra_features": {},
+            "extra_info": [],
+            "debug": False,
+            "classifier": False,
+            "classif_categories": 3,
+            "filter_species": [3, 6],
+            "filter_outliers": False,
+            "filter_sparse_rxns": False,
+            "restore": False,
+        },
+        "optim": {
+            "val_size": 0.1,
+            "test_size": 0.1,
+            "batch_size": 64,
+            "num_workers": 3,
+            "pin_memory": False,
+            "persistent_workers": False,
+        },
+    }
+    config_model = get_defaults()
+    # update config with model settings
+    for key, value in config_model["model"].items():
+        config["model"][key] = value
+
+    dm = BondNetLightningDataModuleLMDB(config)
+    feat_size, feat_name = dm.prepare_data()
+
+    config["model"]["in_feats"] = feat_size
+    model = load_model_lightning(config["model"], load_dir="./test_save_load/")
+
+    trainer = pl.Trainer(
+        max_epochs=1,
+        accelerator="gpu",
+        devices=1,
+        precision=32,
+        accumulate_grad_batches=5,
+        enable_progress_bar=True,
+        gradient_clip_val=1.0,
+        enable_checkpointing=False,
+        default_root_dir="./test_save_load/",
+    )
+
+    start_time = time.time()
+    trainer.fit(model, dm)
+    end_time = time.time()
+    delta_time = end_time - start_time
+    print("time for mean", delta_time)
+
+#test_lmdb()
 
 def test_reactant_only_construction():
     dataset_loc = "../data/testdata/symmetric.json"
