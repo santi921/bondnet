@@ -43,22 +43,24 @@
     "reactant_only": false
   },
   "optim": {
-    "batch_size": 128,
+    "batch_size": 100,
     "num_devices": 1,
     "num_nodes": 1,
-    "num_workers": 1,
+    "num_workers": 4,
     "val_size": 0.15,
     "test_size": 0.1,
     "strategy": "ddp",
     "gradient_clip_val": 5.0,
     "accumulate_grad_batches": 3,
-    "pin_memory": false,
-    "persistent_workers": false
+    "pin_memory": true,
+    "persistent_workers": true
   },
   "dataset": {
     "log_save_dir": "./model_log/",
     "lmdb_dir": "./lmdb_data/",
     "target_var": "dG_sp",
+    "train_lmdb": "/pscratch/sd/w/wenxu/jobs/CRNs/bondnet_0321/tests/data/testdata/lmdb_new",
+    "val_lmdb":   "/pscratch/sd/w/wenxu/jobs/CRNs/bondnet_0321/tests/data/testdata/lmdb_new",
     "overwrite": true
   },
   "dataset_transfer": {

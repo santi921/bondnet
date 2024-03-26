@@ -452,6 +452,7 @@ def mol_graph_to_rxn_graph(
                     has_bonds["products"]
                     ) != len(products): print("unequal mapping & graph len")
 
+                #!wx why? g should be empty and already exist
                 g, fts = create_rxn_graph(
                     reactants=reactants,
                     products=products,
@@ -460,11 +461,12 @@ def mol_graph_to_rxn_graph(
                     has_bonds=None,
                     reverse=reverse,
                     reactant_only=reactant_only,
-                    #empty_graph_fts={
-                    #    "empty_graph": rxn["reaction_graph"],
-                    #    "zero_feats": rxn["reaction_feature"],
-                    #},
-                    #empty_graph_fts=None
+                    #!put empty graph.
+                    empty_graph_fts={
+                        "empty_graph": rxn["reaction_graph"],
+                        "zero_feats": rxn["reaction_feature"],
+                        },
+                   # empty_graph_fts=None
                 )
         # check if reaction has key "mappings"
         else:
@@ -624,6 +626,7 @@ def create_rxn_graph(
     num_products = int(len(products))
     num_reactants = int(len(reactants))
 
+    #breakpoint()
     if empty_graph_fts is None:
         graph = construct_rxn_graph_empty(mappings, device=device)
     else:        

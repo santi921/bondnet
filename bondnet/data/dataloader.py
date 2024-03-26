@@ -162,7 +162,13 @@ class DataLoaderReactionLMDB(DataLoader):
                 mean = [la["scaler_mean"] for la in labels]
                 stdev = [la["scaler_stdev"] for la in labels]
                 batched_labels["scaler_mean"] = torch.stack(mean)
-                batched_labels["scaler_stdev"] = torch.stack(stdev)
+                try: #Can be fixed
+                    #*if it is a folder
+                    batched_labels["scaler_stdev"] = torch.stack(stdev)
+                except:
+                    #* if it is a single file
+                    batched_labels["scaler_stdev"] = stdev
+                
             except KeyError:
                 pass
 

@@ -25,6 +25,8 @@ from bondnet.data.utils import (
     mol_graph_to_rxn_graph,
 )
 
+import time
+
 logger = logging.getLogger(__name__)
 
 
@@ -312,7 +314,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
 
         # get device
         device = feats["bond"].device
-
+        #breakpoint()
         # convert mol graphs to reaction graphs
         graph, feats = mol_graph_to_rxn_graph(
             graph=graph,
@@ -330,7 +332,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             feats = layer(feats)
 
         return feats
-
+    #used in write_reaction_features.py
     def feature_before_fc(self, graph, feats, reactions, norm_atom, norm_bond):
         """
         Get the features before the final fully-connected.
@@ -391,6 +393,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
 
     def shared_step(self, batch, mode):
         # ========== compute predictions ==========
+        breakpoint()
         batched_graph, label = batch
         nodes = ["atom", "bond", "global"]
         feats = {nt: batched_graph.nodes[nt].data["ft"] for nt in nodes}
@@ -582,6 +585,9 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         plt.savefig("./{}.png".format("./test"))
         return self.shared_step(batch, mode="test")
 
+    def on_train_epoch_start(self):
+        self.start_time = time.time()
+
     def on_train_epoch_end(self):
         """
         Training epoch end
@@ -591,6 +597,9 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         self.log("train_r2", r2, prog_bar=True, sync_dist=True)
         self.log("train_l1", torch_l1, prog_bar=True, sync_dist=True)
         self.log("train_mse", torch_mse, prog_bar=True, sync_dist=True)
+
+        duration = time.time() - self.start_time
+        self.log('epoch_duration', duration, on_epoch=True, prog_bar=True, logger=True)
 
     def on_validation_epoch_end(self):
         """

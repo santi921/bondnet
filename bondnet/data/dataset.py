@@ -21,6 +21,7 @@ from bondnet.data.transformers import HeteroGraphFeatureStandardScaler, Standard
 from bondnet.utils import to_path, yaml_load, list_split_by_size
 #from bondnet.data.utils import create_rxn_graph
 #from bondnet.data.lmdb import TransformMol
+import pickle5 as pickle
 
 logger = RDLogger.logger()
 logger.setLevel(RDLogger.CRITICAL)

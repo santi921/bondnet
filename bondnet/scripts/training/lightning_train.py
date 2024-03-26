@@ -50,6 +50,14 @@ if __name__ == "__main__":
     config = args.config
     config = json.load(open(config, "r"))
 
+
+    #!wx 
+    config["dataset"]["train_lmdb"] = "/pscratch/sd/w/wenxu/jobs/CRNs/bondnet_0321/tests/data/testdata/lmdb"
+    config["dataset"]["val_lmdb"] = "/pscratch/sd/w/wenxu/jobs/CRNs/bondnet_0321/tests/data/testdata/lmdb"
+    config["model"]["initializer"] = "kaiming"
+
+
+
     if config["model"]["precision"] == "16" or config["model"]["precision"] == "32":
         config["model"]["precision"] = int(config["model"]["precision"])
 
@@ -78,6 +86,9 @@ if __name__ == "__main__":
 
     model = load_model_lightning(config["model"], load_dir=log_save_dir)
     print("model constructed!")
+
+
+    #* This is like transfer learning.
     if config["model"]["transfer"]:
         with wandb.init(project=project_name + "_transfer") as run_transfer:
             config_transfer = deepcopy(config)
@@ -153,6 +164,7 @@ if __name__ == "__main__":
 
         run_transfer.finish()
 
+    #* This is like real running. 
     with wandb.init(project=project_name) as run:
         log_parameters = LogParameters()
         logger_tb = TensorBoardLogger(
@@ -191,10 +203,10 @@ if __name__ == "__main__":
             enable_checkpointing=True,
             strategy=config["optim"]["strategy"],
             default_root_dir=config["dataset"]["log_save_dir"],
-            logger=[logger_tb, logger_wb],
+            #logger=[logger_tb, logger_wb],
             precision=config["model"]["precision"],
         )
-
+        #!wx
         trainer.fit(model, dm)
-        trainer.test(model, dm)
+        #trainer.test(model, dm)
     run.finish()

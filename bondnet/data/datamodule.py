@@ -52,7 +52,7 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
                 config={
                     "src": os.path.join(self.test_lmdb_loc, "molecule.lmdb")
                 },
-                transform=TransformMol
+               #transform=TransformMol
 
             )
             self.test_dataset = ReactionLMDB(self.test_molecule_dataset, self.test_rxn_dataset)
@@ -70,7 +70,7 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
             )
             self.val_molecule_dataset = LmdbMoleculeDataset(
                 config=config_val,
-            transform=TransformMol
+                #transform=TransformMol
             )
         
             self.val_dataset = ReactionLMDB(self.val_molecule_dataset, self.val_rxn_dataset)
@@ -90,10 +90,10 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
         )
         
         self.train_molecule_dataset = LmdbMoleculeDataset(
-            config=config_train, transform=TransformMol
+            config=config_train, 
+            #transform=TransformMol
 
         )
-
 
         self.train_dataset = ReactionLMDB(self.train_molecule_dataset, self.train_rxn_dataset)
         
@@ -130,6 +130,8 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
             batch_size=len(self.test_ds),
             shuffle=False,
             num_workers=self.config["optim"]["num_workers"],
+            pin_memory=self.config["optim"]["pin_memory"],
+            persistent_workers=self.config["optim"]["persistent_workers"],
         )
 
 
@@ -139,6 +141,8 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
             batch_size=len(self.val_ds),
             shuffle=False,
             num_workers=self.config["optim"]["num_workers"],
+            pin_memory=self.config["optim"]["pin_memory"],
+            persistent_workers=self.config["optim"]["persistent_workers"],
         )
 
 
@@ -203,7 +207,7 @@ class BondNetLightningDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return DataLoaderReaction(
             dataset=self.test_ds,
-            batch_size=len(self.test_ds),
+            batch_size=self.config["optim"]["batch_size"],
             shuffle=False,
             num_workers=self.config["optim"]["num_workers"],
         )
@@ -211,7 +215,7 @@ class BondNetLightningDataModule(pl.LightningDataModule):
     def val_dataloader(self):
         return DataLoaderReaction(
             dataset=self.val_ds,
-            batch_size=len(self.val_ds),
+            batch_size=self.config["optim"]["batch_size"],
             shuffle=False,
             num_workers=self.config["optim"]["num_workers"]
         )
