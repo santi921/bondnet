@@ -119,7 +119,7 @@ if __name__ == "__main__":
 
     profiler = PyTorchProfiler(
         # activities=[torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA],
-        on_trace_ready = torch.profiler.tensorboard_trace_handler("tb_logs/profiler_small20_empty"),
+        on_trace_ready = torch.profiler.tensorboard_trace_handler("tb_logs/profiler_b20w2_empty_tmp_3cus_new"),
         schedule = torch.profiler.schedule(skip_first=2, wait=1, warmup=1,
                                            active=2),
         # schedule = torch.profiler.schedule(skip_first=1, wait=1, warmup=1,
@@ -143,7 +143,7 @@ if __name__ == "__main__":
             checkpoint_callback,
         ],
         enable_checkpointing=True,
-        strategy=config["optim"]["strategy"],
+        #strategy=config["optim"]["strategy"],
         default_root_dir=config["dataset"]["log_save_dir"],
         logger=loggers,
         precision=config["model"]["precision"],

@@ -25,7 +25,7 @@ import pickle5 as pickle
 
 logger = RDLogger.logger()
 logger.setLevel(RDLogger.CRITICAL)
-
+import torch.autograd.profiler as profiler
 
 def task_done(future):
     try:
@@ -625,6 +625,7 @@ class ReactionDatasetGraphs(BaseDataset):
 
 class ReactionDatasetLMDBDataset(BaseDataset):
     def __init__(self, reaction_lmdb):
+
         self.reaction_lmdb = reaction_lmdb
         self.reactions = self.reaction_lmdb.reactions
         self.molecules = self.reaction_lmdb.molecules
@@ -658,7 +659,7 @@ class ReactionDatasetLMDBDataset(BaseDataset):
         #sort_order = np.argsort(ids)
         ids = sorted(ids)
     
- 
+
         
         label_mean = self.reactions.mean
         label_std = self.reactions.std

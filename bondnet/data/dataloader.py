@@ -4,6 +4,8 @@ import itertools
 from torch.utils.data import DataLoader
 from copy import deepcopy
 import numpy as np 
+import torch.autograd.profiler as profiler
+
 
 class DataLoaderReaction(DataLoader):
     """
@@ -25,6 +27,7 @@ class DataLoaderReaction(DataLoader):
 
             reactions, labels = map(list, zip(*samples))
             molecules = self.dataset.graphs
+
 
             mol_ids = set()
             for rxn in reactions:
@@ -57,6 +60,7 @@ class DataLoaderReaction(DataLoader):
                 "id": identifier,
                 #"reaction_types": reaction_types,
             }
+
 
             # add label scaler if it is used
             try:
@@ -95,7 +99,7 @@ class DataLoaderReactionLMDB(DataLoader):
         def collate(samples):
             reactions, labels = map(list, zip(*samples))
             graphs = self.dataset.graphs
-
+            
             mol_ids = set()
             for rxn in reactions:
                 mol_ids.update(
@@ -137,7 +141,7 @@ class DataLoaderReactionLMDB(DataLoader):
             
             
             # resort graphs to match the new mol_ids
-            batched_graphs = dgl.batch(sub_molecules)
+            batched_graphs = dgl.batch(sub_molecules)  #!now this happens on cpu, but it should on gpu
             ################### from reaction network ######################
             
 
@@ -156,7 +160,6 @@ class DataLoaderReactionLMDB(DataLoader):
                 "reaction": reactions,
                 "id": identifier
             }
-
 
             try:
                 mean = [la["scaler_mean"] for la in labels]
