@@ -126,9 +126,9 @@ if __name__ == "__main__":
 
             train_dataset, val_dataset = train_validation_test_split(
                 dataset,
+                test=0.0,
                 validation=config["val_size"],
                 random_seed=config["random_seed_split"],
-                test=0.0,
                 lmdb=True
             )
             construct_lmdb_and_save_reaction_dataset(dataset, lmdb_dir)
