@@ -43,7 +43,7 @@ def get_mol_graphs(row, ind):
 
 def main():
     overwrite = False
-    path_df = "../../dataset/old_datasets/" + "qm_9_merge_3.json"
+    path_df = "/home/santiagovargas/dev/bondnet/bondnet/dataset/HEPOM/Holdout_set_protonated_1000.json"
     hydro_df = pd.read_json(path_df)
 
     product_list, water_list, reac_list = [], [], []

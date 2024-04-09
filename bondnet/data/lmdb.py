@@ -356,7 +356,7 @@ def construct_lmdb_and_save_reaction_dataset(dataset, lmdb_dir, workers=8):
         reverse_list.append(dataset.labels[ind]["value_rev"])
         reaction_molecule_info.append(molecule_info_temp)
         has_bonds_list.append(has_bonds) # don't need to save
-        reaction_indicies.append(int(rxn.id[0])) # need 
+        reaction_indicies.append(str(rxn.id[0])) # need 
         #empty_reaction_graphs.append(empty_graph) # need 
         #empty_reaction_fts.append(empty_fts) # potentially source of bugginess
         mappings_list.append(mappings)
