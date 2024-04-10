@@ -223,6 +223,7 @@ class Set2SetThenCat(nn.Module):
         in_feats: node feature sizes. The order should be the same as `ntypes`.
         ntypes_direct_cat: node types to which not perform Set2Set, whose feature is
             directly concatenated. e.g. ['global']
+            #!this is because a+b->c = c-a-b no need Set2Set
     """
 
     def __init__(

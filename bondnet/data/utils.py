@@ -402,7 +402,10 @@ def process_batch_mol_rxn(
     batched_atom_product, 
     batched_bond_reactant, 
     batched_bond_product ,
-
+    batched_global_reactant,
+    batched_global_product,
+    global_batch_indices_reactant,
+    global_batch_indices_product,
     mappings = None, #!needed for atom and bond.
     has_bonds = None, #!needed for atom and bond.
     ntypes=("global", "atom", "bond"),
@@ -411,7 +414,7 @@ def process_batch_mol_rxn(
     empty_graph_fts=True,
 ):
     
-    breakpoint()
+    #breakpoint()
     #!TODO: TypeError: object of type 'NoneType' has no len()
     distinguishable_value = torch.iinfo(torch.long).max
     batched_feats = {}
@@ -419,12 +422,47 @@ def process_batch_mol_rxn(
         _features = feats[nt]
         coef = torch.tensor([1], device=device) if not reverse else torch.tensor([-1], device=device)
 
+        if nt == "global":
+
+            num_batches = len(reactions)
+            batch_one_hot = torch.nn.functional.one_hot(global_batch_indices_reactant, num_batches).float()
+            gathered_content = _features.index_select(0, batched_global_reactant)
+            reactant_sum = torch.matmul(batch_one_hot.t(), gathered_content)
+
+            #!product why float64?
+            batch_one_hot = torch.nn.functional.one_hot(global_batch_indices_product, num_batches).float()
+            gathered_content = _features.index_select(0, batched_global_product)
+            product_sum = torch.matmul(batch_one_hot.t(), gathered_content)
+
+            batched_feats[nt] = - reactant_sum*coef \
+                                + product_sum*coef
+
+            # #!reactant  why float64?
+            # batch_one_hot = torch.nn.functional.one_hot(global_batch_indices_reactant, num_batches).to(torch.float64)
+            # gathered_content = _features.index_select(0, batched_global_reactant).to(torch.float64)
+            # reactant_sum = torch.matmul(batch_one_hot.t(), gathered_content)
+
+            # #!product why float64?
+            # batch_one_hot = torch.nn.functional.one_hot(global_batch_indices_product, num_batches).to(torch.float64)
+            # gathered_content = _features.index_select(0, batched_global_product).to(torch.float64)
+            # product_sum = torch.matmul(batch_one_hot.t(), gathered_content)
+
+            # batched_feats[nt] = - reactant_sum*coef \
+            #                     + product_sum*coef
+            # batched_feats[nt] = batched_feats[nt].to(torch.float32)
+            
         if nt == "atom":
             batched_feats[nt] = - _features[batched_atom_reactant]*coef \
                                 + _features[batched_atom_product]*coef
         if nt=="bond":
+            #breakpoint()
             net_full_feats_reactant = torch.zeros(len(batched_bond_reactant), _features.shape[1], device=device)
+
+            #!batched_bond_reactant is correct equal to extracted features from 0 to N in bond. 
             valid_mask = batched_bond_reactant != distinguishable_value
+
+            # filtered_indices = torch.nonzero(valid_mask, as_tuple=False).squeeze()
+            # net_full_feats_reactant[filtered_indices] = _features[filtered_indices]
             filtered_indices = batched_bond_reactant[valid_mask]
             net_full_feats_reactant[valid_mask] = _features[filtered_indices]
 
@@ -437,8 +475,6 @@ def process_batch_mol_rxn(
                                 + net_full_feats_product*coef
         #if nt=="global":
     return batched_feats
-
-
 
 
 
@@ -1102,7 +1138,6 @@ def create_rxn_graph(
             """
             #assert len(has_bonds["reactants"]) == len(mappings["bond_map"][0]), "has_bond not the same length as mappings {} {} \n {} {}".format(has_bonds["reactants"], mappings["bond_map"][0],has_bonds["products"], mappings["bond_map"][1])
             #assert len(has_bonds["products"]) == len(mappings["bond_map"][1]), "has_bond not the same length as mappings {} {} \n {} {}".format(has_bonds["products"], mappings["bond_map"][1], has_bonds["reactants"], mappings["bond_map"][0])
-
 
         if nt == "global":
             #!reactants_ft[0] (1x512), reactants_ft[1] (1x512)

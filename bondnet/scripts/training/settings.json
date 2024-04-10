@@ -46,7 +46,7 @@
     "batch_size": 20,
     "num_devices": 1,
     "num_nodes": 1,
-    "num_workers": 2,
+    "num_workers": 4,
     "val_size": 0.15,
     "test_size": 0.1,
     "strategy": "ddp",
@@ -59,7 +59,7 @@
     "log_save_dir": "./model_log/",
     "lmdb_dir": "./lmdb_data/",
     "target_var": "dG_sp",
-    "train_lmdb": "/pscratch/sd/w/wenxu/jobs/CRNs/bondnet_0321/tests/data/testdata/lmdb_new", 
+    "train_lmdb": "/pscratch/sd/w/wenxu/jobs/CRNs/bondnet_0321/tests/data/testdata/lmdb_new_2k", 
     "val_lmdb":   "/pscratch/sd/w/wenxu/jobs/CRNs/bondnet_0321/tests/data/testdata/lmdb_new",
     "overwrite": true
   },
