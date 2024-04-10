@@ -996,17 +996,31 @@ def train_validation_test_split(dataset, validation=0.1, test=0.1, random_seed=N
     val_idx = idx[num_train : num_train + num_val]
     test_idx = idx[num_train + num_val :]
 
+    
+    
     if bool(lmdb):
-        return [
-                SubsetLMDB(dataset, train_idx),
-                SubsetLMDB(dataset, val_idx),
-                SubsetLMDB(dataset, test_idx),
-        ]
+        if test==0.0:
+            return [
+                    SubsetLMDB(dataset, train_idx),
+                    SubsetLMDB(dataset, val_idx),
+            ]
+        else:
+            return [
+                    SubsetLMDB(dataset, train_idx),
+                    SubsetLMDB(dataset, val_idx),
+                    SubsetLMDB(dataset, test_idx),
+            ]
 
     else:
-        return [
-                Subset(dataset, train_idx),
-                Subset(dataset, val_idx),
-                Subset(dataset, test_idx),
-        ]
+        if test==0.0:
+            return [
+                    Subset(dataset, train_idx),
+                    Subset(dataset, val_idx),
+            ]
+        else:
+            return [
+                    Subset(dataset, train_idx),
+                    Subset(dataset, val_idx),
+                    Subset(dataset, test_idx),
+            ]
     
