@@ -414,10 +414,11 @@ def process_species_graph(
         #print("here!!" *10 )
         #
         
-    #print("bonds reactant", type(bonds_reactant[0][0]))
-    #print("bonds products", bonds_products[0][0])
+    #print("bonds reactant", type(bonds_reactant))
+    #print("bonds products", type(bonds_products))
     #print(bonds_reactant)
-
+    #print(bonds_products)
+    
     total_bonds = [tuple(bond) for bond in bonds_reactant]
     [
         total_bonds.append((np.min(np.array(i)), np.max(np.array(i))))
@@ -427,9 +428,12 @@ def process_species_graph(
     total_bonds = list(set(total_bonds))
     total_bonds = [list(bond) for bond in total_bonds]
 
-    num_nodes = 0
-    for i in row["composition"].items():
-        num_nodes += int(i[-1])
+    # determine number of nodes by flattening and setting bonds 
+    total_bonds_flat = [item for sublist in total_bonds for item in sublist]
+    num_nodes = len(set(total_bonds_flat))
+    #num_nodes = 0
+    #for i in row["composition"].items():
+   #     num_nodes += int(i[-1])
     
     extra_keys_full = {}
     # checks if there are other features to add to mol_wrapper object
@@ -1182,14 +1186,7 @@ def create_reaction_network_files_and_valid_rows(
 
     extractor = ReactionCollection(
         reactions
-    )  # this needs to be gutted and modified entirely
-    # un comment to show # of products and reactants
-    # [
-    #    print(
-    #        "# reactants: {}, # products: {}".format(len(i.reactants), len(i.products))
-    #    )
-    #    for i in reactions
-    # ]
+    )  
     (
         all_mols,
         all_labels,

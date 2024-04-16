@@ -3,9 +3,9 @@ import numpy as np
 import networkx as nx
 import itertools
 import torch
+import torch.autograd.profiler as profiler
 from rdkit import Chem
 import itertools, copy, dgl
-
 
 def get_dataset_species(molecules):
     """
@@ -66,7 +66,8 @@ def get_hydro_data_functional_groups(json_file):
 
 
 def one_hot_encoding(x, allowable_set):
-    """One-hot encoding.
+    """
+    One-hot encoding.
 
     Parameters
     ----------
@@ -85,7 +86,8 @@ def one_hot_encoding(x, allowable_set):
 
 
 def multi_hot_encoding(x, allowable_set):
-    """Multi-hot encoding.
+    """
+    Multi-hot encoding.
 
     Args:
         x (list): any type that can be compared with elements in allowable_set
@@ -95,6 +97,7 @@ def multi_hot_encoding(x, allowable_set):
         list: List of int (0 or 1) where zero or more values can be 1.
             If the i-th value is 1, then we must have allowable_set[i] in x.
     """
+
     return list(map(int, list(map(lambda s: s in x, allowable_set))))
 
 
@@ -272,6 +275,18 @@ def filter_rotations(cycle_list):
 
 
 def find_rings(atom_num, bond_list, allowed_ring_size=[], edges=True):
+    """
+    finds rings in a molecule
+    takes:
+        atom_num - number of atoms in molecule
+        bond_list - list of bonds in molecule
+        allowed_ring_size - list of allowed ring sizes
+        edges - whether to return edges or nodes
+    returns:
+        cycle_list - list of cycles found in molecule
+    """
+
+
     cycle_graphs, cycle_list = [], []
     nx_graph = nx.Graph()
     [nx_graph.add_node(i) for i in range(atom_num)]
@@ -345,6 +360,7 @@ def rdkit_bond_desc(mol):
         ret_dict - a dictionary with the bonds(as root, target nodes) + descriptor info
 
     """
+
     detected_bonds_dict = {}
     allowed_bond_type = [
         Chem.rdchem.BondType.SINGLE,
@@ -413,120 +429,137 @@ def mol_graph_to_rxn_graph(
             reactions.
         feats (dict): features for the batched graph
     """
-    # updates node features on batches
-    for nt, ft in feats.items():
-        graph.nodes[nt].data.update({"ft": ft})
-    # unbatch molecule graph
-    graphs = dgl.unbatch(graph)
-    reaction_graphs, reaction_feats = [], []
-    batched_feats = {}
+    with profiler.record_function("update features"):
 
-    for rxn in reactions:
-        # print("rxn keys: ", rxn.keys())
-        if type(rxn) == dict:
-            if "reaction_molecule_info" in rxn.keys():
-                reactants = [
-                    graphs[i]
-                    for i in rxn["reaction_molecule_info"]["reactants"]["reactants"]
-                ]
-                products = [
-                    graphs[i]
-                    for i in rxn["reaction_molecule_info"]["products"]["products"]
-                ]
+        # updates node features on batches
+        for nt, ft in feats.items():
+            graph.nodes[nt].data.update({"ft": ft})
+        # unbatch molecule graph
+        graphs = dgl.unbatch(graph)
+        reaction_graphs, reaction_feats = [], []
+        batched_feats = {}
 
-                mappings = rxn["mappings"]
-                #reactants = [graphs[i] for i in rxn.reactants]
-                #products = [graphs[i] for i in rxn.products]
-               
+        with profiler.record_function("iterative reactions"):
 
-                has_bonds = {
-                    "reactants": [
-                        True if len(mp) > 0 else False for mp in mappings["bond_map"][0]
-                    ],
-                    "products": [
-                        True if len(mp) > 0 else False for mp in mappings["bond_map"][1]
-                    ],
-                }
+            for rxn in reactions:
+                # print("rxn keys: ", rxn.keys())
+                if type(rxn) == dict:
+                    if "reaction_molecule_info" in rxn.keys():
+                        reactants = [
+                            graphs[i]
+                            for i in rxn["reaction_molecule_info"]["reactants"]["reactants"]
+                        ]
+                        products = [
+                            graphs[i]
+                            for i in rxn["reaction_molecule_info"]["products"]["products"]
+                        ]
 
-                if len(has_bonds["reactants"]) != len(reactants) or len(
-                    has_bonds["products"]
-                    ) != len(products): print("unequal mapping & graph len")
+                        mappings = rxn["mappings"]
+                        #reactants = [graphs[i] for i in rxn.reactants]
+                        #products = [graphs[i] for i in rxn.products]
+                    
 
-                g, fts = create_rxn_graph(
-                    reactants=reactants,
-                    products=products,
-                    mappings=mappings,
-                    device=device,
-                    has_bonds=None,
-                    reverse=reverse,
-                    reactant_only=reactant_only,
-                    #empty_graph_fts={
-                    #    "empty_graph": rxn["reaction_graph"],
-                    #    "zero_feats": rxn["reaction_feature"],
-                    #},
-                    #empty_graph_fts=None
-                )
-        # check if reaction has key "mappings"
-        else:
-            reactants = [graphs[i] for i in rxn.reactants]
-            products = [graphs[i] for i in rxn.products]
+                        has_bonds = {
+                            "reactants": [
+                                True if len(mp) > 0 else False for mp in mappings["bond_map"][0]
+                            ],
+                            "products": [
+                                True if len(mp) > 0 else False for mp in mappings["bond_map"][1]
+                            ],
+                        }
 
-            mappings = {
-                "bond_map": rxn.bond_mapping,
-                "atom_map": rxn.atom_mapping,
-                "total_bonds": rxn.total_bonds,
-                "total_atoms": rxn.total_atoms,
-                "num_bonds_total": rxn.num_bonds_total,
-                "num_atoms_total": rxn.num_atoms_total,
-            }
-            has_bonds = {
-                "reactants": [
-                    True if len(mp) > 0 else False for mp in rxn.bond_mapping[0]
-                ],
-                "products": [
-                    True if len(mp) > 0 else False for mp in rxn.bond_mapping[1]
-                ],
-            }
+                        if len(has_bonds["reactants"]) != len(reactants) or len(
+                            has_bonds["products"]
+                            ) != len(products): print("unequal mapping & graph len")
 
-            if len(has_bonds["reactants"]) != len(reactants) or len(
-                has_bonds["products"]
-            ) != len(products):
-                print("unequal mapping & graph len")
+                        g, fts = create_rxn_graph(
+                            reactants=reactants,
+                            products=products,
+                            mappings=mappings,
+                            device=device,
+                            has_bonds=None,
+                            reverse=reverse,
+                            reactant_only=reactant_only,
+                            empty_graph_fts={
+                                "empty_graph": rxn["reaction_graph"],
+                                "zero_feats": rxn["reaction_feature"],
+                            },
+                        )
+                # check if reaction has key "mappings"
+                else:
+                    reactants = [graphs[i] for i in rxn.reactants]
+                    products = [graphs[i] for i in rxn.products]
 
-            g, fts = create_rxn_graph(
-                reactants=reactants,
-                products=products,
-                mappings=mappings,
-                device=device,
-                has_bonds=has_bonds,
-                reverse=reverse,
-                reactant_only=reactant_only,
-            )
+                    mappings = {
+                        "bond_map": rxn.bond_mapping,
+                        "atom_map": rxn.atom_mapping,
+                        "total_bonds": rxn.total_bonds,
+                        "total_atoms": rxn.total_atoms,
+                        "num_bonds_total": rxn.num_bonds_total,
+                        "num_atoms_total": rxn.num_atoms_total,
+                    }
+                    has_bonds = {
+                        "reactants": [
+                            True if len(mp) > 0 else False for mp in rxn.bond_mapping[0]
+                        ],
+                        "products": [
+                            True if len(mp) > 0 else False for mp in rxn.bond_mapping[1]
+                        ],
+                    }
 
-        reaction_graphs.append(g)
-        # if(device !=None):
-        #    fts = {k: v.to(device) for k, v in fts.items()}
-        reaction_feats.append(fts)
-        ##################################################
+                    if len(has_bonds["reactants"]) != len(reactants) or len(
+                        has_bonds["products"]
+                    ) != len(products):
+                        print("unequal mapping & graph len")
 
-    for i, g, ind in zip(reaction_feats, reaction_graphs, range(len(reaction_feats))):
-        feat_len_dict = {}
-        total_feats = 0
+                    g, fts = create_rxn_graph(
+                        reactants=reactants,
+                        products=products,
+                        mappings=mappings,
+                        device=device,
+                        has_bonds=has_bonds,
+                        reverse=reverse,
+                        reactant_only=reactant_only,
+                    )
 
-        for nt in i.keys():
-            total_feats += i[nt].shape[0]
-            feat_len_dict[nt] = i[nt].shape[0]
+                reaction_graphs.append(g)
+                # if(device !=None):
+                #    fts = {k: v.to(device) for k, v in fts.items()}
+                reaction_feats.append(fts)
+                ##################################################
 
-        assert total_feats == g.number_of_nodes(), "error in graph construction"
+    with profiler.record_function("batch reaction graphs"):
+        for i, g, ind in zip(reaction_feats, reaction_graphs, range(len(reaction_feats))):
+            feat_len_dict = {}
+            total_feats = 0
 
-    batched_graph = dgl.batch(reaction_graphs)
+            for nt in i.keys():
+                total_feats += i[nt].shape[0]
+                feat_len_dict[nt] = i[nt].shape[0]
 
-    for nt in feats:  # batch features
-        batched_feats[nt] = torch.cat([ft[nt] for ft in reaction_feats])
-    return batched_graph, batched_feats
+            assert total_feats == g.number_of_nodes(), "error in graph construction"
+
+        batched_graph = dgl.batch(reaction_graphs)
+
+        for nt in feats:  # batch features
+            batched_feats[nt] = torch.cat([ft[nt] for ft in reaction_feats])
+        return batched_graph, batched_feats
 
 
-def construct_rxn_graph_empty(mappings, device=None, self_loop=True):
+def construct_rxn_graph_empty(mappings, device=None, self_loop=True, ret_feats=False):
+    """
+    Construct an empty reaction graph with the given mappings.
+    Takes:
+        mappings - dictionary of mappings between reactants and products
+        device - device to run on
+        self_loop - whether to include self loops in the graph
+        ret_feats - whether to return the features of the graph
+    Returns:
+        rxn_graph_zeroed - empty reaction graph
+    
+    """
+
+    
     bonds_compile = mappings["total_bonds"]
     atoms_compile = mappings["total_atoms"]
     num_bonds = len(bonds_compile)
@@ -574,6 +607,14 @@ def construct_rxn_graph_empty(mappings, device=None, self_loop=True):
         rxn_graph_zeroed = dgl.heterograph(edges_dict, device=device)
     else: 
         rxn_graph_zeroed = dgl.heterograph(edges_dict)
+    
+    if ret_feats:
+        feats = {
+            "atom": torch.zeros(num_atoms, 64).type_as(torch.FloatTensor()),
+            "bond": torch.zeros(num_bonds, 64).type_as(torch.FloatTensor()),
+            "global": torch.zeros(1, 64).type_as(torch.FloatTensor()),
+        }
+        return rxn_graph_zeroed, feats
     
     return rxn_graph_zeroed
 
@@ -744,6 +785,19 @@ def create_rxn_graph(
                         assert np.max(np.array(mappings_total)) < len(
                             net_ft_full_temp
                         ), f"invalid index  {mappings}"
+                        try: 
+                            #print("nt {}".format(nt))
+                            net_ft_full_temp[mappings_total] # works norminally
+                            product_ft[mappings_prod]
+                        except: 
+                            print("node type at error {}".format(nt))
+                            print("prod mappings {}".format(mappings_prod))
+                            print("product_ft {}".format(product_ft.shape))
+                            print("net_ft_full_temp {}".format(net_ft_full_temp.shape))
+                            print("mappings_total {}".format(mappings_total))
+                            net_ft_full_temp[mappings_total] # works norminally
+                            product_ft[mappings_prod]
+
                         net_ft_full_temp[mappings_total] = product_ft[mappings_prod]
                         net_ft_full[mappings_total] += (
                             coef * net_ft_full_temp[mappings_total]
@@ -753,3 +807,75 @@ def create_rxn_graph(
 
     #print("graph device: ", graph.device, " feats device: ", feats["atom"].device)
     return graph, feats
+
+
+def process_batch_mol_rxn(
+    feats,  
+    reactions, 
+    device,
+    reverse,
+    batch_data,
+    ntypes=("global", "atom", "bond"),
+):
+    """
+    Converts a batched molecule graph to a batched reaction graph.
+    Takes: 
+        feats - dictionary of features for each node type
+        reactions - list of reactions
+        device - device to run on
+        reverse - whether to reverse the reaction direction
+        batch_data - dictionary with batched indices
+        ntypes - node types to consider
+    Returns:
+        batched_feats - dictionary of features for each node type
+
+    """
+
+    batched_feats = {}
+    distinguishable_value = torch.iinfo(torch.long).max
+    
+    for nt in ntypes:
+        _features = feats[nt]
+        coef = torch.tensor([1], device=device) if not reverse else torch.tensor([-1], device=device)
+
+
+        if nt == "atom":
+            batched_feats[nt] = - _features[batch_data["batched_atom_reactant"]]*coef \
+                                + _features[batch_data["batched_atom_product"]]*coef
+        if nt=="bond":
+            #breakpoint()
+            net_full_feats_reactant = torch.zeros(len(batch_data["batched_bond_reactant"]), _features.shape[1], device=device)
+
+            #!batched_bond_reactant is correct equal to extracted features from 0 to N in bond. 
+            valid_mask = batch_data["batched_bond_reactant"] != distinguishable_value
+
+            # filtered_indices = torch.nonzero(valid_mask, as_tuple=False).squeeze()
+            # net_full_feats_reactant[filtered_indices] = _features[filtered_indices]
+            filtered_indices = batch_data["batched_bond_reactant"][valid_mask]
+            net_full_feats_reactant[valid_mask] = _features[filtered_indices]
+
+            net_full_feats_product = torch.zeros(len(batch_data["batched_bond_reactant"]), _features.shape[1], device=device)
+            valid_mask = batch_data["batched_bond_product"] != distinguishable_value
+            filtered_indices = batch_data["batched_bond_product"][valid_mask]
+            net_full_feats_product[valid_mask] = _features[filtered_indices]
+
+            batched_feats[nt] = - net_full_feats_reactant*coef \
+                                + net_full_feats_product*coef
+    
+        if nt == "global":
+
+            num_batches = reactions
+            batch_one_hot = torch.nn.functional.one_hot(batch_data["global_batch_indices_reactant"], num_batches).float()
+            gathered_content = _features.index_select(0, batch_data["batched_global_reactant"])
+            reactant_sum = torch.matmul(batch_one_hot.t(), gathered_content)
+
+            #!product why float64?
+            batch_one_hot = torch.nn.functional.one_hot(batch_data["global_batch_indices_product"], num_batches).float()
+            gathered_content = _features.index_select(0, batch_data["batched_global_product"])
+            product_sum = torch.matmul(batch_one_hot.t(), gathered_content)
+
+            batched_feats[nt] = - reactant_sum*coef \
+                                + product_sum*coef
+
+
+    return batched_feats
