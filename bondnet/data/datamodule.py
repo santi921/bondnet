@@ -17,10 +17,10 @@ from bondnet.data.dataset import (
     LmdbReactionDataset, 
     LmdbMoleculeDataset 
 )
-from bondnet.data.reaction_network import ReactionLMDB
 
+from bondnet.data.reaction_network import ReactionLMDB
 from bondnet.data.dataloader import DataLoaderReaction, DataLoaderReactionLMDB
-#from bondnet.data.reaction_network import ReactionNetworkLMDB
+
 
 
 
@@ -51,7 +51,7 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
                 config={
                     "src": os.path.join(self.test_lmdb_loc, "molecule.lmdb")
                 },
-                #transform=TransformMol
+                transform=TransformMol
 
             )
             self.test_dataset = ReactionLMDB(self.test_molecule_dataset, self.test_rxn_dataset)
@@ -69,7 +69,7 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
             )
             self.val_molecule_dataset = LmdbMoleculeDataset(
                 config=config_val,
-                #transform=TransformMol
+                transform=TransformMol
             )
         
             self.val_dataset = ReactionLMDB(self.val_molecule_dataset, self.val_rxn_dataset)
@@ -90,7 +90,7 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
         
         self.train_molecule_dataset = LmdbMoleculeDataset(
             config=config_train, 
-            #transform=TransformMol
+            transform=TransformMol
 
         )
 

@@ -26,6 +26,12 @@ scalar = 1 / 1024
 
 def TransformMol(data_object):
     serialized_graph = data_object['molecule_graph']
+    # check if serialized_graph is DGL graph or if it is chunk 
+    if isinstance(serialized_graph, dgl.DGLGraph):
+        return data_object
+    elif isinstance(serialized_graph, dgl.DGLHeteroGraph):
+        return data_object
+
     dgl_graph = load_dgl_graph_from_serialized(serialized_graph)
     data_object["molecule_graph"] = dgl_graph
     return data_object
@@ -34,6 +40,12 @@ def TransformMol(data_object):
 
 def TransformReaction(data_object):
     serialized_graph = data_object['reaction_graph']
+    
+    if isinstance(serialized_graph, dgl.DGLGraph):
+        return data_object
+    elif isinstance(serialized_graph, dgl.DGLHeteroGraph):
+        return data_object
+
     dgl_graph = load_dgl_graph_from_serialized(serialized_graph)
     data_object["reaction_graph"] = dgl_graph
     return data_object
