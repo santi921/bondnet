@@ -9,7 +9,7 @@ from bondnet.data.dataset import (
 
 from bondnet.data.dataloader import DataLoaderReactionLMDB, DataLoaderReaction
 from bondnet.model.training_utils import get_grapher
-from bondnet.data.lmdb import construct_lmdb_and_save, TransformMol
+from bondnet.data.lmdb import TransformMol
 from bondnet.data.dataloader import DataLoaderReactionLMDB, DataLoaderReaction
 from bondnet.data.dataset import (
     ReactionDatasetGraphs, 
@@ -22,7 +22,6 @@ from bondnet.data.reaction_network import ReactionLMDB
 from bondnet.data.dataloader import DataLoaderReaction, DataLoaderReactionLMDB
 #from bondnet.data.reaction_network import ReactionNetworkLMDB
 
-torch.multiprocessing.set_sharing_strategy("file_system")
 
 
 class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
@@ -52,7 +51,7 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
                 config={
                     "src": os.path.join(self.test_lmdb_loc, "molecule.lmdb")
                 },
-                transform=TransformMol
+                #transform=TransformMol
 
             )
             self.test_dataset = ReactionLMDB(self.test_molecule_dataset, self.test_rxn_dataset)
@@ -70,7 +69,7 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
             )
             self.val_molecule_dataset = LmdbMoleculeDataset(
                 config=config_val,
-            transform=TransformMol
+                #transform=TransformMol
             )
         
             self.val_dataset = ReactionLMDB(self.val_molecule_dataset, self.val_rxn_dataset)
@@ -90,7 +89,8 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
         )
         
         self.train_molecule_dataset = LmdbMoleculeDataset(
-            config=config_train, transform=TransformMol
+            config=config_train, 
+            #transform=TransformMol
 
         )
 

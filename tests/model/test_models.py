@@ -15,6 +15,7 @@ from bondnet.test_utils import get_defaults
 import warnings
 import time 
 
+
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings(
     "ignore",
@@ -138,7 +139,6 @@ def test_model_save_load():
     assert type(trainer_restart) == pl.Trainer
 
 
-
 def test_model_set2set():
     dataset_loc = "../data/testdata/barrier_100.json"
     #dataset_loc = "/home/santiagovargas/dev/bondnet/bondnet/dataset/mg_dataset/rapter_clean/train_inorganic_mg_05132023.pkl"
@@ -200,7 +200,9 @@ def test_model_set2set():
     print("time for set2set", delta_time)
 
 
-def test_model_mean():
+#def test_model_mean():
+# defn main
+if __name__ == '__main__':
     dataset_loc = "../data/testdata/barrier_100.json"
     #dataset_loc = "/home/santiagovargas/dev/bondnet/bondnet/dataset/mg_dataset/rapter_clean/train_inorganic_mg_05132023.pkl"
     config = {
@@ -222,10 +224,10 @@ def test_model_mean():
         "optim": {
             "val_size": 0.1,
             "test_size": 0.1,
-            "batch_size": 32,
-            "num_workers": 4,
-            "pin_memory": True,
-            "persistent_workers": True,
+            "batch_size": 8,
+            "num_workers": 0,
+            "pin_memory": False,
+            "persistent_workers": False,
         },
     }
     config_model = get_defaults()
@@ -243,15 +245,18 @@ def test_model_mean():
     feat_size, feat_name = dm.prepare_data()
     config["model"]["in_feats"] = feat_size
     model = load_model_lightning(config["model"], load_dir="./test_save_load/")
-
+    
+    
     trainer = pl.Trainer(
         max_epochs=1,
         accelerator="gpu",
         devices=1,
-        precision=32,
-        accumulate_grad_batches=5,
-        enable_progress_bar=True,
-        gradient_clip_val=1.0,
+        precision=16,
+        #accumulate_grad_batches=1,
+        #enable_progress_bar=True,
+        #gradient_clip_val=1.0,
+        num_nodes=1,
+        strategy="ddp",
         enable_checkpointing=False,
         default_root_dir="./test_save_load/",
     )
@@ -554,7 +559,6 @@ def test_lmdb():
     delta_time = end_time - start_time
     print("time for mean", delta_time)
 
-#test_lmdb()
 
 def test_reactant_only_construction():
     dataset_loc = "../data/testdata/symmetric.json"

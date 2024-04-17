@@ -4,6 +4,7 @@ import pytorch_lightning as pl
 import itertools, copy, dgl
 import numpy as np
 import logging
+import time
 import torch.nn as nn
 from torch.nn import MSELoss
 from torch.optim import lr_scheduler
@@ -486,6 +487,10 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
         """
         return self.shared_step(batch, mode="test")
 
+    def on_train_epoch_start(self):
+        self.start_time = time.time()
+
+
     def on_train_epoch_end(self):
         """
         Training epoch end
@@ -494,6 +499,8 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
         self.log("train_f1", f1, prog_bar=True)
         self.log("train_acc", acc, prog_bar=True)
         self.log("train_cross", cross, prog_bar=True)
+        duration = time.time() - self.start_time
+        self.log('epoch_time', duration, on_epoch=True, prog_bar=True, logger=True)
 
     def on_validation_epoch_end(self):
         """

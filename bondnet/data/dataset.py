@@ -635,14 +635,15 @@ class ReactionDatasetLMDBDataset(BaseDataset):
         self.rings = self.reaction_lmdb.molecules.ring_sizes
         self.charges = self.reaction_lmdb.molecules.charges
         self.feature_info = self.reaction_lmdb.molecules.feature_info
-        self.reaction_ids = [
-            i["reaction_index"] for i in self.reactions
-        ]  # here we can either use reaction index or the specific id
-        #self.reaction_ids = [int(i) for i in range(len(self.reaction_ids))]
+        # #!comment out
+        # self.reaction_ids = [
+        #     i["reaction_index"] for i in self.reactions
+        # ]  # here we can either use reaction index or the specific id
+        # self.reaction_ids = [int(i) for i in range(len(self.reaction_ids))]
         self._feature_name = self.reaction_lmdb.reactions.feature_name
         self._feature_size = self.reaction_lmdb.reactions.feature_size
         self.dtype = self.reaction_lmdb.reactions.dtype
-        self.device = self.graphs[0].device
+        #self.device = self.graphs[0].device
 
     
     def __getitem__(self, item):
@@ -823,6 +824,7 @@ class LmdbMoleculeDataset(LmdbBaseDataset):
                 
         else:
             self.env_ = self.env
+
         
     @property
     def charges(self):
@@ -884,14 +886,11 @@ class LmdbReactionDataset(LmdbBaseDataset):
 
     @property
     def mean(self):
-        #mean = self.env.begin().get("mean".encode("ascii"))
-        #return pickle.loads(mean)
         return self._mean
 
     @property
     def std(self):
-        #std = self.env.begin().get("std".encode("ascii"))
-        #return pickle.loads(std)
+        #std = self.env_.begin().get("std".encode("ascii"))
         return self._std
 
 

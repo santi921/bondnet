@@ -112,7 +112,7 @@ class DataLoaderReactionLMDB(DataLoader):
                 "provide one"
             )
 
-        self.device = dataset.device
+        #self.device = dataset.device
 
         def collate(samples):
             reactions, labels = map(list, zip(*samples))
@@ -196,7 +196,7 @@ class DataLoaderReactionLMDB(DataLoader):
                 atom_batch_indices=atom_batch_indices,
                 bond_batch_indices=bond_batch_indices,
                 global_batch_indices=global_batch_indices,
-                device = self.device
+                #device = self.device
             )
 
             return batched_graphs, batched_labels, batch_data
@@ -218,7 +218,8 @@ def get_node_batch_indices(batched_graph, node_type):
     - torch.Tensor: The batch indices for each node of the specified type.
     """
     batch_num_nodes = batched_graph.batch_num_nodes(node_type)
-    return torch.repeat_interleave(torch.arange(len(batch_num_nodes), device=batched_graph.device), batch_num_nodes)
+    ret_tensor = torch.repeat_interleave(torch.arange(len(batch_num_nodes), device=batched_graph.device), batch_num_nodes)
+    return ret_tensor
 
 
 def get_batch_indices_mapping(batch_indices, reactant_ids, atom_bond_map, atom_bond_num):
@@ -232,9 +233,13 @@ def get_batch_indices_mapping(batch_indices, reactant_ids, atom_bond_map, atom_b
     matches = torch.tensor([idx for rid in reactant_ids for idx in (batch_indices == rid).nonzero(as_tuple=True)[0]])
 
     sorted_values_concat = torch.cat(sorted_index_reaction)
+    # print the type of daata in tensor 
+    # print("sorted_values_concat type:", sorted_values_concat.dtype)
 
-
-    # print("values_concat:",len(sorted_values_concat), "matches:", matches)
+    if len(sorted_values_concat) != len(matches):
+        raise ValueError("Length of sorted_values_concat and matches must be equal.")
+    
+    
     indices_full[sorted_values_concat] = matches
     return indices_full
 
@@ -259,7 +264,6 @@ def create_batched_reaction_data(
         batch_data - dictionary with batched indices
     """
     if type(reactions[0]) == ReactionInNetwork:
-        batched_graphs = dgl.batch([reaction.reaction_graph for reaction in reactions])
         num_atoms_total_list = [reaction.num_atoms_total for reaction in reactions]
         num_bonds_total_list = [reaction.num_bonds_total for reaction in reactions]
         reactant_id_list = [reaction.reactants for reaction in reactions]
@@ -268,9 +272,9 @@ def create_batched_reaction_data(
         bond_map_react_list = [reaction.bond_mapping[0] for reaction in reactions]
         atom_map_product_list = [reaction.atom_mapping[1] for reaction in reactions]
         bond_map_product_list = [reaction.bond_mapping[1] for reaction in reactions]
+        batched_graphs = dgl.batch([reaction.reaction_graph for reaction in reactions])
 
     else: 
-        batched_graphs = dgl.batch([reaction['reaction_graph'] for reaction in reactions])
         num_atoms_total_list = [reaction['mappings']['num_atoms_total'] for reaction in reactions]
         num_bonds_total_list = [reaction['mappings']['num_bonds_total'] for reaction in reactions]
         reactant_id_list = [reaction["reaction_molecule_info"]["reactants"]["reactants"] for reaction in reactions]
@@ -279,6 +283,7 @@ def create_batched_reaction_data(
         bond_map_react_list = [reaction["mappings"]["bond_map"][0] for reaction in reactions]
         atom_map_product_list = [reaction["mappings"]["atom_map"][1] for reaction in reactions]
         bond_map_product_list = [reaction["mappings"]["bond_map"][1] for reaction in reactions]
+        batched_graphs = dgl.batch([reaction['reaction_graph'] for reaction in reactions])
 
 
     batched_atom_reactant = torch.tensor([],dtype=torch.long) #torch.Tensor([])
@@ -295,7 +300,7 @@ def create_batched_reaction_data(
 
     # idx = 0
     for idx, reaction in enumerate(reactions):
-
+        #if type(reactions[0]) == ReactionInNetwork:
         num_atoms_total = num_atoms_total_list[idx]
         num_bond_total = num_bonds_total_list[idx]
         reactant_ids = reactant_id_list[idx]
@@ -304,12 +309,14 @@ def create_batched_reaction_data(
         bond_map_react = bond_map_react_list[idx]
         atom_map_product = atom_map_product_list[idx]
         bond_map_product = bond_map_product_list[idx]
-        
+
+        #else: 
+
+            
         #!reactant
         #batched_indices_reaction for reactant.        
         reactant_ids = torch.tensor(reactant_ids)
         product_ids = torch.tensor(product_ids)
-        
         #!global
         batched_global_reactant = torch.cat((batched_global_reactant, reactant_ids),dim=0)
         global_batch_indices_reactant=torch.cat((global_batch_indices_reactant, torch.tensor([idx]*len(reactant_ids), dtype=torch.long)),dim=0)
