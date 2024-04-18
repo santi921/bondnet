@@ -223,23 +223,42 @@ def get_node_batch_indices(batched_graph, node_type):
 
 
 def get_batch_indices_mapping(batch_indices, reactant_ids, atom_bond_map, atom_bond_num):
+    # there is a bug here I thinks 
+    # filter atom_bond_map for {}
+    # get inds of atom_bond_map where they are {}
+    ind_not_empty = [i for i, d in enumerate(atom_bond_map) if d != {}]
+    atom_bond_map = [atom_bond_map[i] for i in ind_not_empty]
+    reactant_ids = [reactant_ids[i] for i in ind_not_empty]
+
+
     distinguishable_value = torch.iinfo(torch.long).max
     indices_full = torch.full((atom_bond_num,), distinguishable_value, dtype=torch.long)
-    sorted_index_reaction = [torch.tensor([value for key, value in sorted(d.items())]) for d in atom_bond_map]
+    sorted_index_reaction = [
+        torch.tensor([value for key, value in sorted(d.items())]) for d in atom_bond_map
+    ]
 
-    # print("batch_indices", batch_indices)
-    # print("reactant_ids", reactant_ids)
+    #print("batch_indices", batch_indices)
+    #print("reactant_ids", reactant_ids)
 
-    matches = torch.tensor([idx for rid in reactant_ids for idx in (batch_indices == rid).nonzero(as_tuple=True)[0]])
+    matches = torch.tensor(
+        [
+            idx for rid in reactant_ids for idx in (batch_indices == rid).nonzero(as_tuple=True)[0]
+        ]
+    )
 
     sorted_values_concat = torch.cat(sorted_index_reaction)
     # print the type of daata in tensor 
     # print("sorted_values_concat type:", sorted_values_concat.dtype)
 
-    if len(sorted_values_concat) != len(matches):
-        raise ValueError("Length of sorted_values_concat and matches must be equal.")
-    
-    
+    #if len(sorted_values_concat) != len(matches):
+    #    raise ValueError("Length of sorted_values_concat and matches must be equal.")
+    # convert sorted_values_concat to array of ints
+    sorted_values_concat = sorted_values_concat.int()
+
+    #print(matches.shape, sorted_values_concat.shape)
+    #print(atom_bond_map)
+    #print(matches)
+    #print(sorted_values_concat)
     indices_full[sorted_values_concat] = matches
     return indices_full
 

@@ -624,7 +624,15 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         self.log("train_l1", torch_l1, prog_bar=True, sync_dist=True, rank_zero_only=True)
         self.log("train_mse", torch_mse, prog_bar=True, sync_dist=True, rank_zero_only=True)
         duration = time.time() - self.start_time
-        self.log('epoch_time', duration, on_epoch=True, prog_bar=True, logger=True, rank_zero_only=True)
+        self.log(
+            'epoch_time', 
+            duration, 
+            on_epoch=True, 
+            prog_bar=True, 
+            logger=True, 
+            sync_dist=True, 
+            rank_zero_only=True
+        )
 
 
     def on_validation_epoch_end(self):

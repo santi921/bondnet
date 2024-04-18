@@ -73,30 +73,28 @@ def construct_lmdb_and_save_reaction_dataset(dataset, lmdb_dir, workers=8):
     for ind, molecule_in_rxn_network in enumerate(
         dataset.molecules
     ):
-        #    pmg mol retrieval
-        pmg_objects.append(molecule_in_rxn_network.pymatgen_mol)
-        #    molecule index in rxn network
-        # this would just be given by the index in HiPRGen anyways
-        molecule_ind_list.append(ind)
 
         formula = molecule_in_rxn_network.pymatgen_mol.composition.formula.split()
         elements = [clean(x) for x in formula]
         atom_num = np.sum(np.array([int(clean_op(x)) for x in formula]))
-        element_set.update(elements)
-
+        
         charge = molecule_in_rxn_network.pymatgen_mol.charge
-        charge_set.add(charge)
+        
         bond_list = [
             [i[0], i[1]] for i in molecule_in_rxn_network.mol_graph.graph.edges
         ]
         cycles = find_rings(atom_num, bond_list, edges=False)
         ring_len_list = [len(i) for i in cycles]
+        graph_mol_in_rxn_network = dataset.graphs[ind]        
+        
+        element_set.update(elements)
         ring_size_set.update(ring_len_list)
+        charge_set.add(charge)
+        pmg_objects.append(molecule_in_rxn_network.pymatgen_mol)
+        molecule_ind_list.append(ind)
+        dgl_graphs_serialized.append(serialize_dgl_graph(graph_mol_in_rxn_network))
+        dgl_graphs.append(graph_mol_in_rxn_network)
 
-    for ind, molecule_in_rxn_network in enumerate(dataset.graphs):
-        # serialized dgl graph
-        dgl_graphs_serialized.append(serialize_dgl_graph(molecule_in_rxn_network))
-        dgl_graphs.append(molecule_in_rxn_network)
 
 
     batched_graph = dgl.batch(dgl_graphs)
@@ -129,8 +127,8 @@ def construct_lmdb_and_save_reaction_dataset(dataset, lmdb_dir, workers=8):
     for ind, rxn in enumerate(dataset.reactions):
         rxn_copy = deepcopy(rxn)
         
-        reactants = [graphs[i] for i in rxn_copy.reactants]
-        products = [graphs[i] for i in rxn_copy.products]
+        reactants = [dgl_graphs[i] for i in rxn_copy.reactants]
+        products = [dgl_graphs[i] for i in rxn_copy.products]
         
         mappings = {
             "bond_map": rxn_copy.bond_mapping,
@@ -462,8 +460,8 @@ def write_reaction_lmdb(
         "label",
         "reverse_label",
         "extra_info",
-        #"has_bonds", 
-        "mappings"
+        "mappings",
+        "has_bonds",
     ]
 
 
@@ -477,8 +475,8 @@ def write_reaction_lmdb(
             labels,
             reverse_labels,
             extra_info,
-            #has_bonds, 
-            mappings
+            mappings,
+            has_bonds, 
         )
     ]
 

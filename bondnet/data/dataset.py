@@ -15,10 +15,10 @@ from torch.utils.data import Dataset
 import torch
 
 from bondnet.dataset.generalized import create_reaction_network_files_and_valid_rows
-from bondnet.data.reaction_network import ReactionInNetwork, ReactionNetwork
-from bondnet.data.transformers import HeteroGraphFeatureStandardScaler, StandardScaler
+from bondnet.data.reaction_network import ReactionInNetwork
+from bondnet.data.transformers import HeteroGraphFeatureStandardScaler
 #from bondnet.data.utils import get_dataset_species, get_hydro_data_functional_groups
-from bondnet.utils import to_path, yaml_load, list_split_by_size
+from bondnet.utils import to_path, yaml_load
 #from bondnet.data.utils import create_rxn_graph
 #from bondnet.data.lmdb import TransformMol
 
@@ -752,7 +752,7 @@ class LmdbBaseDataset(Dataset):
             self.available_indices = self.shards[self.config.get("shard", 0)]
             self.num_samples = len(self.available_indices)
 
-        # TODO
+        
         self.transform = transform
 
     def __len__(self):
