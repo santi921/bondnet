@@ -5,7 +5,6 @@ import numpy as np
 import argparse
 import dgl
 import torch
-import torch.multiprocessing
 import tempfile
 from copy import deepcopy
 
@@ -19,8 +18,8 @@ from bondnet.data.dataset import train_validation_test_split
 
 torch.set_float32_matmul_precision("high")  # might have to disable on older GPUs
 seed_torch()
-import torch.multiprocessing
-torch.multiprocessing.set_sharing_strategy("file_system")
+#import torch.multiprocessing
+#torch.multiprocessing.set_sharing_strategy("file_system")
 
 
 if __name__ == "__main__":
@@ -79,19 +78,6 @@ if __name__ == "__main__":
 
     extra_keys = config["extra_features"]
 
-    """dataset = ReactionNetworkDatasetGraphs(
-        grapher=get_grapher(extra_keys),
-        file=dataset_loc,
-        target=config["target_var"],
-        classifier=config["classifier"],
-        classif_categories=config["classif_categories"],
-        filter_species=config["filter_species"],
-        filter_outliers=config["filter_outliers"],
-        filter_sparse_rxns=False,
-        debug=debug,
-        extra_keys=extra_keys,
-        extra_info=config["extra_info"],
-    )"""
 
     dataset = ReactionDatasetGraphs(
         grapher=get_grapher(extra_keys),

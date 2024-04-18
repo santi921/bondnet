@@ -15,10 +15,10 @@ from torch.utils.data import Dataset
 import torch
 
 from bondnet.dataset.generalized import create_reaction_network_files_and_valid_rows
-from bondnet.data.reaction_network import ReactionInNetwork, ReactionNetwork
-from bondnet.data.transformers import HeteroGraphFeatureStandardScaler, StandardScaler
+from bondnet.data.reaction_network import ReactionInNetwork
+from bondnet.data.transformers import HeteroGraphFeatureStandardScaler
 #from bondnet.data.utils import get_dataset_species, get_hydro_data_functional_groups
-from bondnet.utils import to_path, yaml_load, list_split_by_size
+from bondnet.utils import to_path, yaml_load
 #from bondnet.data.utils import create_rxn_graph
 #from bondnet.data.lmdb import TransformMol
 
@@ -348,6 +348,7 @@ class ReactionDatasetGraphs(BaseDataset):
         self._failed = None
         self.classifier = classifier
         self.classif_categories = classif_categories
+        
         self._load()
 
     def _load(self):
@@ -512,6 +513,7 @@ class ReactionDatasetGraphs(BaseDataset):
         #)
         self.reactions = reactions
         self.graphs = graphs
+        self.device = graphs[0].device
 
         # feature transformers
         if self.label_transformer:
@@ -633,13 +635,15 @@ class ReactionDatasetLMDBDataset(BaseDataset):
         self.rings = self.reaction_lmdb.molecules.ring_sizes
         self.charges = self.reaction_lmdb.molecules.charges
         self.feature_info = self.reaction_lmdb.molecules.feature_info
-        self.reaction_ids = [
-            i["reaction_index"] for i in self.reactions
-        ]  # here we can either use reaction index or the specific id
-        self.reaction_ids = [int(i) for i in range(len(self.reaction_ids))]
+        # #!comment out
+        # self.reaction_ids = [
+        #     i["reaction_index"] for i in self.reactions
+        # ]  # here we can either use reaction index or the specific id
+        # self.reaction_ids = [int(i) for i in range(len(self.reaction_ids))]
         self._feature_name = self.reaction_lmdb.reactions.feature_name
         self._feature_size = self.reaction_lmdb.reactions.feature_size
         self.dtype = self.reaction_lmdb.reactions.dtype
+        #self.device = self.graphs[0].device
 
     
     def __getitem__(self, item):
@@ -748,7 +752,7 @@ class LmdbBaseDataset(Dataset):
             self.available_indices = self.shards[self.config.get("shard", 0)]
             self.num_samples = len(self.available_indices)
 
-        # TODO
+        
         self.transform = transform
 
     def __len__(self):
@@ -882,14 +886,13 @@ class LmdbReactionDataset(LmdbBaseDataset):
 
     @property
     def mean(self):
-        mean = self.env.begin().get("mean".encode("ascii"))
-        return pickle.loads(mean)
-    
+        return self._mean
+
     @property
     def std(self):
-        std = self.env.begin().get("std".encode("ascii"))
-        return pickle.loads(std)
-    
+        #std = self.env_.begin().get("std".encode("ascii"))
+        return self._std
+
 
 class Subset(BaseDataset):
     def __init__(self, dataset, indices):
@@ -907,6 +910,7 @@ class Subset(BaseDataset):
         self._label_scaler_std = dataset._label_scaler_std
         
         self.reaction_network = dataset.reaction_network
+        self.device = dataset.device
         # iterate through indices to get the graphs, labels 
         #self.graphs = [dataset.graphs[i] for i in indices]
         #self.labels = [dataset.labels[i] for i in indices]
@@ -945,6 +949,7 @@ class SubsetLMDB(BaseDataset):
         self.graphs = dataset.graphs
         self.labels = dataset.labels
         self.reactions = dataset.reactions
+        self.device = dataset.device
 
         
     @property
@@ -1022,3 +1027,29 @@ def train_validation_test_split(dataset, validation=0.1, test=0.1, random_seed=N
                     Subset(dataset, test_idx),
             ]
     
+
+
+def combined_mean_std(mean_list, std_list, count_list):
+    """
+    Calculate the combined mean and standard deviation of multiple datasets.
+
+    :param mean_list: List of means of the datasets.
+    :param std_list: List of standard deviations of the datasets.
+    :param count_list: List of number of data points in each dataset.
+    :return: Combined mean and standard deviation.
+    """
+    # Calculate total number of data points
+    total_count = sum(count_list)
+
+    # Calculate combined mean
+    combined_mean = sum(mean * count for mean, count in zip(mean_list, count_list)) / total_count
+
+    # Calculate combined variance
+    combined_variance = sum(
+        ((std ** 2) * (count - 1) + count * (mean - combined_mean) ** 2 for mean, std, count in zip(mean_list, std_list, count_list))
+    ) / (total_count - len(mean_list))
+
+    # Calculate combined standard deviation
+    combined_std = (combined_variance ** 0.5)
+
+    return combined_mean, combined_std

@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import pytorch_lightning as pl
-
+import dgl
 import warnings
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -23,6 +23,7 @@ from bondnet.data.featurizer import (
 
 
 from bondnet.model.initializers import xavier_init, kaiming_init, equi_var_init
+
 
 class LogParameters(pl.Callback):
     # weight and biases to tensorboard
