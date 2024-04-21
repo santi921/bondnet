@@ -41,12 +41,19 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
 
     def prepare_data(self):
         if "test_lmdb" in self.config["dataset"]:
+            # check if there is a file reaction.lmdb in the test_lmdb_loc
+            if os.path.exists(os.path.join(self.test_lmdb_loc, "reaction.lmdb")):
+                file = os.path.join(self.test_lmdb_loc, "reaction.lmdb")
+            else: 
+                file = os.path.join(self.test_lmdb_loc, "reaction")
+            
             self.test_rxn_dataset = LmdbReactionDataset(
                 config = {
-                    "src": os.path.join(self.test_lmdb_loc, "reaction.lmdb")
+                    "src": file
                 }
             )
 
+            # going to assume a single molecule lmdb
             self.test_molecule_dataset = LmdbMoleculeDataset(
                 config={
                     "src": os.path.join(self.test_lmdb_loc, "molecule.lmdb")
@@ -57,11 +64,19 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
             self.test_dataset = ReactionLMDB(self.test_molecule_dataset, self.test_rxn_dataset)
         
         if "val_lmdb" in self.config["dataset"]:
+            # going to assume a single molecule lmdb
+
             config_val = {
                 "src": os.path.join(self.val_lmdb_loc, "molecule.lmdb")
             }
+
+            if os.path.exists(os.path.join(self.test_lmdb_loc, "reaction.lmdb")):
+                file = os.path.join(self.val_lmdb_loc, "reaction.lmdb")
+            else: 
+                file = os.path.join(self.val_lmdb_loc, "reaction")
+            
             config_val_rxn = {
-                "src": os.path.join(self.val_lmdb_loc, "reaction.lmdb")
+                "src": file
             }
 
             self.val_rxn_dataset = LmdbReactionDataset(
@@ -79,8 +94,14 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
             "src": os.path.join(self.train_lmdb_loc, "molecule.lmdb")
         }
 
+
+        if os.path.exists(os.path.join(self.test_lmdb_loc, "reaction.lmdb")):
+            file = os.path.join(self.train_lmdb_loc, "reaction.lmdb")
+        else: 
+            file = os.path.join(self.train_lmdb_loc, "reaction")
+
         config_train_rxn = {
-            "src": os.path.join(self.train_lmdb_loc, "reaction.lmdb")
+            "src": file
         }
 
 
@@ -127,7 +148,7 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
     def test_dataloader(self):
         return DataLoaderReactionLMDB(
             dataset=self.test_ds,
-            batch_size=len(self.test_ds),
+            batch_size=self.config["optim"]["batch_size"],
             shuffle=False,
             num_workers=self.config["optim"]["num_workers"],
         )
@@ -136,7 +157,7 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
     def val_dataloader(self):
         return DataLoaderReactionLMDB(
             dataset=self.val_ds,
-            batch_size=len(self.val_ds),
+            batch_size=self.config["optim"]["batch_size"],
             shuffle=False,
             num_workers=self.config["optim"]["num_workers"],
         )

@@ -26,6 +26,8 @@ from bondnet.model.metric import (
 from bondnet.data.utils import (
     _split_batched_output,
     mol_graph_to_rxn_graph,
+    process_batch_mol_rxn
+
 )
 
 
@@ -283,7 +285,16 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
             n_categories=self.hparams.outdim, reduction="sum"
         )
 
-    def forward(self, graph, feats, norm_atom=None, norm_bond=None, reverse=False):
+    def forward(
+        self,
+        graph,
+        feats,
+        reactions,
+        norm_atom=None,
+        norm_bond=None,
+        reverse=False,
+        batch_data=None
+    ):
         """
         Args:
             graph (DGLHeteroGraph or BatchedDGLHeteroGraph): (batched) molecule graphs
@@ -293,6 +304,8 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
                 each representing a reaction.
             norm_atom (2D tensor or None): graph norm for atom
             norm_bond (2D tensor or None): graph norm for bond
+            reverse (bool): whether to predict the reverse reaction.
+            batch_data (dict): additional data for the batch, gives alternative forward pass
 
         Returns:
             2D tensor: of shape(N, M), where `M = outdim`.
@@ -300,7 +313,6 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
 
         if reverse:
             for key in feats:
-                # multiply by -1
                 feats[key] = -1 * feats[key]
 
         # embedding
@@ -309,13 +321,27 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
         for layer in self.gated_layers:
             feats = layer(graph, feats, norm_atom, norm_bond)
 
+        # get device
+        device = feats["bond"].device
+
+
+        #if batch_data is not None:
+        feats = process_batch_mol_rxn(
+                    feats = feats,
+                    reactions = reactions,
+                    device = device,
+                    reverse = reverse,
+                    batch_data=batch_data
+                )
+
         # readout layer
-        feats = self.readout_layer(graph, feats)
+        feats = self.readout_layer(batch_data["batched_rxn_graphs"], feats)
 
         for layer in self.fc_layers:
             feats = layer(feats)
 
         return feats
+
 
     def feature_before_fc(self, graph, feats, reactions, norm_atom, norm_bond):
         """
@@ -367,7 +393,7 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
 
     def shared_step(self, batch, mode):
         # ========== compute predictions ==========
-        batched_graph, label = batch
+        batched_graph, label, batch_data = batch
         nodes = ["atom", "bond", "global"]
         feats = {nt: batched_graph.nodes[nt].data["ft"] for nt in nodes}
         target = label["value"]
@@ -378,11 +404,17 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
         norm_bond = label["norm_bond"]
         stdev = label["scaler_stdev"]
 
+        if self.stdev is None:
+            self.stdev = stdev[0]
+
         pred = self(
-            batched_graph,
-            feats,
+            graph=batched_graph,
+            feats=feats,
+            reactions=reactions,
+            reverse=False,
             norm_bond=norm_bond,
             norm_atom=norm_atom,
+            batch_data=batch_data
         )
         # print("pred shape: ", pred.shape)
 
@@ -390,11 +422,13 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
             # target_aug_new_shape = (len(target_aug), 1)
             # target_aug = target_aug.view(target_aug_new_shape)
             pred_aug = self(
-                batched_graph,
-                feats,
+                graph=batched_graph,
+                feats=feats,
+                reactions=reactions,
                 reverse=True,
                 norm_bond=norm_bond,
                 norm_atom=norm_atom,
+                batch_data=batch_data
             )
             all_loss = self.compute_loss(
                 target=torch.cat((target, target_aug), axis=0),
@@ -418,6 +452,8 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
             on_epoch=True,
             prog_bar=True,
             batch_size=len(label),
+            sync_dist=True,
+            rank_zero_only=True
         )
         self.update_metrics(
             target=target, pred=pred, weight=self.hparams.cat_weights, mode=mode
@@ -500,7 +536,15 @@ class GatedGCNReactionNetworkLightningClassifier(pl.LightningModule):
         self.log("train_acc", acc, prog_bar=True)
         self.log("train_cross", cross, prog_bar=True)
         duration = time.time() - self.start_time
-        self.log('epoch_time', duration, on_epoch=True, prog_bar=True, logger=True)
+        self.log(
+            'epoch_time', 
+            duration, 
+            on_epoch=True, 
+            prog_bar=True, 
+            logger=True, 
+            sync_dist=True, 
+            rank_zero_only=True
+        )
 
     def on_validation_epoch_end(self):
         """

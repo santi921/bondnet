@@ -1,6 +1,7 @@
 {
   "model": {
     "conv": "GatedGCNConv",
+    "initializer": "kaiming",
     "readout": "Set2SetThenCat",
     "augment": true,
     "classifier": false,
