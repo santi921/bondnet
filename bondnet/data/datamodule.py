@@ -189,15 +189,22 @@ class BondNetLightningDataModule(pl.LightningDataModule):
                 extra_info=self.config["model"]["extra_info"],
             )
 
-            (
-                self.train_dataset,
-                self.val_dataset,
-                self.test_dataset,
-            ) = train_validation_test_split(
-                self.entire_dataset,
-                validation=self.config["optim"]["val_size"],
-                test=self.config["optim"]["test_size"],
-            )
+            if self.config["test_size"] == 0:
+                self.train_dataset, self.val_dataset = train_validation_test_split(
+                    self.entire_dataset,
+                    test=0.0,
+                    validation=self.config["optim"]["val_size"],
+                )
+            else: 
+                (
+                    self.train_dataset,
+                    self.val_dataset,
+                    self.test_dataset,
+                ) = train_validation_test_split(
+                    self.entire_dataset,
+                    validation=self.config["optim"]["val_size"],
+                    test=self.config["optim"]["test_size"],
+                )
 
             # print("done creating lmdb" * 10)
             self.prepared = True

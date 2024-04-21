@@ -938,19 +938,18 @@ class SubsetLMDB(BaseDataset):
         self.dataset = dataset
 
         self.indices = indices
-        
         self._feature_scaler_std = dataset._feature_scaler_std
         self._feature_scaler_mean = dataset._feature_scaler_mean
         self._label_scaler_mean = dataset._label_scaler_mean
         self._label_scaler_std = dataset._label_scaler_std
         self._feature_size = dataset._feature_size
         self._feature_name = dataset._feature_name
-        
         self.molecules = dataset.molecules
         self.graphs = dataset.graphs
-        self.labels = dataset.labels
-        self.reactions = dataset.reactions
         self.device = dataset.device
+
+        self.labels = [dataset.labels[ind] for ind in self.indices]
+        self.reactions = [dataset.reactions[ind] for ind in self.indices]
 
         
     @property
