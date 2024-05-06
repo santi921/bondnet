@@ -5,7 +5,7 @@ from bondnet.model.training_utils import (
     load_model_lightning,
 )
 from bondnet.data.datamodule import BondNetLightningDataModule, BondNetLightningDataModuleLMDB
-from bondnet.data.utils import mol_graph_to_rxn_graph
+from bondnet.data.utils import process_batch_mol_rxn
 from bondnet.model.gated_reaction_network_lightning import (
     GatedGCNReactionNetworkLightning,
 )
@@ -76,8 +76,11 @@ def test_forward():
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     nodes = ["atom", "bond", "global"]
+
     for it, batch in enumerate(dataloader):
-        batched_graph_in, label = batch
+
+        batched_graph_in, label, batch_data = batch
+
         nodes = ["atom", "bond", "global"]
         feats_in = {nt: batched_graph_in.nodes[nt].data["ft"] for nt in nodes}
         target = label["value"].view(-1)
@@ -87,8 +90,17 @@ def test_forward():
         norm_atom = label["norm_atom"]
         norm_bond = label["norm_bond"]
         stdev = label["scaler_stdev"]
-        mean = label["scaler_mean"]
-        reactions = label["reaction"]
+        reactions = len(target)
+
+        feats_out_a = model(
+            graph=batched_graph_in, 
+            feats=feats_in,
+            reactions=reactions,
+            norm_atom=norm_atom,
+            norm_bond=norm_bond,
+            reverse=False,
+            batch_data=batch_data
+        )
 
         if model.stdev is None:
             model.stdev = stdev[0]
@@ -104,30 +116,22 @@ def test_forward():
         device = feats_out_b["bond"].device
 
         # convert mol graphs to reaction graphs
-        batched_graph, feats_out_b = mol_graph_to_rxn_graph(
-            graph=batched_graph_in,
-            feats=feats_out_b,
-            reactions=reactions,
-            device=device,
-            reverse=False,
-            reactant_only=False,
-        )
+        feats_out_b = process_batch_mol_rxn(
+                    feats = feats_out_b,
+                    reactions = reactions,
+                    device = device,
+                    reverse = False,
+                    batch_data=batch_data
+                )
 
         # readout layer
-        feats_out_b = model.readout_layer(batched_graph, feats_out_b)
+        feats_out_b = model.readout_layer(batch_data["batched_rxn_graphs"], feats_out_b)
 
         for layer in model.fc_layers:
             feats_out_b = layer(feats_out_b)
 
-        feats_out_a = model(
-            graph=batched_graph_in, 
-            feats=feats_in,
-            reactions=reactions,
-            norm_atom=False,
-            norm_bond=False,
-            reverse=False,
-             
-            )
+
+
 
         #compare outputs
         #print max difference 

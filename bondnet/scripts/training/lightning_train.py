@@ -1,4 +1,4 @@
-import wandb, argparse, torch, json
+import wandb, argparse, json
 import numpy as np
 from copy import deepcopy
 
@@ -17,13 +17,19 @@ from bondnet.model.training_utils import (
     LogParameters,
     load_model_lightning,
 )
-
+import torch 
 seed_torch()
 torch.set_float32_matmul_precision("high")  # might have to disable on older GPUs
+#torch.multiprocessing.set_sharing_strategy("file_system")
 torch.multiprocessing.set_sharing_strategy("file_system")
 
 
 if __name__ == "__main__":
+    #torch.multiprocessing.set_sharing_strategy("file_system")
+    # spawn 
+    #torch.multiprocessing.set_start_method("spawn")
+
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--on_gpu", default=False, action="store_true")
     parser.add_argument("--debug", default=False, action="store_true")
