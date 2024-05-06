@@ -9,6 +9,7 @@ dist/
 *png
 
 *.csv
+*.h5
 *.tsv
 *.pdf
 *.log

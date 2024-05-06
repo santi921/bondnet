@@ -812,6 +812,7 @@ def process_batch_mol_rxn(
     device,
     reverse,
     batch_data,
+    reactant_only=False,
     ntypes=("global", "atom", "bond"),
 ):
     """
@@ -837,8 +838,12 @@ def process_batch_mol_rxn(
 
 
         if nt == "atom":
-            batched_feats[nt] = - _features[batch_data["batched_atom_reactant"]]*coef \
+            if reactant_only == True:
+                batched_feats[nt] = _features[batch_data["batched_atom_reactant"]]*coef
+            else:
+                batched_feats[nt] = - _features[batch_data["batched_atom_reactant"]]*coef \
                                 + _features[batch_data["batched_atom_product"]]*coef
+            
         if nt=="bond":
             #breakpoint()
             net_full_feats_reactant = torch.zeros(len(batch_data["batched_bond_reactant"]), _features.shape[1], device=device)
@@ -855,8 +860,11 @@ def process_batch_mol_rxn(
             valid_mask = batch_data["batched_bond_product"] != distinguishable_value
             filtered_indices = batch_data["batched_bond_product"][valid_mask]
             net_full_feats_product[valid_mask] = _features[filtered_indices]
-
-            batched_feats[nt] = - net_full_feats_reactant*coef \
+            
+            if reactant_only == True:
+                batched_feats[nt] = net_full_feats_reactant*coef
+            else:
+                batched_feats[nt] = - net_full_feats_reactant*coef \
                                 + net_full_feats_product*coef
     
         if nt == "global":
@@ -866,12 +874,16 @@ def process_batch_mol_rxn(
             gathered_content = _features.index_select(0, batch_data["batched_global_reactant"])
             reactant_sum = torch.matmul(batch_one_hot.t(), gathered_content)
 
-            #!product why float64?
+            
             batch_one_hot = torch.nn.functional.one_hot(batch_data["global_batch_indices_product"], num_batches).float()
             gathered_content = _features.index_select(0, batch_data["batched_global_product"])
             product_sum = torch.matmul(batch_one_hot.t(), gathered_content)
 
-            batched_feats[nt] = - reactant_sum*coef \
+            if reactant_only == True:
+                batched_feats[nt] = reactant_sum * coef
+
+            else:
+                batched_feats[nt] = - reactant_sum*coef \
                                 + product_sum*coef
 
 

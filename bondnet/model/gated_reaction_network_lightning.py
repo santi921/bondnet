@@ -329,7 +329,8 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
                     reactions = reactions,
                     device = device,
                     reverse = reverse,
-                    batch_data=batch_data
+                    batch_data=batch_data, 
+                    reactant_only=self.hparams.reactant_only
                 )
 
         # readout layer
@@ -557,7 +558,9 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         Test step
         """
         # ========== compute predictions ==========
-        batched_graph, label = batch
+        self.shared_step(batch, mode="test") # updates metrics
+
+        batched_graph, label, batch_data = batch
         nodes = ["atom", "bond", "global"]
         feats = {nt: batched_graph.nodes[nt].data["ft"] for nt in nodes}
         target = label["value"].view(-1)
@@ -566,9 +569,9 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         empty_aug = True in empty_aug
         norm_atom = label["norm_atom"]
         norm_bond = label["norm_bond"]
-        reactions = len(target)
         stdev = label["scaler_stdev"]
         mean = label["scaler_mean"]
+        reactions = len(target)
         
         if self.stdev is None:
             self.stdev = stdev[0]
@@ -580,10 +583,11 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             reverse=False,
             norm_bond=norm_bond,
             norm_atom=norm_atom,
+            batch_data=batch_data
         )
-
         pred = pred.view(-1)
-
+        loss = self.compute_loss(pred, target)
+        
         pred = pred.to(torch.float32)
         target = target.to(torch.float32)
         stdev = stdev.to(torch.float32)
@@ -604,11 +608,13 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         print("mse: ", mse)
         print("r2: ", r2)
 
-        plt.title("Predicted vs. True")
-        plt.xlabel("Predicted")
-        plt.ylabel("True")
-        plt.savefig("./{}.png".format("./test"))
-        return self.shared_step(batch, mode="test")
+        #plt.title("Predicted vs. True")
+        #plt.xlabel("Predicted")
+        #plt.ylabel("True")
+        #plt.savefig("./{}.png".format("./test"))
+        print(loss)
+        
+        return loss
 
 
     def on_train_epoch_start(self):
@@ -648,8 +654,6 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         self.log("val_mse", torch_mse, prog_bar=True, sync_dist=True, rank_zero_only=True)
 
 
-
-
     def on_test_epoch_end(self):
         """
         Test epoch end
@@ -661,7 +665,6 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         self.log("test_mse", torch_mse, prog_bar=True, sync_dist=True, rank_zero_only=True)
 
         
-
     def update_metrics(self, pred, target, mode):
         if mode == "train":
             self.train_r2.update(pred, target)
