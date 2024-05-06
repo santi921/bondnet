@@ -21,7 +21,7 @@ from bondnet.dataset.utils import (
 from bondnet.data.utils import find_rings, create_rxn_graph, construct_rxn_graph_empty
 
 
-scalar = 1 / 1024
+scalar = 1 
 
 
 def TransformMol(data_object):
