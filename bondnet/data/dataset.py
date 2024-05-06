@@ -7,10 +7,13 @@ from pathlib import Path
 from concurrent.futures import TimeoutError
 from tqdm import tqdm
 from rdkit import Chem, RDLogger
+#try:
 import pickle
+#except:
+#import pickle5 as pickle
 import lmdb
 import bisect
-from copy import deepcopy
+from copy import deepcopy, copy
 
 from torch.utils.data import Dataset
 import torch
@@ -514,7 +517,7 @@ class ReactionDatasetGraphs(BaseDataset):
         #)
         self.reactions = reactions
         self.graphs = graphs
-        self.device = graphs[0].device
+        #self.device = graphs[0].device
 
         # feature transformers
         if self.label_transformer:
@@ -607,11 +610,18 @@ class ReactionDatasetGraphs(BaseDataset):
         ids.update(sub_reactions.init_reactants + sub_reactions.init_products)
         ids = sorted(ids)
         
+        identifier = label["id"]
+        if type(label["id"]) == list:
+            try:
+                identifier = label["id"][0]
+            except:
+                identifier = label["id"]
+        
         
         ret_labels = {
             "value": label["value"], 
             "value_rev": label["value_rev"],
-            "id": label["id"], 
+            "id": identifier, 
             "scaler_mean": label["scaler_mean"],
             "scaler_stdev": label["scaler_stdev"], 
             "ids": ids, 
@@ -911,7 +921,7 @@ class Subset(BaseDataset):
         self._label_scaler_std = dataset._label_scaler_std
         
         self.reaction_network = dataset.reaction_network
-        self.device = dataset.device
+        #self.device = dataset.device
         # iterate through indices to get the graphs, labels 
         #self.graphs = [dataset.graphs[i] for i in indices]
         #self.labels = [dataset.labels[i] for i in indices]
@@ -946,7 +956,7 @@ class SubsetLMDB(BaseDataset):
         self._feature_name = dataset._feature_name
         self.molecules = dataset.molecules
         self.graphs = dataset.graphs
-        self.device = dataset.device
+        #self.device = dataset.device
 
         self.labels = [dataset.labels[ind] for ind in self.indices]
         self.reactions = [dataset.reactions[ind] for ind in self.indices]
