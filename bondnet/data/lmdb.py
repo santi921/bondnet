@@ -172,8 +172,7 @@ def construct_lmdb_and_save_reaction_dataset(dataset, lmdb_dir, workers=8):
         empty_graph, empty_fts = construct_rxn_graph_empty(
             mappings=mappings,
             self_loop=True, 
-            ret_feats=True, 
-            device="cuda"
+            ret_feats=True
         )
 
         extra_info.append([])
