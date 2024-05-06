@@ -10,7 +10,6 @@ from bondnet.data.dataset import (
 from bondnet.data.dataloader import DataLoaderReactionLMDB, DataLoaderReaction
 from bondnet.model.training_utils import get_grapher
 from bondnet.data.lmdb import TransformMol
-from bondnet.data.dataloader import DataLoaderReactionLMDB, DataLoaderReaction
 from bondnet.data.dataset import (
     ReactionDatasetGraphs, 
     ReactionDatasetLMDBDataset, 
@@ -20,7 +19,6 @@ from bondnet.data.dataset import (
 
 from bondnet.data.reaction_network import ReactionLMDB
 from bondnet.data.dataloader import DataLoaderReaction, DataLoaderReactionLMDB
-
 
 
 
@@ -144,7 +142,7 @@ class BondNetLightningDataModuleLMDB(pl.LightningDataModule):
             persistent_workers=self.config["optim"]["persistent_workers"],
         )
 
-
+  
     def test_dataloader(self):
         return DataLoaderReactionLMDB(
             dataset=self.test_ds,
@@ -189,7 +187,7 @@ class BondNetLightningDataModule(pl.LightningDataModule):
                 extra_info=self.config["model"]["extra_info"],
             )
 
-            if self.config["test_size"] == 0:
+            if self.config["optim"]["test_size"] == 0:
                 self.train_dataset, self.val_dataset = train_validation_test_split(
                     self.entire_dataset,
                     test=0.0,

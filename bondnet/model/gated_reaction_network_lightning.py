@@ -469,6 +469,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             sync_dist=True,
             rank_zero_only=True
         )
+
         self.update_metrics(target, pred, mode)
 
         return all_loss
@@ -565,7 +566,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         empty_aug = True in empty_aug
         norm_atom = label["norm_atom"]
         norm_bond = label["norm_bond"]
-        reactions = label["reaction"]
+        reactions = len(target)
         stdev = label["scaler_stdev"]
         mean = label["scaler_mean"]
         
@@ -641,9 +642,12 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         """
         r2, torch_l1, torch_mse = self.compute_metrics(mode="val")
         # self.log("val_l1", l1, prog_bar=True, sync_dist=True)
+        
         self.log("val_r2", r2, prog_bar=True, sync_dist=True, rank_zero_only=True)
         self.log("val_l1", torch_l1, prog_bar=True, sync_dist=True, rank_zero_only=True)
         self.log("val_mse", torch_mse, prog_bar=True, sync_dist=True, rank_zero_only=True)
+
+
 
 
     def on_test_epoch_end(self):
@@ -656,6 +660,7 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
         self.log("test_l1", torch_l1, prog_bar=True, sync_dist=True, rank_zero_only=True)
         self.log("test_mse", torch_mse, prog_bar=True, sync_dist=True, rank_zero_only=True)
 
+        
 
     def update_metrics(self, pred, target, mode):
         if mode == "train":

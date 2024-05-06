@@ -1,7 +1,5 @@
 import numpy as np
 import itertools
-import dgl
-from copy import deepcopy
 from bondnet.data.utils import construct_rxn_graph_empty
 
 class ReactionInNetwork:
@@ -50,7 +48,7 @@ class ReactionInNetwork:
         self.bond_mapping = bond_mapping
         self.reaction_graph, self.zero_feats = construct_rxn_graph_empty(
             mappings={"total_bonds": total_bonds, "total_atoms": total_atoms},
-            self_loop=True, ret_feats=True, device="cuda"
+            self_loop=True, ret_feats=True
         )
         
 

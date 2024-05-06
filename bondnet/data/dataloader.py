@@ -1,9 +1,6 @@
 import torch
 import dgl
-import itertools
 from torch.utils.data import DataLoader
-import numpy as np 
-import torch.autograd.profiler as profiler
 from bondnet.data.reaction_network import ReactionInNetwork
 
 
@@ -22,7 +19,7 @@ class DataLoaderReaction(DataLoader):
                 "provide one"
             )
 
-        self.device = dataset.device
+        #self.device = dataset.device
 
         def collate(samples):
             # reaction_graph, reaction_features, labels = map(list, zip(*samples))  # old
@@ -253,7 +250,7 @@ def get_batch_indices_mapping(batch_indices, reactant_ids, atom_bond_map, atom_b
     #if len(sorted_values_concat) != len(matches):
     #    raise ValueError("Length of sorted_values_concat and matches must be equal.")
     # convert sorted_values_concat to array of ints
-    sorted_values_concat = sorted_values_concat.int()
+    sorted_values_concat = sorted_values_concat.long()
 
     #print(matches.shape, sorted_values_concat.shape)
     #print(atom_bond_map)
@@ -261,7 +258,6 @@ def get_batch_indices_mapping(batch_indices, reactant_ids, atom_bond_map, atom_b
     #print(sorted_values_concat)
     indices_full[sorted_values_concat] = matches
     return indices_full
-
 
 
 def create_batched_reaction_data(
