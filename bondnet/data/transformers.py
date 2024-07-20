@@ -208,7 +208,10 @@ class HeteroGraphFeatureStandardScaler:
         dtype = node_feats[node_types[0]][0].dtype
 
         # standardize
+        #print("Heterograph Scaler: Standardizing node features.")
+        #print(self._mean, self._std)
         if self._mean is not None and self._std is not None:
+            #print("Heterograph Scaler: Using provided mean and std for standardization.")
             for nt in node_types:
                 feats = (torch.cat(node_feats[nt]) - self._mean[nt]) / self._std[nt]
                 node_feats[nt] = feats

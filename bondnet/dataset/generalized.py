@@ -1100,7 +1100,9 @@ def create_reaction_network_files_and_valid_rows(
         # finding upper and lower whiskers
         upper_bound = q3 + (2.0 * iqr)
         lower_bound = q1 - (2.0 * iqr)
+        
     #print("extra keys: ", extra_keys)
+        
     with ProcessPool(max_workers=12, max_tasks=10) as pool:
         for ind, row in mg_df.iterrows():
             future = pool.schedule(
