@@ -306,6 +306,8 @@ class ReactionDatasetGraphs(BaseDataset):
         dataset_atom_types=None,
         extra_info=None,
         species=["C", "F", "H", "N", "O", "Mg", "Li", "S", "Cl", "P", "O", "Br"],
+        scaler_info=None,
+
     ):
         if dtype not in ["float32", "float64"]:
             raise ValueError(f"`dtype {dtype}` should be `float32` or `float64`.")
@@ -343,10 +345,19 @@ class ReactionDatasetGraphs(BaseDataset):
         self.extra_keys = extra_keys
         self._feature_size = None
         self._feature_name = None
-        self._feature_scaler_mean = None
-        self._feature_scaler_std = None
-        self._label_scaler_mean = None
-        self._label_scaler_std = None
+
+        if scaler_info is not None:
+            #print("using provided mean and std for standardization")
+            self._feature_scaler_mean = scaler_info["feature_scaler_mean"]
+            self._feature_scaler_std = scaler_info["feature_scaler_std"]
+            self._label_scaler_mean = scaler_info["label_scaler_mean"]
+            self._label_scaler_std = scaler_info["label_scaler_std"]
+        else:
+            self._feature_scaler_mean = None
+            self._feature_scaler_std = None
+            self._label_scaler_mean = None
+            self._label_scaler_std = None
+            
         self._species = species
         self._elements = dataset_atom_types
         self._failed = None
@@ -359,7 +370,6 @@ class ReactionDatasetGraphs(BaseDataset):
         logger.info("Start loading dataset")
 
         # get molecules, labels, and extra features
-        molecules = self.get_molecules(self.molecules)
         raw_labels = self.get_labels(self.raw_labels)
         
         #if self.extra_features is not None:
@@ -376,6 +386,7 @@ class ReactionDatasetGraphs(BaseDataset):
         # get species
         # species = get_dataset_species_from_json(self.pandas_df)
         if self._species is None:
+            #self.molecules = self.get_molecules(self.molecules)
             system_species = set()
             for mol in self.molecules:
                 species = list(set(mol.species))
@@ -397,15 +408,22 @@ class ReactionDatasetGraphs(BaseDataset):
             graphs
         ), "Some graphs are invalid in construction, this should not happen"
         # store feature name and size
+
         self._feature_name = self.grapher.feature_name
         self._feature_size = self.grapher.feature_size
+
         logger.info("Feature name: {}".format(self.feature_name))
         logger.info("Feature size: {}".format(self.feature_size))
 
         # feature transformers
         if self.feature_transformer:
-            if self.state_dict_filename is None:
+
+            
+            if self.state_dict_filename is None or (
+                self._feature_scaler_mean is not None and self._feature_scaler_std is not None
+                ):
                 feature_scaler = HeteroGraphFeatureStandardScaler(mean=None, std=None)
+            
             else:
                 assert (
                     self._feature_scaler_mean is not None
@@ -431,6 +449,10 @@ class ReactionDatasetGraphs(BaseDataset):
             if self.state_dict_filename is None:
                 self._feature_scaler_mean = feature_scaler.mean
                 self._feature_scaler_std = feature_scaler.std
+
+            print("Feature scaler mean: " + str(self._feature_scaler_mean))
+            print("Feature scaler std: " + str(self._feature_scaler_std))
+
 
             logger.info(f"Feature scaler mean: {self._feature_scaler_mean}")
             logger.info(f"Feature scaler std: {self._feature_scaler_std}")
@@ -526,10 +548,17 @@ class ReactionDatasetGraphs(BaseDataset):
             values_rev = torch.stack([lb["value_rev"] for lb in self.labels])
 
             if self.state_dict_filename is None:
-                mean = torch.mean(values)
-                std = torch.std(values)
-                self._label_scaler_mean = mean
-                self._label_scaler_std = std
+                if self._label_scaler_mean is None and self._label_scaler_std is None:
+                    mean = torch.mean(values)
+                    std = torch.std(values)
+                    self._label_scaler_mean = mean
+                    self._label_scaler_std = std
+                else: 
+                    #print("using provided mean and std for standardization")
+                    mean = self._label_scaler_mean
+                    std = self._label_scaler_std
+
+
             else:
                 assert (
                     self._label_scaler_mean is not None

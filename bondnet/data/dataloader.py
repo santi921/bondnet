@@ -252,7 +252,7 @@ def get_batch_indices_mapping(batch_indices, reactant_ids, atom_bond_map, atom_b
     # convert sorted_values_concat to array of ints
     sorted_values_concat = sorted_values_concat.long()
 
-    #print(matches.shape, sorted_values_concat.shape)
+    #print(indices_full.shape, matches.shape, sorted_values_concat.shape)
     #print(atom_bond_map)
     #print(matches)
     #print(sorted_values_concat)
