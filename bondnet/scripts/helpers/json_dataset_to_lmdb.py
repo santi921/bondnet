@@ -89,6 +89,7 @@ if __name__ == "__main__":
         filter_outliers=config["filter_outliers"],
         filter_sparse_rxns=False,
         debug=debug,
+        species=config["species"],
         extra_keys=extra_keys,
         extra_info=config["extra_info"],
     )
