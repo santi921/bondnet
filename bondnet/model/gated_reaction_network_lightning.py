@@ -309,9 +309,9 @@ class GatedGCNReactionNetworkLightning(pl.LightningModule):
             2D tensor: of shape(N, M), where `M = outdim`.
         """
 
-        if reverse:
-            for key in feats:
-                feats[key] = -1 * feats[key]
+        #if reverse:
+        #    for key in feats:
+        #        feats[key] = -1 * feats[key]
 
         # embedding
         feats = self.embedding(feats)
