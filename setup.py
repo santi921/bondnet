@@ -37,8 +37,6 @@ setup(
     scripts=[
         "./bondnet/scripts/training/lightning_bayes_opt.py",
         "./bondnet/scripts/training/lightning_train.py",
-        "./bondnet/scripts/training/lightning_controller.py",
-        "./bondnet/scripts/training/lightning_generate_settings.py",
         "./bondnet/scripts/training/launch_sbatch.py",
         "./bondnet/scripts/helpers/json_dataset_to_lmdb.py",
     ],
