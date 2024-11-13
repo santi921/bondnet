@@ -52,5 +52,4 @@ Data for the generalized model should provide the model a json/bson with a few c
 
 Note on atom mapping: there is no explicit atom mappings used by this variant of bondnet, we assume that the user handles that such a bond [0, 10] in products and a bond [0, 10] in the reactants are between the same atoms. The user has to ensure atom mapping is consistent between bonds on each side of the reaction AND that the pymatgen objects and extra features follow this ordering as well 
 
-# Train the model
-# TODO
+
