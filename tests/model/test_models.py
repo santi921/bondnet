@@ -667,5 +667,3 @@ def test_profiler():
 
     trainer.fit(model, dm)
 
-
-test_augmentation()
