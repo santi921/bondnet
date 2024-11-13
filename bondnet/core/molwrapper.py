@@ -605,7 +605,7 @@ def rdkit_mol_to_wrapper_mol(m, charge=None, free_energy=None, identifier=None):
 
     charge = Chem.GetFormalCharge(m) if charge is None else charge
 
-    pymatgen_mol = pymatgen.Molecule(species, coords, charge)
+    pymatgen_mol = pymatgen.core.structure.Molecule(species, coords, charge)
     mol_graph = MoleculeGraph.with_edges(pymatgen_mol, bonds)
     #mol_graph = with_edges(pymatgen_mol, bonds)
 
