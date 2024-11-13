@@ -5,7 +5,7 @@ from bondnet.model.training_utils import (
     load_model_lightning,
 )
 from bondnet.data.datamodule import BondNetLightningDataModule, BondNetLightningDataModuleLMDB
-from bondnet.data.utils import process_batch_mol_rxn
+from bondnet.data.utils import process_batch_mol_rxn, mol_graph_to_rxn_graph
 
 from bondnet.model.gated_reaction_network_lightning import (
     GatedGCNReactionNetworkLightning,
@@ -15,7 +15,7 @@ from bondnet.test_utils import get_defaults
 # suppress warnings
 import warnings
 import time 
-
+from copy import deepcopy
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings(
@@ -26,9 +26,7 @@ warnings.filterwarnings(
 )
 torch.set_float32_matmul_precision("medium")  # might have to disable on older GPUs
 torch.multiprocessing.set_sharing_strategy("file_system")
-#torch.backends.cudnn.benchmark = True
-#torch.backends.cudnn.allow_tf32 = True
-#torch.backends.cuda.matmul.allow_tf32 = True
+
 
 
 def test_model_construction():
@@ -148,7 +146,6 @@ def test_model_save_load():
     print("done testing")
     assert type(model_restart) == GatedGCNReactionNetworkLightning
     
-
 
 def test_model_set2set():
     dataset_loc = "../data/testdata/barrier_100.json"
@@ -274,7 +271,6 @@ def test_model_attention():
     print("time for attention", delta_time)
 
 
-
 def test_transfer_learning():
     dataset_loc = "../data/testdata/barrier_100.json"
 
@@ -388,7 +384,7 @@ def test_augmentation():
         },
         "optim": {
             "val_size": 0.1,
-            "test_size": 0.1,
+            "test_size": 0.5,
             "batch_size": 64,
             "num_workers": 0,
             "pin_memory": False,
@@ -412,33 +408,42 @@ def test_augmentation():
 
     nodes = ["atom", "bond", "global"]
 
-    for it, (batched_graph, label) in enumerate(dm.test_dataloader()):
-        feats = {nt: batched_graph.nodes[nt].data["ft"] for nt in nodes}
-        target = label["value"].view(-1)
-        target_aug = label["value_rev"].view(-1)
+    for it, (batched_graph, batched_labels, batch_data) in enumerate(dm.test_dataloader()):
 
-        reactions = label["reaction"]
+        # test label augmentation
+        target = batched_labels["value"].view(-1)
+        target_aug = batched_labels["value_rev"].view(-1)
+        assert not torch.allclose(target, target_aug, atol=1e-3, rtol=0)
+
+        nodes = ["atom", "bond", "global"]
+        feats = {nt: batched_graph.nodes[nt].data["ft"] for nt in nodes}
+        device = feats["bond"].device
         
-        # graphs and reverse_graphs are the same
-        rxn_graph, rxn_feats = mol_graph_to_rxn_graph(
-            batched_graph,
-            feats,
-            reactions,
+        reactions= len(batched_labels["value"].view(-1))
+        
+        feats_for = process_batch_mol_rxn(
+            feats = feats,
+            reactions = reactions,
+            device = device,
+            batch_data=batch_data, 
+            reverse=False,
             reactant_only=False,
         )
 
-        rxn_graph_rev, rxn_feats_rev = mol_graph_to_rxn_graph(
-            batched_graph,
-            feats,
-            reactions,
-            reactant_only=False,
+        
+        feats_rev = process_batch_mol_rxn(
+            feats = feats,
+            reactions = reactions,
+            device = device,
+            batch_data=batch_data, 
             reverse=True,
+            reactant_only=False,
         )
 
         for node_type in nodes:
-            assert torch.allclose(rxn_feats[node_type], -rxn_feats_rev[node_type], atol=1e-3, rtol=0)
+            assert torch.allclose(feats_for[node_type], -feats_rev[node_type], atol=1e-3, rtol=0)
         
-        assert not torch.allclose(target, target_aug, atol=1e-3, rtol=0)
+        
 
 def test_lmdb():
 
@@ -663,8 +668,4 @@ def test_profiler():
     trainer.fit(model, dm)
 
 
-# new bondnet times
-
-# time for set2set 8.181310653686523
-# time for attention 6.96621036529541
-# time for mean 9.632676362991333
+test_augmentation()
